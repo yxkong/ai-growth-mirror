@@ -9,7 +9,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from ..assets import TEMPLATES_DIR
+from ..assets import ASSETS_DIR, TEMPLATES_DIR
 from ..product import CLI_NAME, SNAPSHOT_ARCHIVE_DIRNAME
 from .i18n.catalog import load_catalog
 
@@ -114,7 +114,10 @@ def compare_snapshots(
     if output_path is None:
         output_path = comparisons_root / f"{left_snapshot_id}__vs__{right_snapshot_id}.html"
 
-    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
+    env = Environment(
+        loader=FileSystemLoader([str(TEMPLATES_DIR), str(ASSETS_DIR)]),
+        autoescape=True,
+    )
     template = env.get_template("snapshot_compare.html.j2")
     html = template.render(
         comparison=comparison,

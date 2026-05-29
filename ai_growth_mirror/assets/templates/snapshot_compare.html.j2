@@ -27,6 +27,16 @@
     .hero {
       color: white;
     }
+    .hero-brand {
+      width: min(320px, 100%);
+      margin-bottom: 14px;
+      line-height: 0;
+    }
+    .hero-brand svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
     .hero h1 { margin: 0 0 10px; font-size: 34px; }
     .hero p { margin: 0; color: rgba(255,255,255,0.88); }
     .grid-2, .grid-3 {
@@ -64,6 +74,9 @@
 <body>
   <div class="page">
     <section class="hero">
+      <div class="hero-brand" aria-label="AI Growth Mirror">
+        {% include 'logo/ai-growth-mirror-logo-horizontal.svg' %}
+      </div>
       <h1>{{ labels.snapshot_hero_title }}</h1>
       <p>{{ comparison.headline }}</p>
     </section>

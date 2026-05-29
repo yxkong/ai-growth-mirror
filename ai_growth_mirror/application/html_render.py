@@ -7,14 +7,17 @@ from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from ..assets import TEMPLATES_DIR
+from ..assets import ASSETS_DIR, TEMPLATES_DIR
 
 if TYPE_CHECKING:
     from .report_view import PersonalReportView
 
 
 def _jinja_env() -> Environment:
-    return Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
+    return Environment(
+        loader=FileSystemLoader([str(TEMPLATES_DIR), str(ASSETS_DIR)]),
+        autoescape=True,
+    )
 
 
 def render_personal_report_html(

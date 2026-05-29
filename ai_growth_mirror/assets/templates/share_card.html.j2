@@ -45,6 +45,16 @@
       pointer-events: none;
     }
     .hero > * { position: relative; z-index: 1; }
+    .hero-brand {
+      width: min(320px, 92%);
+      margin-bottom: 12px;
+      line-height: 0;
+    }
+    .hero-brand svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
     .hero h1 {
       margin: 8px 0 10px;
       font-size: 34px;
@@ -135,6 +145,9 @@
   <div class="page">
     <article class="card">
       <section class="hero">
+        <div class="hero-brand" aria-label="AI Growth Mirror">
+          {% include 'logo/ai-growth-mirror-logo-horizontal.svg' %}
+        </div>
         <div class="eyebrow">{{ labels.share_eyebrow }}</div>
         <h1>{{ share_card.title or labels.share_page_title }}</h1>
         <p>{{ payload.report_title }} · {{ payload.tool_display_name }}</p>

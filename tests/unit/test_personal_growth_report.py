@@ -628,6 +628,7 @@ def test_render_personal_report_html_escapes_untrusted_content():
     html = render_personal_report_html(view=view, language="zh", redact=False)
     assert xss_payload not in html
     assert "&lt;script&gt;" in html
+    assert "AI Growth Mirror logo" in html
 
 
 def test_generate_personal_report_redact_hides_project_names(tmp_path: Path):

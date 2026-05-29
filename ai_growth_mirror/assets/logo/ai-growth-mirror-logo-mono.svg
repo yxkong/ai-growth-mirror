@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">AI Growth Mirror monochrome mark</title>
+  <rect width="1024" height="1024" rx="236" fill="#0F172A"/>
+  <path d="M512 122C660.8 122 781 242.2 781 391V585C781 733.8 660.8 854 512 854C363.2 854 243 733.8 243 585V391C243 242.2 363.2 122 512 122Z"
+        fill="none" stroke="#FFFFFF" stroke-width="44"/>
+  <polygon points="512,275 676,394 614,586 410,586 348,394" stroke="#FFFFFF" stroke-opacity="0.32" stroke-width="8" fill="none"/>
+  <polygon points="512,310 641,408 594,548 432,556 385,413" fill="#FFFFFF" fill-opacity="0.16" stroke="#FFFFFF" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M337 659C394 622 421 576 473 575C528 574 545 626 597 602C650 578 671 511 709 445"
+        stroke="#FFFFFF" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M676 442L722 423L724 474" stroke="#FFFFFF" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="365" cy="650" r="22" fill="#0F172A" stroke="#FFFFFF" stroke-width="12"/>
+  <circle cx="474" cy="575" r="22" fill="#0F172A" stroke="#FFFFFF" stroke-width="12"/>
+  <circle cx="598" cy="601" r="22" fill="#0F172A" stroke="#FFFFFF" stroke-width="12"/>
+  <circle cx="708" cy="445" r="22" fill="#0F172A" stroke="#FFFFFF" stroke-width="12"/>
+</svg>

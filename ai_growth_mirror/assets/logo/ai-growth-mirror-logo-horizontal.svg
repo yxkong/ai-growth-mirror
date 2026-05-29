@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1800" height="540" viewBox="0 0 1800 540" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AI Growth Mirror horizontal logo</title>
+  <desc id="desc">Horizontal logo lockup for AI Growth Mirror / AI 成长镜.</desc>
+  <defs>
+    <linearGradient id="markBg" x1="50" y1="36" x2="450" y2="488" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FAF8FF"/>
+      <stop offset="0.48" stop-color="#EEF2FF"/>
+      <stop offset="1" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <linearGradient id="stroke" x1="137" y1="58" x2="372" y2="455" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C3AED"/>
+      <stop offset="0.52" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="word" x1="540" y1="120" x2="1410" y2="245" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6D28D9"/>
+      <stop offset="0.55" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="growth" x1="160" y1="355" x2="365" y2="205" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="0.55" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <filter id="shadow" x="20" y="8" width="490" height="520" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#7C3AED" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="1800" height="540" rx="64" fill="#FFFFFF"/>
+
+  <g filter="url(#shadow)">
+    <rect x="62" y="42" width="420" height="420" rx="118" fill="url(#markBg)"/>
+    <path d="M270 80C343 80 402 139 402 212V292C402 365 343 424 270 424C197 424 138 365 138 292V212C138 139 197 80 270 80Z"
+          fill="white" fill-opacity="0.82" stroke="url(#stroke)" stroke-width="18"/>
+    <polygon points="270,145 347,202 318,292 222,292 193,202" stroke="#7C3AED" stroke-opacity="0.18" stroke-width="5" fill="none"/>
+    <polygon points="270,176 316,210 299,264 241,264 224,210" stroke="#7C3AED" stroke-opacity="0.18" stroke-width="4" fill="none"/>
+    <polygon points="270,160 331,208 309,274 232,278 210,210" fill="#7C3AED" fill-opacity="0.13" stroke="#7C3AED" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M172 344C203 322 218 298 247 298C279 298 289 328 318 314C347 300 357 263 378 227"
+          stroke="url(#growth)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M360 225L383 216L385 241" stroke="#3B82F6" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="173" cy="344" r="11" fill="#10B981" stroke="white" stroke-width="5"/>
+    <circle cx="247" cy="298" r="10" fill="#7C3AED" stroke="white" stroke-width="5"/>
+    <circle cx="318" cy="314" r="10" fill="#A78BFA" stroke="white" stroke-width="5"/>
+    <circle cx="378" cy="227" r="11" fill="#3B82F6" stroke="white" stroke-width="5"/>
+  </g>
+
+  <g>
+    <text x="555" y="202" font-family="Inter, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif"
+          font-size="82" font-weight="850" letter-spacing="-3" fill="url(#word)">AI Growth Mirror</text>
+    <text x="560" y="292" font-family="Inter, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif"
+          font-size="44" font-weight="760" letter-spacing="3" fill="#0F172A">AI 成长镜</text>
+    <text x="560" y="355" font-family="Inter, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif"
+          font-size="28" font-weight="560" fill="#64748B">See your AI collaboration pattern. Grow with evidence.</text>
+    <path d="M560 391H1045" stroke="#E0E7FF" stroke-width="6" stroke-linecap="round"/>
+    <path d="M560 391H805" stroke="url(#word)" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

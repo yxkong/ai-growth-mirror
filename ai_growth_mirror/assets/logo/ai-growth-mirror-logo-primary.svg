@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AI Growth Mirror logo</title>
+  <desc id="desc">A rounded mirror mark containing a five-axis radar, growth line, and AI nodes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="126" y1="102" x2="898" y2="922" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FAF8FF"/>
+      <stop offset="0.46" stop-color="#EEF2FF"/>
+      <stop offset="1" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <linearGradient id="mirrorStroke" x1="275" y1="149" x2="746" y2="855" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C3AED"/>
+      <stop offset="0.54" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="growth" x1="315" y1="680" x2="720" y2="270" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="0.55" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 420) rotate(90) scale(410)">
+      <stop offset="0" stop-color="#A78BFA" stop-opacity="0.46"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="98" y="74" width="828" height="888" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="32" stdDeviation="38" flood-color="#7C3AED" flood-opacity="0.22"/>
+    </filter>
+    <filter id="soft" x="0" y="0" width="1024" height="1024" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.2"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="236" fill="url(#bg)"/>
+  <circle cx="512" cy="420" r="410" fill="url(#glow)"/>
+  <circle cx="182" cy="166" r="92" fill="#7C3AED" fill-opacity="0.12"/>
+  <circle cx="842" cy="214" r="126" fill="#3B82F6" fill-opacity="0.10"/>
+  <circle cx="812" cy="820" r="110" fill="#10B981" fill-opacity="0.10"/>
+
+  <!-- mirror body -->
+  <g filter="url(#shadow)">
+    <path d="M512 122C660.8 122 781 242.2 781 391V585C781 733.8 660.8 854 512 854C363.2 854 243 733.8 243 585V391C243 242.2 363.2 122 512 122Z"
+          fill="white" fill-opacity="0.82"/>
+    <path d="M512 122C660.8 122 781 242.2 781 391V585C781 733.8 660.8 854 512 854C363.2 854 243 733.8 243 585V391C243 242.2 363.2 122 512 122Z"
+          stroke="url(#mirrorStroke)" stroke-width="34"/>
+    <path d="M316 220C365 173 434 146 512 146C660 146 757 263 757 391V580"
+          stroke="white" stroke-width="18" stroke-linecap="round" opacity="0.55"/>
+  </g>
+
+  <!-- inner mirror shine -->
+  <path d="M333 304C371 225 450 183 529 190C616 197 683 248 718 320"
+        stroke="#E0E7FF" stroke-width="16" stroke-linecap="round" opacity="0.9"/>
+  <path d="M309 399C309 274 399 183 512 183C625 183 715 274 715 399V578C715 703 625 794 512 794C399 794 309 703 309 578V399Z"
+        stroke="#EEF2FF" stroke-width="4" opacity="0.8"/>
+
+  <!-- radar grid: five capabilities -->
+  <g opacity="0.86" filter="url(#soft)">
+    <polygon points="512,275 676,394 614,586 410,586 348,394" stroke="#7C3AED" stroke-opacity="0.17" stroke-width="6" fill="none"/>
+    <polygon points="512,327 625,409 582,541 442,541 399,409" stroke="#7C3AED" stroke-opacity="0.16" stroke-width="4" fill="none"/>
+    <polygon points="512,379 574,424 551,496 473,496 450,424" stroke="#7C3AED" stroke-opacity="0.16" stroke-width="3" fill="none"/>
+    <line x1="512" y1="470" x2="512" y2="275" stroke="#7C3AED" stroke-opacity="0.16" stroke-width="4"/>
+    <line x1="512" y1="470" x2="676" y2="394" stroke="#7C3AED" stroke-opacity="0.16" stroke-width="4"/>
+    <line x1="512" y1="470" x2="614" y2="586" stroke="#7C3AED" stroke-opacity="0.16" stroke-width="4"/>
+    <line x1="512" y1="470" x2="410" y2="586" stroke="#7C3AED" stroke-opacity="0.16" stroke-width="4"/>
+    <line x1="512" y1="470" x2="348" y2="394" stroke="#7C3AED" stroke-opacity="0.16" stroke-width="4"/>
+    <polygon points="512,310 641,408 594,548 432,556 385,413" fill="#7C3AED" fill-opacity="0.13" stroke="#7C3AED" stroke-width="9" stroke-linejoin="round"/>
+  </g>
+
+  <!-- growth trajectory -->
+  <path d="M337 659C394 622 421 576 473 575C528 574 545 626 597 602C650 578 671 511 709 445"
+        stroke="url(#growth)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M676 442L722 423L724 474" stroke="#3B82F6" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M337 659C394 622 421 576 473 575C528 574 545 626 597 602C650 578 671 511 709 445"
+        stroke="white" stroke-width="10" stroke-opacity="0.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- AI node constellation -->
+  <g>
+    <circle cx="365" cy="650" r="22" fill="#10B981" stroke="white" stroke-width="9"/>
+    <circle cx="474" cy="575" r="20" fill="#7C3AED" stroke="white" stroke-width="9"/>
+    <circle cx="598" cy="601" r="20" fill="#A78BFA" stroke="white" stroke-width="9"/>
+    <circle cx="708" cy="445" r="22" fill="#3B82F6" stroke="white" stroke-width="9"/>
+    <path d="M662 287L675 323L711 336L675 349L662 385L649 349L613 336L649 323L662 287Z" fill="#F59E0B"/>
+    <path d="M370 289L379 314L404 323L379 332L370 357L361 332L336 323L361 314L370 289Z" fill="#A78BFA"/>
+  </g>
+
+  <!-- base reflection line -->
+  <path d="M389 774C425 796 467 807 512 807C557 807 599 796 635 774"
+        stroke="#CBD5E1" stroke-width="18" stroke-linecap="round" opacity="0.58"/>
+</svg>
