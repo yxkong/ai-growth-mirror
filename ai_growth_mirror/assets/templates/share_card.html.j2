@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="{{ 'zh-CN' if language == 'zh' else 'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ labels.share_page_title }}</title>
+  <style>
+    {% include 'partials/report_theme.css.j2' %}
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(760px, 100%);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .hero {
+      padding: 28px 28px 18px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      right: -60px;
+      top: -80px;
+      background: radial-gradient(circle, rgba(124,58,237,0.24) 0%, transparent 68%);
+      pointer-events: none;
+    }
+    .hero > * { position: relative; z-index: 1; }
+    .hero h1 {
+      margin: 8px 0 10px;
+      font-size: 34px;
+      line-height: 1.15;
+    }
+    .hero p {
+      margin: 0;
+      color: rgba(255,255,255,0.88);
+    }
+    .eyebrow {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .chip {
+      background: var(--hero-chip-bg);
+      border: 1px solid var(--hero-chip-border);
+      color: var(--hero-chip-ink);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.08);
+    }
+    .body {
+      padding: 24px 28px 28px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+      padding: 16px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.72),
+        0 8px 18px rgba(124, 58, 237, 0.06);
+    }
+    .panel h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .panel p {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .summary {
+      background: var(--accent-soft);
+      border: 1px solid var(--note-border);
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .summary h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+    .summary ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .summary li {
+      margin-bottom: 8px;
+    }
+    .headline {
+      margin: 0 0 18px;
+      font-size: 16px;
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <article class="card">
+      <section class="hero">
+        <div class="eyebrow">{{ labels.share_eyebrow }}</div>
+        <h1>{{ share_card.title or labels.share_page_title }}</h1>
+        <p>{{ payload.report_title }} · {{ payload.tool_display_name }}</p>
+        <div class="hero-meta">
+          <span class="chip">{{ labels.label_stage }}: {{ share_card.stage }}</span>
+          <span class="chip">{{ labels.label_score }}: {{ share_card.score_display }}</span>
+          <span class="chip">{{ payload.date_range }}</span>
+        </div>
+      </section>
+      <section class="body">
+        <p class="headline">{{ share_card.headline }}</p>
+        <div class="grid">
+          <div class="panel">
+            <h3>{{ labels.share_stage_label }}</h3>
+            <p>{{ share_card.stage }}</p>
+          </div>
+          <div class="panel">
+            <h3>{{ labels.share_strongest_habit_label }}</h3>
+            <p>{{ share_card.strongest_habit }}</p>
+          </div>
+          <div class="panel">
+            <h3>{{ labels.share_breakthrough_label }}</h3>
+            <p>{{ share_card.current_breakthrough }}</p>
+          </div>
+        </div>
+        <section class="summary">
+          <h2>{{ labels.share_summary_title }}</h2>
+          <ul>
+            {% for line in share_card.lines %}
+            <li>{{ line }}</li>
+            {% endfor %}
+          </ul>
+        </section>
+      </section>
+    </article>
+  </div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{# report_language or language: "zh" | "en" — output locale only #}
+{% set report_language = report_language | default(language, true) %}
+## Output language
+{% if report_language == 'zh' %}
+- All natural-language content in the output must be in Simplified Chinese (简体中文).
+{% else %}
+- All natural-language content in the output must be in English.
+{% endif %}
+- Keep JSON keys and closed taxonomy / enum tokens exactly as specified.
+- Quoted user text may stay in the user's original language.
+{% if report_language == 'zh' %}
+- Prefer Chinese for free-text labels (e.g. 上下文完备度, 任务表达), not English slugs.
+{% endif %}

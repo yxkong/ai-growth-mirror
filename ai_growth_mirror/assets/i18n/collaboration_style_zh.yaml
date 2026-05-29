@@ -1,0 +1,62 @@
+archetype:
+  name_pattern: "{planning}{orchestration}型"
+  tag_pattern: "{evidence}×{reuse}"
+
+poles:
+  planning:
+    high: "构图"
+    low: "直切"
+  orchestration:
+    high: "编排"
+    low: "盯盘"
+  evidence:
+    high: "证据"
+    low: "结论"
+  reuse:
+    high: "资产"
+    low: "冲刺"
+
+dimensions:
+  planning:
+    label: "启动方式"
+    left_pole: "构图式"
+    right_pole: "直切式"
+    interpretation_high: "更偏先铺好问题地图再推进"
+    interpretation_low: "更偏快速切入再边做边收敛"
+  orchestration:
+    label: "推进方式"
+    left_pole: "编排式"
+    right_pole: "盯盘式"
+    interpretation_high: "更偏给 AI 分段推进和组合能力"
+    interpretation_low: "更偏自己持续盯住关键步骤"
+  evidence:
+    label: "收口方式"
+    left_pole: "证据式"
+    right_pole: "结论式"
+    interpretation_high: "更偏用验证结果决定是否收口"
+    interpretation_low: "更偏基于结论判断任务是否完成"
+  reuse:
+    label: "复用方式"
+    left_pole: "资产式"
+    right_pole: "冲刺式"
+    interpretation_high: "更偏把好方法沉淀下来复用"
+    interpretation_low: "更偏先冲完成度，沉淀动作较少"
+
+strengths:
+  planning: "你会先搭问题框架，再让 AI 动手。"
+  orchestration: "你已经开始把 AI 当成多路径协作者，而不是单轮问答工具。"
+  evidence: "你更愿意用验证结果来收口，这会显著降低返工。"
+  reuse: "你具备方法资产化倾向，容易沉淀出可复用工作法。"
+  fallback: "你的协作节奏很实战，愿意快速推进真实任务。"
+
+growth:
+  planning: "复杂任务先冻结目标、边界和验收，不要边做边猜。"
+  orchestration: "开始有意识地判断什么时候该搜索、委托或拆并行路径。"
+  evidence: "把验证从偶发动作升级为默认收口步骤。"
+  reuse: "每周至少把一个高频动作沉淀成模板、清单或 Skill 草稿。"
+
+narrative:
+  slogan: "你不是在单次用 AI，而是在慢慢长出自己的协作操作系统。"
+  description: "当前更接近“{archetype_name}”的协作风格。你最显著的差异，不在于会不会用工具，而在于你如何启动任务、如何让 AI 推进、如何判断能不能收口，以及会不会把有效做法留下来。"
+  description_evidence_low: " 当前最大的升级空间通常不在更多工具，而在更强的证据收口。"
+  description_reuse_low: " 你已经能做出结果，下一步要把结果变成可复用方法。"

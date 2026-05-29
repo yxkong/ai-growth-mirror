@@ -1,0 +1,13 @@
+Prompt-lens evidence packet:
+- Tool surface: {{ tool_display_name }}
+- Project context: {{ project_path }}
+- Session duration: {{ duration_minutes or "unknown" }} minutes
+- User turns: {{ user_message_count }}
+- Assistant turns: {{ assistant_message_count }}
+- Delivery outcome: {{ outcome }}
+- Explicit course-correction observed: {{ had_course_correction }}
+
+Numbered user turns:
+{{ numbered_user_messages }}
+
+Evaluate the user's prompt lens and return JSON only.

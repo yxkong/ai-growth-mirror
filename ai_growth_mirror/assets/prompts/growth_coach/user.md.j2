@@ -1,0 +1,57 @@
+Period summary packet ({{ period_label }}):
+
+- Growth level: {{ growth_level or 'N/A' }}
+- Mirror score: {{ mirror_score }}/100
+- Sessions: {{ session_count }}
+- Active days: {{ active_days }}
+- Tool surface: {{ tool_display_name }}
+- Average autonomous chain: {{ avg_chain }}
+- Heavy sessions: {{ heavy_session_count }}
+
+Five-axis scores:
+- intent_clarity: {{ '%.1f'|format(capability_scores.intent_clarity) }}
+- execution_driving: {{ '%.1f'|format(capability_scores.execution_driving) }}
+- implementation_depth: {{ '%.1f'|format(capability_scores.implementation_depth) }}
+- delivery_closure: {{ '%.1f'|format(capability_scores.delivery_closure) }}
+- adaptive_recovery: {{ '%.1f'|format(capability_scores.adaptive_recovery) }}
+
+Execution and capability signals:
+- mcp_session_rate_pct: {{ mcp_session_rate_pct }}
+- subagent_session_count: {{ subagent_session_count }}
+- skill_authored_count: {{ skill_authored_count }}
+- hook_modified_session_count: {{ hook_modified_session_count }}
+- mcp_authored_session_count: {{ mcp_authored_session_count }}
+
+Outcome counts:
+{% for outcome, count in outcome_counts.items() %}
+- {{ outcome }}: {{ count }}
+{% endfor %}
+
+Top resistance categories:
+{% for ftype, count in top_friction[:5] %}
+- {{ ftype }}: {{ count }}
+{% endfor %}
+
+Prompt lens summary:
+{% if pq_sessions_evaluated > 0 %}
+- evaluated_sessions: {{ pq_sessions_evaluated }}
+- weakest_dimension: {{ weakest_pq_dim }}
+- weakest_dimension_score: {{ '%.1f'|format(weakest_pq_score) }}
+- average_efficiency: {{ '%.1f'|format(pq_avg_efficiency) }}
+{% else %}
+- prompt_lens_source: fallback
+- constraint_rate_pct: {{ constraint_rate_pct }}
+- context_rate_pct: {{ context_rate_pct }}
+{% endif %}
+
+Priority keys selected by the product:
+{% for area in priority_keys %}
+- {{ area }}
+{% endfor %}
+
+Write the output in the tone of:
+- a calm reflection partner for AI-assisted work,
+- focused on behavioral evidence and trainable next steps,
+- never sounding like a manager, evaluator, or BI dashboard.
+
+Generate the coaching JSON now.

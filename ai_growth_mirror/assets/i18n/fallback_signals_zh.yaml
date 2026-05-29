@@ -1,0 +1,43 @@
+summary:
+  verified_delivery: "完成了带验证闭环的交付。"
+  implementation_progress: "围绕实现目标产生了有效修改。"
+  investigation_progress: "调试过程沉淀了可执行线索。"
+  exploratory_progress: "探索过程形成了后续可复用的上下文。"
+
+blockers:
+  tool_ceiling: "会话遇到了工具或环境上限。"
+  fuzzy_intent: "请求表述偏模糊，难以直接收敛到精确执行路径。"
+  off_track: "协作过程一度偏离主目标后才重新收敛。"
+
+accelerators:
+  verify_loop: "通过执行或测试补齐了验证闭环。"
+  planned_approach: "在改动前先形成了清晰计划。"
+  context_building: "提供了文件、报错或约束等关键上下文。"
+
+goal_text:
+  implementation: "实现与交付"
+  debugging: "调试与修复"
+  exploration: "研究与探索"
+
+synopsis_templates:
+  implementation: "{goal} 已通过修改与验证形成闭环。"
+  debugging: "{goal} 通过诊断与验证获得了明确进展。"
+  fallback: "本次会话主要聚焦于{goal}。"
+
+pq_texts:
+  effective_context_desc: "首轮已经带上关键文件、报错或代码上下文，AI 可以更快进入执行。"
+  reinforce_context_label: "继续保留首轮上下文"
+  context_what_worked: "你在任务开始时就把关键文件、现象和上下文带进来了。"
+  context_why_effective: "这能减少 AI 的猜测和补问，让第一轮输出更接近可执行结果。"
+  missing_context_desc: "首轮缺少关键文件、现象或边界，AI 需要先补问才能推进。"
+  missing_context_improvement: "把现象、相关文件、约束和验收前置到第一条消息。"
+  improve_context_label: "先补齐上下文骨架"
+  context_better_prompt: "现象：[问题]\n相关文件：[路径]\n约束：[不可改范围]\n验收：[验证方式]"
+  context_why_improve: "把上下文一次给够，才能减少返工和追问。"
+  precise_request_desc: "首轮任务目标和边界相对明确，AI 更容易直接进入执行。"
+  missing_acceptance_desc: "缺少明确验收标准时，AI 更容易过早判断“已经完成”。"
+  missing_acceptance_improvement: "补一个最小可验证的完成标准。"
+  vague_request_desc: "请求过短或过泛时，AI 更容易给方向建议而不是直接产出。"
+  vague_request_improvement: "把请求改成“定位 -> 修改 -> 验证 -> 总结”的动作序列。"
+  unclear_correction_desc: "多次打断但没有清晰边界时，纠偏成本会升高。"
+  unclear_correction_improvement: "纠偏时同时说明哪里错了、正确边界和下一步。"

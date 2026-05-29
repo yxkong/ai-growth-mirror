@@ -1,0 +1,16 @@
+# Guidance Lens labels
+pq_labels:
+  deficit:
+    vague_request: "Vague request"
+    missing_context: "Missing context"
+    late_constraint: "Late-arriving constraint"
+    unclear_correction: "Unclear correction"
+    scope_drift: "Scope drift"
+    scope_ambiguity: "Scope ambiguity"
+    missing_acceptance_criteria: "No acceptance criteria"
+    premature_detail_dump: "Late information timing"
+    assumption_not_surfaced: "Hidden assumption"
+  strength:
+    precise_request: "Precise request"
+    effective_context: "Effective context"
+    productive_correction: "Productive correction"

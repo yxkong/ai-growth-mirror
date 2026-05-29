@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="{{ 'zh-CN' if language == 'zh' else 'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ view.report_title }} - {{ view.tool_display_name }}</title>
+  <style>
+    {% include 'partials/report_theme.css.j2' %}
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      line-height: 1.6;
+      background: var(--page-bg, var(--bg));
+    }
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+    .page-shell {
+      display: block;
+    }
+    .page-main {
+      min-width: 0;
+    }
+    .report-sidebar {
+      display: none;
+    }
+    .sidebar-card {
+      border-radius: 24px;
+      padding: 18px 16px;
+      background: var(--sidebar-bg);
+      border: 1px solid var(--sidebar-border);
+      box-shadow: 0 16px 34px rgba(99, 102, 241, 0.08);
+      backdrop-filter: blur(12px);
+    }
+    .sidebar-title {
+      margin: 0 0 4px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #4338ca, #6366f1, #0ea5e9);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .sidebar-subtitle {
+      margin: 0 0 12px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-nav-link {
+      text-decoration: none;
+      color: var(--sidebar-link-ink);
+      border: 1px solid var(--sidebar-link-border);
+      background: var(--sidebar-link-bg);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      transition: all 0.18s ease;
+    }
+    .sidebar-nav-link:hover,
+    .sidebar-nav-link.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-warm) 55%, var(--accent-light) 100%);
+      border-color: transparent;
+      box-shadow: 0 10px 22px rgba(124, 58, 237, 0.24);
+    }
+    .hero {
+      border-radius: 28px;
+      padding: 32px 32px 28px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .hero > * { position: relative; z-index: 1; }
+    .hero-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.55fr);
+      gap: 22px;
+      align-items: start;
+    }
+    .hero-copy {
+      min-width: 0;
+    }
+    .hero-badge {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 20px;
+      border-radius: 22px;
+      background: linear-gradient(160deg, rgba(255,255,255,0.82) 0%, rgba(238,242,255,0.94) 72%, rgba(224,242,254,0.92) 100%);
+      border: 1px solid rgba(167, 139, 250, 0.42);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.75),
+        0 16px 30px rgba(124, 58, 237, 0.14);
+    }
+    .hero-badge-kicker {
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .hero-badge-main {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .hero-badge-level {
+      font-size: clamp(2.8rem, 6vw, 4.6rem);
+      line-height: 0.9;
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      background: var(--hero-level-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-badge-note {
+      margin-top: 4px;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      color: var(--hero-muted);
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--hero-chip-ink);
+      background: var(--hero-chip-bg);
+      border: 1px solid var(--hero-chip-border);
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 36px;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: var(--hero-ink);
+    }
+    .hero-headline {
+      margin: 0;
+      max-width: 62ch;
+      font-size: 1.02rem;
+      color: color-mix(in srgb, var(--hero-ink) 82%, var(--accent-strong));
+    }
+    .hero p { margin: 0; color: var(--hero-muted); }
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .hero-usage {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .hero-usage-card {
+      background: var(--hero-glass);
+      border: 1px solid var(--hero-glass-border);
+      border-radius: 16px;
+      padding: 14px 14px 12px;
+      box-shadow: var(--hero-card-shadow);
+    }
+    .hero-usage-label {
+      font-size: 0.78rem;
+      color: var(--hero-muted);
+      margin-bottom: 8px;
+    }
+    .hero-usage-value {
+      color: var(--hero-ink);
+      font-size: 1.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .hero-usage-detail {
+      font-size: 0.74rem;
+      color: var(--hero-muted);
+      line-height: 1.45;
+    }
+    .chip {
+      background: var(--hero-chip-bg);
+      border: 1px solid var(--hero-chip-border);
+      color: var(--hero-chip-ink);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.08);
+    }
+    .hero-meta .chip:first-child {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(167, 139, 250, 0.12));
+      border-color: rgba(124, 58, 237, 0.28);
+    }
+    .hero-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .hero-kpi {
+      background: var(--hero-glass);
+      border: 1px solid var(--hero-glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--hero-card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-kpi::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 3px;
+      background: linear-gradient(90deg, rgba(124,58,237,0.95), rgba(59,130,246,0.55));
+      opacity: 0.55;
+    }
+    .hero-kpi-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .hero-kpi-num {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 4px;
+      background: var(--hero-num-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-kpi-label { font-size: 13px; color: var(--hero-muted); }
+    .section {
+      margin-top: 22px;
+      background: var(--section-bg);
+      border: 1px solid var(--section-border);
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: 0 18px 40px rgba(124, 58, 237, 0.08);
+      backdrop-filter: blur(8px);
+      position: relative;
+      overflow: hidden;
+      scroll-margin-top: 24px;
+    }
+    .section::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 4px;
+      background: var(--section-accent);
+    }
+    .section h2 { margin: 0 0 8px; font-size: 25px; }
+    .section-sub {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .card {
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 18px;
+      background: var(--card-bg);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.78),
+        0 6px 18px rgba(15, 23, 42, 0.04);
+    }
+    .metric {
+      margin-top: 14px;
+    }
+    .metric-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .bar {
+      height: 10px;
+      background: var(--separator);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+    }
+    .small {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .muted { color: var(--muted); }
+    .list { margin: 0; padding-left: 18px; }
+    .list li { margin-bottom: 8px; }
+    .note {
+      background: var(--note-bg);
+      color: var(--ink);
+      border-radius: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--note-border);
+      margin-bottom: 16px;
+    }
+    .code {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 16px;
+      padding: 16px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 13px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--pill-bg);
+      color: var(--pill-fg);
+      font-size: 12px;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .card-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    .section-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 0;
+    }
+    .section-nav a {
+      text-decoration: none;
+      color: var(--hero-nav-ink);
+      border: 1px solid var(--hero-nav-border);
+      background: var(--hero-nav-bg);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .section-nav a:hover,
+    .section-nav a.active {
+      background: var(--hero-nav-active-bg);
+      border-color: var(--hero-nav-active-border);
+      color: var(--hero-nav-active-ink);
+      box-shadow: 0 8px 18px rgba(124, 58, 237, 0.18);
+    }
+    .overview-band {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .overview-card {
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid var(--hero-glass-border);
+      background: var(--hero-glass);
+      box-shadow: var(--hero-card-shadow);
+    }
+    .overview-card--signal {
+      background: var(--overview-signal-bg);
+      border-color: color-mix(in srgb, var(--growth) 26%, transparent);
+    }
+    .overview-card--signal h3 { color: var(--growth); }
+    .overview-card--focus {
+      background: var(--overview-focus-bg);
+      border-color: color-mix(in srgb, var(--friction) 28%, transparent);
+    }
+    .overview-card--focus h3 { color: var(--friction); }
+    .overview-card--method {
+      background: var(--overview-method-bg);
+      border-color: rgba(124, 58, 237, 0.26);
+    }
+    .overview-card--method h3 { color: var(--accent-strong); }
+    .overview-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      color: var(--hero-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .overview-card p {
+      margin: 0;
+      color: var(--hero-ink);
+      font-size: 0.95rem;
+    }
+    .overview-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--hero-ink);
+      font-size: 0.87rem;
+    }
+    .overview-list li { margin-bottom: 6px; }
+    .hero-usage-inline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .hero-usage-inline-item {
+      min-width: 0;
+      background: var(--hero-glass);
+      border: 1px solid var(--hero-glass-border);
+      border-radius: 16px;
+      padding: 14px 14px 12px;
+      box-shadow: var(--hero-card-shadow);
+    }
+    .hero-usage-inline-item:nth-child(1) { border-top: 3px solid var(--accent); }
+    .hero-usage-inline-item:nth-child(2) { border-top: 3px solid var(--accent-light); }
+    .hero-usage-inline-item:nth-child(3) { border-top: 3px solid var(--growth); }
+    .hero-usage-inline-item:nth-child(4) { border-top: 3px solid var(--friction); }
+    .hero-usage-inline-value {
+      font-size: 1.22rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 4px;
+      background: var(--hero-num-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-usage-inline-label {
+      font-size: 0.78rem;
+      color: var(--hero-muted);
+      margin-bottom: 8px;
+    }
+    .hero-usage-inline-detail {
+      font-size: 0.74rem;
+      color: var(--hero-muted);
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .usage-inline {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 22px;
+      margin-top: 16px;
+    }
+    .usage-inline-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--separator);
+    }
+    .usage-inline-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .usage-inline-value {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .usage-inline-detail {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .focus-strip {
+      margin-top: 14px;
+      padding: 14px 18px 14px 20px;
+      border-radius: 16px;
+      background: var(--hero-strip-bg);
+      border: 1px solid var(--hero-strip-border);
+      border-left: 4px solid var(--accent);
+      color: var(--hero-ink);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .usage-footnotes {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+    .usage-footnote {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: var(--hero-muted);
+    }
+    .usage-footnote--scope {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      align-items: baseline;
+      color: var(--hero-ink);
+    }
+    .usage-footnote-kicker {
+      flex: 0 0 auto;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+    .evidence-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .evidence-summary .card {
+      background: linear-gradient(180deg, #ffffff 0%, #f7faff 52%, #f1f5ff 100%);
+    }
+    .summary-kicker {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .progress-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    @media (max-width: 1199px) {
+      .report-sidebar { display: none; }
+    }
+    @media (min-width: 1200px) {
+      .page-shell {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+      .report-sidebar {
+        display: block;
+        position: sticky;
+        top: 24px;
+      }
+      .section-nav {
+        display: none;
+      }
+    }
+    @media (max-width: 720px) {
+      .page { padding: 18px 14px 48px; }
+      .hero, .section { padding: 20px; border-radius: 20px; }
+      .hero h1 { font-size: 28px; }
+      .hero-shell { grid-template-columns: 1fr; }
+      .hero-badge { padding: 16px; }
+      .hero-usage {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .hero-usage-inline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .usage-inline {
+        grid-template-columns: 1fr;
+      }
+    }
+    /* UX Polish */
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .section-title::before {
+      content: "";
+      width: 5px;
+      height: 1.1em;
+      border-radius: 999px;
+      background: var(--section-accent);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    }
+    .data-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--ink);
+    }
+    .meta-text {
+      font-size: 0.78rem;
+      color: var(--evidence-unmet);
+      line-height: 1.4;
+    }
+    .badge-level {
+      display: inline-block;
+      padding: 0.3rem 0.9rem;
+      border-radius: 0.5rem;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+    .hero-score {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .hero-subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .hero-kpi-label-light {
+      font-size: 0.85rem;
+      color: var(--hero-muted);
+    }
+    .evidence-list { margin-top: 8px; }
+    .evidence-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--separator);
+    }
+    .evidence-icon {
+      font-size: 0.9rem;
+      min-width: 20px;
+      margin-top: 2px;
+    }
+    .evidence-icon.met { color: var(--evidence-met); }
+    .evidence-icon.unmet { color: var(--evidence-unmet); }
+    .evidence-body { flex: 1; }
+    .evidence-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--ink);
+    }
+    .evidence-signal {
+      font-size: 0.75rem;
+      color: var(--evidence-unmet);
+      margin-top: 2px;
+    }
+    .coach-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbff 55%, #f2f7ff 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.8),
+        0 6px 18px rgba(124, 58, 237, 0.05);
+    }
+    .coach-headline {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .coach-evidence {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .coach-tip {
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+    .exemplar-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 8px 0 6px;
+    }
+    .exemplar-facts {
+      font-size: 0.75rem;
+      color: var(--evidence-unmet);
+      margin: 0 0 10px;
+    }
+    .technique-chip {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--pill-fg);
+      border-radius: 0.25rem;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+    .score-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .priority-why {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.65;
+    }
+    .theme-link {
+      color: var(--accent-strong);
+      font-size: 0.9rem;
+      font-weight: 700;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::marker { content: ""; }
+    .kpi-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--ink);
+    }
+    .section-toggle {
+      margin-top: 14px;
+      padding-top: 0;
+      border-top: none;
+      background: linear-gradient(180deg, #f9fbff 0%, #f3f7ff 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 10px 12px 12px;
+    }
+    .section-toggle > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f5f8ff 0%, #eef3ff 100%);
+      border: 1px solid var(--note-border);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+    }
+    .section-toggle > summary:hover {
+      background: linear-gradient(180deg, #eef4ff 0%, #e7efff 100%);
+    }
+    .section-toggle > summary::after {
+      content: "+";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 800;
+      line-height: 1;
+      flex: 0 0 24px;
+    }
+    .section-toggle[open] > summary::after {
+      content: "−";
+    }
+    .section-toggle > :not(summary) {
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="page-shell">
+    <aside class="report-sidebar" aria-label="报告导航">
+      <div class="sidebar-card">
+        <div class="sidebar-title">{{ view.report_title }}</div>
+        <p class="sidebar-subtitle">{{ view.tool_display_name }}</p>
+        <nav class="sidebar-nav">
+          {% for section in view.sections if section.nav_visible %}
+          <a class="sidebar-nav-link" href="#{{ section.id }}">{{ section.label }}</a>
+          {% endfor %}
+        </nav>
+      </div>
+    </aside>
+    <div class="page-main">
+    <section class="hero" id="section-summary">
+      <div class="hero-shell">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">{{ view.summary.subtitle }}</p>
+          <h1>{{ view.summary.title }}</h1>
+          <div class="hero-meta">
+            {% for chip in view.summary.chips %}
+            <span class="chip">{{ chip.label }}: {{ chip.value }}</span>
+            {% endfor %}
+          </div>
+          <div class="hero-kpis">
+            <div class="hero-kpi">
+              <div class="hero-kpi-num">{{ view.summary.score_display or view.summary.mirror_score }}</div>
+              <div class="hero-kpi-label-light">{{ view.labels['label_score'] }}</div>
+            </div>
+            <div class="hero-kpi">
+              <div class="hero-kpi-num">{{ view.summary.session_count }}</div>
+              <div class="hero-kpi-label-light">{{ view.labels['label_sample_sessions'] }}</div>
+            </div>
+            <div class="hero-kpi">
+              <div class="hero-kpi-num">{{ view.summary.active_days }}</div>
+              <div class="hero-kpi-label-light">{{ view.labels['label_active_days'] }}</div>
+            </div>
+          </div>
+        </div>
+        <aside class="hero-badge" aria-label="hero highlight">
+          <div>
+            <div class="hero-badge-kicker">AI Growth Mirror</div>
+            <div class="hero-badge-main">
+              <div class="hero-badge-level">{{ view.summary.growth_level }}</div>
+            </div>
+            <p class="hero-badge-note">{{ view.summary.headline }}</p>
+          </div>
+        </aside>
+      </div>
+      <div class="focus-strip">{{ view.level_evidence.progress_summary }}</div>
+      <div class="overview-band">
+        <div class="overview-card overview-card--signal">
+          <h3>{{ view.labels['label_overview_current'] }}</h3>
+          <p>{{ view.summary.strongest_signal }}</p>
+        </div>
+        <div class="overview-card overview-card--focus">
+          <h3>{{ view.labels['label_overview_target'] }}</h3>
+          <p>{{ view.summary.next_focus }}</p>
+        </div>
+        <div class="overview-card overview-card--method">
+          <h3>{{ view.labels['label_overview_method'] }}</h3>
+          <ul class="overview-list">
+            {% for line in view.level_evidence.methodology_lines[:2] %}
+            <li>{{ line }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% if view.usage.stats %}
+      <div class="hero-usage-inline" aria-label="{{ view.labels['section_usage'] }}">
+        {% for item in view.usage.stats %}
+        <div class="hero-usage-inline-item">
+          <div class="hero-usage-inline-label">{{ item.label }}</div>
+          <div class="hero-usage-inline-value">{{ item.value }}</div>
+          {% if item.detail %}
+          <div class="hero-usage-inline-detail">{{ item.detail }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if view.usage.coverage_note %}
+      <div class="usage-footnotes" role="note" aria-label="{{ view.labels.get('label_usage_scope', '数据口径') }}">
+        <p class="usage-footnote usage-footnote--scope">
+          <span class="usage-footnote-kicker">{{ view.labels.get('label_usage_scope', '数据口径') }}</span>
+          <span>{{ view.usage.coverage_note }}</span>
+        </p>
+      </div>
+      {% endif %}
+      {% endif %}
+      <div class="section-nav">
+        {% for section in view.sections if section.nav_visible %}
+        <a class="section-nav-link" href="#{{ section.id }}">{{ section.label }}</a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section" id="section-growth-signals">
+      <h2 class="section-title">{{ view.labels['section_growth_signals'] }}</h2>
+      {% if view.growth_stage %}
+      <div class="note">
+        <strong>{{ view.growth_stage.label }}</strong> · {{ view.growth_stage.summary }}
+        <div style="margin-top:8px;">
+          <span class="pill">{{ view.labels['label_strongest_axis'] }}：{{ view.growth_stage.strongest_axis }}</span>
+          <span class="pill">{{ view.labels['label_primary_gap'] }}：{{ view.growth_stage.primary_gap }}</span>
+          <span class="pill">{{ view.labels['label_next_breakthrough'] }}：{{ view.growth_stage.next_breakthrough }}</span>
+        </div>
+      </div>
+      {% endif %}
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ view.labels['section_capability'] }}</h3>
+          {% if view.growth_stage %}
+          <p class="small">{{ view.growth_stage.summary }}</p>
+          {% endif %}
+          {% if view.radar_chart %}
+          <div style="display:flex; justify-content:center; margin:8px 0 14px;">
+            <svg width="320" height="320" viewBox="0 0 {{ view.radar_chart.size }} {{ view.radar_chart.size }}" role="img" aria-label="{{ view.labels['section_capability'] }}">
+              {% for polygon in view.radar_chart.grid_polygons %}
+              <polygon points="{{ polygon }}" fill="none" style="stroke: var(--chart-grid);" stroke-width="1"></polygon>
+              {% endfor %}
+              {% for line in view.radar_chart.axis_lines %}
+              {% set parts = line.split(' ') %}
+              {% set p1 = parts[0].split(',') %}
+              {% set p2 = parts[1].split(',') %}
+              <line x1="{{ p1[0] }}" y1="{{ p1[1] }}" x2="{{ p2[0] }}" y2="{{ p2[1] }}" style="stroke: var(--chart-line);" stroke-width="1"></line>
+              {% endfor %}
+              <polygon points="{{ view.radar_chart.polygon_points }}" style="fill: var(--chart-fill); stroke: var(--chart-stroke);" stroke-width="2"></polygon>
+              {% for point in view.radar_chart.polygon_points.split(' ') %}
+              {% set xy = point.split(',') %}
+              <circle cx="{{ xy[0] }}" cy="{{ xy[1] }}" r="3.5" style="fill: var(--chart-stroke);"></circle>
+              {% endfor %}
+              {% for item in view.radar_chart.label_positions %}
+              <text x="{{ item.x }}" y="{{ item.y }}" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(15,23,42,0.84)">{{ item.label }}</text>
+              {% endfor %}
+            </svg>
+          </div>
+          {% endif %}
+        </div>
+        <div class="grid-1" style="display:grid; gap:16px;">
+          <div class="card">
+            <h3>{{ view.labels['label_gap_rankings'] }}</h3>
+            {% for gap in view.gap_rankings[:3] %}
+            <div style="padding:10px 0; border-bottom:1px solid var(--separator);">
+              <div style="display:flex; justify-content:space-between; gap:12px;">
+                <strong>{{ gap.label }}</strong>
+                <span class="pill">Top {{ gap.rank }}</span>
+              </div>
+              <p class="meta-text">{{ gap.evidence_summary }}</p>
+              <p class="meta-text"><strong>{{ view.labels['label_action'] }}</strong>{{ gap.suggested_action }}</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <h3>{{ view.labels['label_your_4_dims'] }}</h3>
+        <div class="note">{{ view.labels['label_strongest_dim_prefix'] }}{{ view.capability.strongest_label }} · {{ view.labels['label_weakest_dim_prefix'] }}{{ view.capability.weakest_label }}</div>
+        {% for dim in view.capability.dimensions %}
+        <div class="metric">
+          <div class="metric-head">
+            <strong>{{ dim.label }}</strong>
+            <span class="score-value">{{ '%.1f'|format(dim.score) }}</span>
+          </div>
+          <div class="bar"><span style="width: {{ dim.score }}%;"></span></div>
+          <p class="meta-text">{{ dim.explanation }}</p>
+          <p class="meta-text"><strong>{{ view.labels['label_next_move'] }}</strong>{{ dim.next_action }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section" id="section-level-evidence">
+      <h2 class="section-title">{{ view.labels['section_level_evidence'] }}</h2>
+      <p class="section-sub">{{ view.level_evidence.headline }}</p>
+      <div class="note" style="margin-bottom:16px">{{ view.level_evidence.verdict }}</div>
+      <div class="evidence-summary">
+        <div class="card">
+          <div class="summary-kicker">{{ view.labels['label_evidence_progress'] }}</div>
+          <div class="progress-chip">{{ view.level_evidence.progress_summary }}</div>
+          <p class="small" style="margin-top:10px;"><strong>{{ view.labels['label_target_floor'] }}</strong>{{ view.level_evidence.target_caption }}</p>
+        </div>
+        <div class="card">
+          <div class="summary-kicker">{{ view.labels['label_judgement_framework'] }}</div>
+          {% if view.level_evidence.source_note %}
+          <p class="small">{{ view.level_evidence.source_note }}</p>
+          {% endif %}
+          <p class="small"><strong>{{ view.level_evidence.methodology_title }}</strong></p>
+          <ul class="list">
+            {% for line in view.level_evidence.methodology_lines %}
+            <li>{{ line }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% if view.level_evidence.blockers %}
+      <div class="note">
+        <strong>{{ view.level_evidence.blocker_title or view.labels['label_evidence_blockers_default'] }}</strong>
+        <ul class="list" style="margin-top:8px">
+          {% for blocker in view.level_evidence.blockers %}
+          <li>{{ blocker }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      <div class="evidence-list">
+        {% for item in view.level_evidence.metrics %}
+        {% set is_met = item.status == view.labels['label_met'] %}
+        <div class="evidence-row">
+          <span class="evidence-icon{% if is_met %} met{% else %} unmet{% endif %}">{% if is_met %}✓{% else %}○{% endif %}</span>
+          <div class="evidence-body">
+            <div class="evidence-label">{{ item.label }} · {{ item.status }}</div>
+            <p class="small"><strong>{{ view.labels['label_current_value'] }}</strong>{{ item.current_value }} · <strong>{{ view.labels['label_target_floor'] }}</strong>{{ item.target_value }}</p>
+            <p class="meta-text">{{ item.explanation }}</p>
+            <div class="evidence-signal">{{ item.raw_signal }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section" id="section-level-guide">
+      <h2 class="section-title">{{ view.labels['section_level_guide'] }}</h2>
+      <p class="section-sub">{{ view.level_guide.headline }}</p>
+      <div class="tabs" role="tablist" aria-label="{{ view.labels['label_level_tabs_aria'] }}">
+        {% for item in view.level_guide.items %}
+        <button
+          class="tab-btn{% if item.current %} active{% endif %}"
+          type="button"
+          data-tab-target="level-{{ item.level }}"
+          aria-selected="{{ 'true' if item.current else 'false' }}"
+        >
+          {{ item.level }} · {{ item.title }}
+        </button>
+        {% endfor %}
+      </div>
+      {% for item in view.level_guide.items %}
+      <div class="tab-panel{% if item.current %} active{% endif %}" id="level-{{ item.level }}">
+        <div class="card">
+          <div class="eyebrow">{% if item.current %}{{ view.labels['label_current_level_eyebrow'] }}{% else %}{{ view.labels['label_level_guide_eyebrow'] }}{% endif %}</div>
+          <h3 style="margin-top:0">{{ item.level }} · {{ item.title }} · {{ item.score_range }}</h3>
+          <p class="small">{{ item.description }}</p>
+          <div class="grid-2">
+            <div>
+              <p class="small"><strong>{{ view.labels['label_typical_signals'] }}</strong></p>
+              <ul class="list">
+                {% for signal in item.signals %}
+                <li>{{ signal }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div>
+              <p class="small"><strong>{{ view.labels['label_how_to_move_up'] }}</strong></p>
+              <div class="note">{{ item.next_step }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </section>
+
+    <section class="section" id="section-prompt-coach">
+      <h2 class="section-title">{{ view.labels['section_prompt_coach'] }}</h2>
+      <p class="coach-headline">{{ view.prompt_coach.headline }}</p>
+      {% if view.prompt_coach.source_note %}
+      <p class="small muted">{{ view.prompt_coach.source_note }}</p>
+      {% endif %}
+      {% if view.prompt_coach.available %}
+      <div class="grid-2">
+        <div class="coach-card">
+          <h3>{{ view.labels['label_current_read'] }}</h3>
+          <p class="coach-evidence">{{ view.prompt_coach.evidence_summary }}</p>
+          <p class="small">{{ view.labels['label_strongest_dim'] }}{{ view.prompt_coach.strongest_label }}</p>
+          <p class="small">{{ view.labels['label_weakest_dim'] }}{{ view.prompt_coach.weakest_label }}</p>
+          <p class="small">{{ view.labels['label_focus_first'] }}{{ view.prompt_coach.weak_dimensions | join(' / ') }}</p>
+          {% if view.prompt_coach.dimension_scores %}
+          <div class="metric" style="margin-top:16px;">
+            <strong>{{ view.labels['label_prompt_dimensions'] }}</strong>
+          </div>
+          {% for item in view.prompt_coach.dimension_scores %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.score }}</span>
+            </div>
+            <div class="bar"><span style="width:{{ item.score }}%"></span></div>
+          </div>
+          {% endfor %}
+          {% endif %}
+          <div class="note">{{ view.prompt_coach.strength_habit }}</div>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels['label_frequent_deficits'] }}</h3>
+          <ul class="list">
+            {% for deficit in view.prompt_coach.deficits %}
+            <li>{{ deficit }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:18px">
+        {% for takeaway in view.prompt_coach.takeaways %}
+        <div class="coach-card">
+          <h3>{{ takeaway.label }}</h3>
+          <p class="coach-tip"><strong>{{ view.labels['label_type'] }}</strong>{{ takeaway.kind }}</p>
+          <p class="coach-tip"><strong>{{ view.labels['label_why_shows_up'] }}</strong>{{ takeaway.evidence }}</p>
+          <p class="coach-tip"><strong>{{ view.labels['label_coach_note'] }}</strong>{{ takeaway.message }}</p>
+          <p class="coach-tip"><strong>{{ view.labels['label_next_move'] }}</strong>{{ takeaway.action }}</p>
+          {% if takeaway.better_prompt %}
+          <details style="margin-top:0.75rem;">
+            <summary class="theme-link" style="cursor:pointer; font-size:0.8rem; font-weight:600;">
+              {{ view.labels['label_reference_structure'] }}
+            </summary>
+            <div style="margin-top:0.5rem; background:var(--separator); border:1px solid var(--line); border-radius:6px; padding:0.75rem; font-family:monospace; font-size:0.78rem; color:var(--ink); white-space:pre-wrap; line-height:1.6;">{{ takeaway.better_prompt }}</div>
+          </details>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="note">{{ view.prompt_coach.headline }}</div>
+      {% endif %}
+    </section>
+
+    <section class="section" id="section-friction">
+      <h2 class="section-title">{{ view.labels['section_friction'] }}</h2>
+      <p class="section-sub">{{ view.friction.headline }}</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ view.labels['label_friction_source'] }}</h3>
+          <div class="pill">{{ view.friction.primary_source }}</div>
+          <ul class="list">
+            {% for item in view.friction.categories %}
+            <li>{{ item.label }} · {{ item.count }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels['label_next_actions'] }}</h3>
+          <ul class="list">
+            {% for action in view.friction.actions %}
+            <li>{{ action }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-exemplars">
+      <h2 class="section-title">{{ view.labels['section_exemplars'] }}</h2>
+      <p class="section-sub">{{ view.labels['label_exemplars_sub'] }}</p>
+      <div class="grid-2">
+        {% for ex in view.exemplars %}
+        <div class="card">
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+            <span class="pill">{{ ex.category_label }}</span>
+            <span class="pill">{{ view.labels['label_score_pill'] }} {{ ex.score }}</span>
+          </div>
+          {% if ex.project_name %}
+          <p class="meta-text"><strong>{{ view.labels['label_project'] }}</strong>{{ ex.project_name }}</p>
+          {% endif %}
+          <p class="exemplar-title">{{ ex.summary }}</p>
+          <p class="exemplar-facts">{{ ex.facts }}</p>
+          {% if ex.why_keep %}
+          <p class="small"><strong>{{ view.labels['label_exemplar_why'] }}</strong>{{ ex.why_keep }}</p>
+          {% endif %}
+          {% if ex.technique %}
+          <div class="note" style="margin-top:12px"><strong>{{ view.labels['label_exemplar_next'] }}</strong>{{ ex.technique }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section" id="section-growth-plan">
+      <h2 class="section-title">{{ view.labels['section_growth_plan'] }}</h2>
+      {% if view.growth_plan.headline %}
+      <p class="section-sub">{{ view.growth_plan.headline }}</p>
+      {% endif %}
+      {% for priority in view.growth_plan.priorities %}
+      <div class="card" style="margin-bottom:16px">
+        <h3>{{ priority.title }}</h3>
+        {% if priority.why %}
+        <p class="priority-why">{{ priority.why }}</p>
+        {% else %}
+        <p class="priority-why text-muted">
+          {{ view.labels['label_heuristic_why_hint'] }}
+        </p>
+        {% endif %}
+        <div class="note">{{ view.labels['label_sprint_focus_note'] }}</div>
+        {% if priority.success_signal %}
+        <p class="small"><strong>{{ view.labels['label_success_signal'] }}</strong>{{ priority.success_signal }}</p>
+        {% endif %}
+        {% if priority.stop_doing %}
+        <p class="small"><strong>{{ view.labels['label_stop_doing'] }}</strong>{{ priority.stop_doing }}</p>
+        {% endif %}
+        {% if priority.week_1_actions or priority.week_2_actions %}
+        <div class="grid-2">
+          {% if priority.week_1_actions %}
+          <div>
+            <p class="small"><strong>{{ view.labels['label_week1'] }}</strong></p>
+            <ul class="list">
+              {% for action in priority.week_1_actions %}
+              <li>{{ action }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+          {% if priority.week_2_actions %}
+          <div>
+            <p class="small"><strong>{{ view.labels['label_week2'] }}</strong></p>
+            <ul class="list">
+              {% for item in priority.week_2_actions %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if priority.practice_prompt %}
+        <p class="small"><strong>{{ view.labels['label_practice_prompt'] }}</strong></p>
+        <div class="code">{{ priority.practice_prompt }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </section>
+
+    <section class="section" id="section-focus">
+      <h2 class="section-title">{{ view.labels['section_work_focus'] }}</h2>
+      <p class="section-sub">{{ view.work_focus.headline }}</p>
+      <div class="card-grid-3">
+        <div class="card">
+          <h3>{{ view.labels['label_recent_projects'] }}</h3>
+          {% if view.work_focus.projects %}
+          {% for item in view.work_focus.projects %}
+          <span class="pill">{{ item }}</span>
+          {% endfor %}
+          {% else %}
+          <p class="small">{{ view.labels['label_redact_note'] }}</p>
+          {% endif %}
+        </div>
+        <div class="card">
+          <h3>{{ view.labels['label_goal_mix'] }}</h3>
+          <ul class="list">
+            {% for item in view.work_focus.goal_mix %}
+            <li>{{ item.label }} · {{ item.detail or item.count }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+          <div class="card">
+            <h3>{{ view.labels['label_tools_languages'] }}</h3>
+            <p class="small"><strong>{{ view.labels['label_tools_prefix'] }}</strong>{% for item in view.work_focus.tools %}{{ item.label }}{% if not loop.last %} / {% endif %}{% endfor %}</p>
+            {% if view.work_focus.languages %}
+            <p class="small"><strong>{{ view.labels['label_languages_prefix'] }}</strong>{% for item in view.work_focus.languages %}{{ item.label }}{% if not loop.last %} / {% endif %}{% endfor %}</p>
+            {% else %}
+            <p class="small"><strong>{{ view.labels['label_languages_prefix'] }}</strong>{{ view.labels['label_weak_language_signal'] }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+    <section class="section" id="section-rhythm">
+      <h2 class="section-title">{{ view.labels['section_rhythm'] }}</h2>
+      <p class="section-sub">{{ view.collaboration_rhythm.headline }}</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ view.collaboration_rhythm.rhythm_label }}</h3>
+          <p class="small">{{ view.collaboration_rhythm.rhythm_summary }}</p>
+          <div class="note">{{ view.labels['label_suggested_move'] }}{{ view.collaboration_rhythm.next_action }}</div>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels['label_rhythm_evidence'] }}</h3>
+          {% for item in view.collaboration_rhythm.stats %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.value }}</span>
+            </div>
+            {% if item.detail %}
+            <p class="small">{{ item.detail }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-wins">
+      <h2 class="section-title">{{ view.labels['section_wins'] }}</h2>
+      <p class="section-sub">{{ view.wins.headline }}</p>
+      <div class="card-grid-3">
+        {% for win in view.wins.wins %}
+        <div class="card">
+          <h3>{{ win.title }}</h3>
+          <p class="small"><strong>{{ view.labels['label_evidence'] }}</strong>{{ win.evidence }}</p>
+          <p class="small"><strong>{{ view.labels['label_why_matters'] }}</strong>{{ win.why_it_matters }}</p>
+          <div class="note">{{ view.labels['label_scale_it'] }}{{ win.next_action }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if view.agent_asset %}
+    <section class="section" id="section-agent-asset">
+      <h2 class="section-title">{{ view.agent_asset.headline }}</h2>
+      <p class="section-sub">{{ view.agent_asset.summary_line }}</p>
+      <div class="grid-3" style="margin-top:12px">
+        <div class="card">
+          <div class="kpi-label">{{ view.labels['label_skill_files'] }}</div>
+          <div class="kpi-value">{{ view.agent_asset.skill_count }}</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">{{ view.labels['label_prompt_files'] }}</div>
+          <div class="kpi-value">{{ view.agent_asset.prompt_count }}</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">{{ view.labels['label_rule_files'] }}</div>
+          <div class="kpi-value">{{ view.agent_asset.rule_count }}</div>
+        </div>
+      </div>
+      {% if view.agent_asset.project_keys %}
+      <p class="small" style="margin-top:12px"><strong>{{ view.labels['label_project_keys'] }}</strong>
+        {{ view.agent_asset.project_keys | join('  ·  ') }}</p>
+      {% endif %}
+      {% if view.agent_asset.recently_modified %}
+      <p class="small"><strong>{{ view.labels['label_recently_modified'] }}</strong></p>
+      <ul class="list">
+        {% for item in view.agent_asset.recently_modified[:6] %}
+        <li class="small muted">{{ item }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if view.growth_delta and view.growth_delta.available %}
+    <section class="section" id="section-growth-delta">
+      <h2 class="section-title">{{ view.labels['section_growth_delta'] }}</h2>
+      <p class="muted">{{ view.labels['label_compared_with'] }} {{ view.growth_delta.prev_label }}</p>
+      <div class="grid-3" style="margin-top:12px">
+        <div class="card">
+          <div class="kpi-label">{{ view.labels['label_score_change'] }}</div>
+          <div class="kpi-value" style="color:{% if view.growth_delta.score_delta >= 0 %}var(--accent){% else %}var(--muted){% endif %}">
+            {{ '+' if view.growth_delta.score_delta >= 0 else '' }}{{ view.growth_delta.score_delta }}
+          </div>
+          <div class="small muted">{{ view.growth_delta.prev_score }} → {{ view.growth_delta.curr_score }}</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">{{ view.labels['label_current_level'] }}</div>
+          <div class="kpi-value">{{ view.growth_delta.curr_level }}</div>
+          {% if view.growth_delta.level_delta != 0 %}
+          <div class="small" style="color:{% if view.growth_delta.level_delta > 0 %}var(--accent){% else %}var(--muted){% endif %}">
+            {% if view.growth_delta.level_delta > 0 %}{{ view.labels['label_level_up'] }}{% else %}{{ view.labels['label_level_down'] }}{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="card">
+          <div class="kpi-label">{{ view.labels['label_improved_dims'] }}</div>
+          <div class="small">
+            {% for dim in view.growth_delta.improved_dims %}
+            <span class="chip" style="background:var(--accent-soft);color:var(--accent);border:none">{{ dim }}</span>
+            {% endfor %}
+            {% if not view.growth_delta.improved_dims %}<span class="muted">–</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="section" id="section-style-lens">
+      <h2 class="section-title">{{ view.labels['section_style_lens'] }}</h2>
+      <p style="font-size:0.85rem; color:var(--muted); margin-top:0.25rem; margin-bottom:1rem;">
+        {{ view.labels['label_style_lens_intro'] }}
+      </p>
+      <p class="section-sub">{{ view.labels['label_style_lens_dims'] }}</p>
+      <div class="small muted" style="margin-bottom:8px">{{ view.style_lens.archetype_name }} · {{ view.style_lens.archetype_tag }} · {{ view.style_lens.slogan }}</div>
+      <div class="note">{{ view.style_lens.description }}</div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ view.labels['label_your_4_dims'] }}</h3>
+          {% for dim in view.style_lens.dimensions %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ dim.label }}</strong>
+              <span>{{ '%.0f'|format(dim.pct) }}%</span>
+            </div>
+            <div class="bar"><span style="width: {{ dim.pct }}%"></span></div>
+            <p class="small">{{ dim.left_pole }} ↔ {{ dim.right_pole }}</p>
+            <p class="small">{{ dim.interpretation }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="card">
+          <h3>{{ view.labels['label_strengths_growth'] }}</h3>
+          <p class="small"><strong>{{ view.labels['label_style_strengths'] }}</strong></p>
+          <ul class="list">
+            {% for item in view.style_lens.strengths %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          <p class="small"><strong>{{ view.labels['label_growth_areas'] }}</strong></p>
+          <ul class="list">
+            {% for item in view.style_lens.growth_areas %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      {{ view.report_title }} · {{ view.tool_display_name }} · {{ view.generated_at }}
+    </div>
+    </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const buttons = Array.from(document.querySelectorAll('[data-tab-target]'));
+      const panels = Array.from(document.querySelectorAll('.tab-panel'));
+      if (buttons.length && panels.length) {
+        buttons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-tab-target');
+            buttons.forEach((item) => {
+              const active = item === button;
+              item.classList.toggle('active', active);
+              item.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            panels.forEach((panel) => {
+              panel.classList.toggle('active', panel.id === targetId);
+            });
+          });
+        });
+      }
+
+      const navLinks = Array.from(document.querySelectorAll('.sidebar-nav-link, .section-nav-link'));
+      const sectionIds = navLinks
+        .map((link) => (link.getAttribute('href') || '').replace('#', ''))
+        .filter(Boolean);
+      const sections = sectionIds
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+
+      if (!navLinks.length || !sections.length) return;
+
+      let suppressObserverUntil = 0;
+
+      const setActiveLink = (activeId) => {
+        navLinks.forEach((link) => {
+          const isActive = link.getAttribute('href') === `#${activeId}`;
+          link.classList.toggle('active', isActive);
+          link.setAttribute('aria-current', isActive ? 'true' : 'false');
+        });
+      };
+
+      setActiveLink(sections[0].id);
+
+      navLinks.forEach((link) => {
+        link.addEventListener('click', (event) => {
+          const targetId = (link.getAttribute('href') || '').replace('#', '');
+          const target = targetId ? document.getElementById(targetId) : null;
+          if (!target) return;
+          event.preventDefault();
+          suppressObserverUntil = Date.now() + 900;
+          setActiveLink(targetId);
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', `#${targetId}`);
+          }
+        });
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (Date.now() < suppressObserverUntil) return;
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (visible && visible.target && visible.target.id) {
+            setActiveLink(visible.target.id);
+          }
+        },
+        {
+          rootMargin: '-18% 0px -62% 0px',
+          threshold: [0.2, 0.45, 0.7],
+        }
+      );
+
+      sections.forEach((section) => observer.observe(section));
+    })();
+  </script>
+</body>
+</html>

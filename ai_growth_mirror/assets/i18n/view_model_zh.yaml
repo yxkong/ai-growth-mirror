@@ -1,0 +1,634 @@
+capability_meta:
+  intent_clarity:
+    label: "任务表达"
+    explanation: "衡量你是否能把目标、边界与验收条件清楚前置给 AI。"
+    next_action: "首轮固定补齐：目标、相关文件、约束、验收标准。"
+  execution_driving:
+    label: "协作驱动"
+    explanation: "衡量你是否会主动组织协作节奏，而不是被 AI 当前回答牵着走。"
+    next_action: "复杂任务固定按 侦察 -> 方案 -> 实施 -> 验证 四步推进。"
+  implementation_depth:
+    label: "实现下潜"
+    explanation: "衡量你是否真正进入代码、实现链路和关键边界，而不是停留在表层建议。"
+    next_action: "先打开核心文件和关键链路，再决定方案与改动范围。"
+  delivery_closure:
+    label: "交付收口"
+    explanation: "衡量你是否能把任务带到验证、结论和可交付状态。"
+    next_action: "每次实现后固定补：最小验证、结果说明、剩余风险。"
+  adaptive_recovery:
+    label: "恢复推进"
+    explanation: "衡量你在偏航、报错或阻塞时，能否快速基于新证据切回正确路径。"
+    next_action: "纠偏时固定说清：哪里错了、有什么新证据、下一步怎么走。"
+
+radar_axes:
+  intent_clarity:
+    reason_high: "目标、约束与验收通常能前置给到 AI。"
+    reason_low: "任务上下文经常需要在中途补齐。"
+  execution_driving:
+    reason_high: "你已经会主动组织 AI 的推进节奏和工具路径。"
+    reason_low: "协作仍容易停在泛讨论，推进链不够稳定。"
+  implementation_depth:
+    reason_high: "你会进入代码、实现和边界，而不是停留在表层建议。"
+    reason_low: "对核心实现链路的下潜还不够稳定。"
+  delivery_closure:
+    reason_high: "任务通常能被带到验证和收口阶段。"
+    reason_low: "实现能推进，但验证与收口还没有变成默认动作。"
+  adaptive_recovery:
+    reason_high: "遇到偏航或阻塞时，你通常能把协作拉回正轨。"
+    reason_low: "偏航后的纠偏和新证据补充还不够锐利。"
+
+growth_gaps:
+  framing_gap:
+    label: "任务表达短板"
+    evidence_summary: "首轮目标、约束或验收仍会缺项。"
+    why_it_happens: "任务 framing 还不够稳定，导致中途补背景成本偏高。"
+    suggested_action: "把目标、相关文件、约束、验收标准做成首轮固定骨架。"
+  workflow_composition_gap:
+    label: "协作编排短板"
+    evidence_summary: "推进节奏还会受当前回答牵动。"
+    why_it_happens: "任务拆分与步骤编排尚未完全内化。"
+    suggested_action: "复杂任务统一按侦察、方案、实施、验证四步推进。"
+  code_penetration_gap:
+    label: "实现下潜短板"
+    evidence_summary: "进入关键实现链路和边界的深度还不够稳定。"
+    why_it_happens: "容易先接受概念性方案，再回头补实现证据。"
+    suggested_action: "把“先看代码和关键边界”设成默认动作，再决定修改方案。"
+  verification_gap:
+    label: "验证短板"
+    evidence_summary: "改动后最容易缺的是验证动作。"
+    why_it_happens: "实现推进快于验证收口，导致完成定义不够稳定。"
+    suggested_action: "每次实现后至少补一个最小验证动作，再决定是否收口。"
+  closure_gap:
+    label: "收口短板"
+    evidence_summary: "结果经常接近完成，但收尾结论和风险说明不足。"
+    why_it_happens: "更多关注把事情做出来，而不是把结果明确交付。"
+    suggested_action: "收尾时固定输出：结果、验证、剩余风险、是否完成。"
+  debug_recovery_gap:
+    label: "恢复推进短板"
+    evidence_summary: "偏航后的纠偏和新证据补充还不够稳定。"
+    why_it_happens: "重试路径偶尔重复，缺少基于新证据的重设。"
+    suggested_action: "遇到阻塞时先说明哪里错了、有什么新证据、下一条最小路径是什么。"
+
+growth_stage:
+  L1:
+    label: "起步观察期"
+    summary: "你已经开始进入真实 AI 协作，但稳定方法还没有形成。"
+  L2:
+    label: "协作成型期"
+    summary: "你能推进任务，但好结果还不够稳定，容易依赖临场发挥。"
+  L3:
+    label: "稳定推进期"
+    summary: "你已经具备稳定推进多数任务的能力，下一步重点是把闭环做实。"
+  L4:
+    label: "高效闭环期"
+    summary: "你不只是会推进，还能更稳定地把结果带到验证和交付状态。"
+  L5:
+    label: "放大复用期"
+    summary: "你已经具备较强的复用与放大能力，成长重点转向持续稳定和方法沉淀。"
+
+pq_dim_labels:
+  context_provision: "上下文完备度"
+  request_specificity: "请求具体度"
+  scope_management: "范围管理"
+  information_timing: "信息时机"
+  correction_quality: "纠偏质量"
+
+goal_labels:
+  implement_feature: "功能实现"
+  fix_bug: "缺陷修复"
+  refactor_code: "重构整理"
+  write_tests: "编写测试"
+  write_docs: "文档撰写"
+  research_exploration: "探索调研"
+  configuration_setup: "配置搭建"
+  debug_investigate: "问题排查"
+  quick_question: "快速问答"
+  document_editing: "文档编辑"
+  propose_change: "变更提案"
+  verify_archive: "验证归档"
+  git_operations: "Git 操作"
+
+tool_labels:
+  shell_command: "终端执行"
+  bash: "终端执行"
+  apply_patch: "精确改写"
+  edit: "文件改写"
+  write: "文件写入"
+  update_plan: "任务拆解"
+  search: "资料检索"
+  web_search_call: "资料检索"
+  web_fetch: "网页读取"
+  open: "文件查看"
+  open_page: "页面查看"
+  click: "页面交互"
+  screenshot: "页面观察"
+  view_image: "图像查看"
+  read: "代码阅读"
+  grep: "内容定位"
+  rg: "内容定位"
+  strreplace: "精确替换"
+  shell: "终端执行"
+
+tool_label_mcp: "MCP 调用"
+pq_deficit_count_format: "{label} × {count}"
+
+weekdays:
+  - "周一"
+  - "周二"
+  - "周三"
+  - "周四"
+  - "周五"
+  - "周六"
+  - "周日"
+
+friction_labels:
+  context-confusion: "上下文混乱"
+  scope-creep: "范围蔓延"
+  hallucination: "幻觉/错误"
+  ambiguous-request: "请求模糊"
+  tool-misuse: "工具误用"
+  missing-context: "上下文缺失"
+  format-issues: "格式问题"
+  repetition: "重复执行"
+  incomplete-output: "输出不完整"
+  tool-ceiling: "工具限制"
+  fuzzy-intent: "需求不完整"
+  blind-spot: "知识缺口"
+  outdated-context: "陈旧假设"
+  off-track: "方向不对"
+  reference-gap: "文档缺口"
+  context-gap: "上下文丢失"
+  recurring-pattern: "重复犯错"
+  goal-drift: "目标漂移"
+
+exemplar_techniques:
+  deep_delegator: "把问题拆成并行路径，最后再统一汇总与验收。"
+  toolkit_orchestrator: "把重复操作沉淀成 Skill、模板或可复用组合。"
+  verify_first: "改完后主动验证，而不是只停在「理论上可行」。"
+  precision_seeker: "在首轮给足背景、文件、约束和目标。"
+  structured_executor: "先冻结计划与边界，再进入执行。"
+  focused_delivery: "聚焦单一目标，最短闭环完成它。"
+  general: "保留这次会话里最有效的提问和验证结构。"
+exemplar_fact_labels:
+  files: "{count} 个文件"
+  commits: "{count} 次提交"
+  verification: "带验证闭环"
+  constraints: "首轮给了约束"
+  context: "首轮给了代码上下文"
+  tool_calls: "{count} 次工具调用"
+  max_chain: "最长委托链 {count}"
+exemplar_signal_phrases:
+  delegation_reach: "把任务拆成连续可委托的步骤"
+  closed_loop: "改完后立即做验证闭环"
+  ecosystem_use: "复用现成的 Skill、模板或规则"
+  capability_reach: "主动调动高杠杆工具能力"
+  intent_precision: "首轮就把约束说清楚"
+  context_richness: "首轮带上关键代码和上下文"
+  prompt_depth: "把任务一次说完整"
+  engagement_depth: "用连续追问把问题收口"
+exemplar_technique_templates:
+  single: "这次之所以有效，关键在于{first}。"
+  double: "这次之所以有效，关键在于先{first}，再{second}。"
+
+wins:
+  headline: "这些不是泛泛表扬，而是你已经出现、值得继续放大的真实强项。"
+  cards:
+    strongest_dim:
+      title: "你已经把“{label}”做成稳定习惯"
+      evidence: "该维度得分 {score:.1f}，是当前 5 个核心成长轴中的最高项。"
+    delivery_closure:
+      title: "你开始把验证带进默认流程"
+      evidence: "当前验证行为率约 {pct}%。"
+      why: "这意味着你不只是让 AI 产出内容，而是开始要求交付证明。"
+      next_action: "把验证动作从测试扩展到日志、构建、页面回归或数据核对。"
+    prompt_strength:
+      title: "你的 Prompt 强项已经出现在“{label}”"
+      why: "这说明你的输入质量已经在部分环节形成了可复用优势。"
+      next_action: "把这项强项复制到弱维度 {weakest_label} 上。"
+    exemplars:
+      title: "你已经留下了可迁移的方法样本"
+      evidence: "本期已识别出 {count} 个高价值样本，代表类型包括 {labels}。"
+      why: "成长不是只看分数，而是把有效方法留住，下次少走弯路。"
+      next_action: "从其中 1 个样本抽出固定提问结构，作为你自己的默认模板。"
+    style_lens:
+      title: "你的协作操作系统已经有鲜明长板"
+      why: "这不是标签化描述，而是你最容易稳定复制的工作方式。"
+      next_action: "保留这个长板，但让它服务于更稳定的计划和收口。"
+
+summary:
+  growth_level_unrated: "未判级"
+  title: "本期协作进化报告"
+  subtitle_suffix: " · AI 成长镜"
+  share_title: "本期协作结论"
+  strongest_signal: "当前最稳的习惯是 {strongest}"
+  source_note:
+    heuristic: "本次报告基于这期真实会话与稳定行为信号生成。"
+    llm: "本次报告基于这期真实会话与深度语义分析生成。"
+    coaching_suffix_heuristic: " 训练建议优先使用稳定规则与真实样例。"
+  headline:
+    ready: "你当前处于 {growth_level}，说明 AI 已经在你的真实工作流里承担了稳定角色；下一步最值得补的是「{weakest}」，这样才能把结果更稳定地复制出来。"
+    unrated: "当前样本还不足以正式判级，先把「{weakest}」补成默认动作，等级才会开始稳定。"
+  chips:
+    date_range: "分析周期"
+    active_days: "活跃天数"
+    code_sessions: "高质量会话"
+    delivery_closure: "交付收口率"
+    analysis_mode: "分析方式"
+    analysis_mode_heuristic: "标准分析"
+    analysis_mode_llm: "深度分析"
+    unknown: "未知"
+  share_lines:
+    line1: "这期共分析 {session_count} 个会话、{active_days} 个活跃天，其中 {heavy_session_count} 个会话已经进入高强度代理协作。"
+    line2: "你最稳的长板是「{strongest}」，这说明你已经有可复制的协作方法。"
+    line3: "下一步只要把「{weakest}」补成默认动作，就更容易把结果稳定带到 {next_focus}。"
+
+work_focus:
+  default_goal: "实现开发"
+  default_tool: "终端执行"
+  headline: "你最近主要把 AI 用在“{primary_goal}”一类问题上，常见协作入口更偏“{primary_tool}”。"
+
+collaboration_rhythm:
+  headline: "本期协作更像「{rhythm_label}」——按这个节奏切任务、安排验收，会更顺手。"
+  types:
+    burst:
+      label: "短回合推进"
+      summary: "你习惯把问题拆成多轮短会话，快速试、快速改。"
+      next_action: "每轮结束前写清「这一轮要验收什么」，别让快节奏变成没收口。"
+    deep_focus:
+      label: "长时深潜"
+      summary: "你更愿意在同一主题上连续深挖，用长会话拿完整结论。"
+      next_action: "开场先钉住目标、边界和退出条件，避免深潜时范围越拉越大。"
+    balanced:
+      label: "双节奏切换"
+      summary: "你能在快节奏试探和长时间深潜之间切换，没有明显偏科。"
+      next_action: "开工前先选节奏：探索用短回合，落地用深潜，别混在同一会话里。"
+
+usage_overview:
+  headline: "这里不只看你聊了多少次，而是看这期协作体量有多大、杠杆有多高、缓存效率怎么样。"
+  summary: "本期共 {session_count} 个会话、约 {tool_calls} 次工具调用，累计 token 体量约 {token_volume}，高杠杆功能使用率 {advanced_feature_ratio}%。"
+  hero_support_line: "{summary} 补充支撑：总成本 {total_cost}，单会话均值 {avg_cost}，缓存命中 {cache_hit}。"
+  coverage_note_partial: "Token / 成本 / 缓存卡片仅统计含本地 usage 明细的来源：{covered}；{missing} 暂无明细，未计入。"
+  coverage_note_none: "当前来源 {missing} 暂无本地 usage 明细，Token / 成本 / 缓存不代表全量。"
+  memory_note: "内存使用当前未采集，所以本报告只展示 token、成本、缓存和高杠杆协作强度。"
+  unknown_cost: "--"
+  unknown_cache: "--"
+  unknown_usage: "--"
+  token_card_label: "Token 体量"
+  token_card_value: "{token_volume}"
+  token_card_detail: "输入 {input_tokens} / 输出 {output_tokens} / 缓存 {cache_tokens}"
+  cache_card_label: "成本 / 缓存"
+  cache_card_value: "{total_cost} · {cache_hit}"
+  cache_card_detail: "单会话均值 {avg_cost} · 读 {cache_read} / 写 {cache_write}"
+  leverage_card_label: "高杠杆使用"
+  leverage_card_value: "{advanced_feature_ratio}%"
+  leverage_card_detail: "subagent 会话 {subagent_count} · MCP 覆盖 {mcp_rate}% · 工具体系 {tool_diversity}"
+  intensity_card_label: "协作强度"
+  intensity_card_value: "平均链长 {avg_chain}"
+  intensity_card_detail: "中位时长 {median_minutes} 分钟 · 重会话 {heavy_count}"
+
+friction:
+  empty_headline: "当前没有明显摩擦热点，可继续保持并扩大高质量会话样本。"
+  primary_headline: "你当前最大的摩擦来源是“{primary_label}”，这决定了下一步应该是练 prompt、换流程，还是补工具。"
+  actions:
+    user-actionable:
+      - "把目标、约束和验收前置到首轮消息。"
+      - "偏航时使用“问题 -> 正确边界 -> 下一步”纠偏。"
+    environmental:
+      - "先检查环境、路径、依赖和权限，再执行复杂动作。"
+      - "把高频环境问题沉淀成检查清单或脚本。"
+    ai-capability:
+      - "对高难任务显式降低预期，要求 AI 先给最小方案。"
+      - "把 AI 能力边界转成可人工验证的步骤。"
+
+growth_delta:
+  prev_label: "上期 {date}"
+
+prompt_coach:
+  strength_card:
+    label_prefix: "继续保留：{label}"
+    evidence: "这一维度是你当前最稳定的 Prompt 长板，说明它已经开始形成习惯。"
+    message: "不要只盯着短板，也要把现有长板复制到更多任务类型里。"
+    action: "接下来，刻意在 3 个不同任务里复用 {label} 这项输入习惯。"
+  deficit_cards:
+    missing-context:
+      label: "最容易浪费轮次：上下文缺失"
+      kind: "证据"
+      evidence: "最近 {count} 次会话出现上下文不足信号，说明 AI 往往需要先补问再行动。"
+      action: "把目标、现象、文件、约束、验收写成首轮固定骨架。"
+    missing-acceptance-criteria:
+      label: "最容易提前收口：没有验收标准"
+      kind: "证据"
+      evidence: "最近 {count} 次会话没有明确完成标准，AI 更容易过早判断“差不多完成”。"
+      action: "每次都写一个最小可验证的完成标准。"
+    vague-request:
+      label: "最容易变泛建议：请求过泛"
+      kind: "证据"
+      evidence: "最近 {count} 次会话出现愿望式提问，AI 更容易给方向而不是直接产出。"
+      action: "把请求重写成动作序列：定位、修改、验证、总结。"
+    unclear-correction:
+      label: "最容易重复偏航：纠偏不够锐利"
+      kind: "证据"
+      evidence: "最近 {count} 次会话里，纠偏边界不够清楚，AI 容易沿旧方向继续前进。"
+      action: "纠偏时必须同时给出错误点、正确边界和下一步。"
+  deficit_message: "这不是一次输入失误，而是当前最稳定的失败模式。"
+  dimension_gap_message: "这项短板一旦稳定修好，追问次数和返工成本会一起下降。"
+  dimension_cards:
+    context_provision:
+      label: "把背景前置，不要让 AI 先猜"
+      kind: "短板"
+      evidence: "首轮缺少文件、现象或边界时，返工和追问会显著增多。"
+      action: "下次首轮至少写清现象、相关文件、约束和验收。"
+      better_prompt: |
+        【Bug 修复】
+        现象：[具体报错或不符合预期的行为]
+        复现：[触发步骤]
+        相关文件：[文件路径1, 文件路径2]
+        约束：[不允许改动的范围]
+        验收：[怎么证明 bug 已修复]
+    request_specificity:
+      label: "把任务说成动作，不要说成愿望"
+      kind: "短板"
+      evidence: "当请求过于泛化时，AI 更容易给建议，而不是直接产出结果。"
+      action: "把“帮我看看”改成“请定位→修改→验证→总结”。"
+      better_prompt: |
+        【功能实现】
+        目标：[要实现什么功能，一句话]
+        现状：[当前代码 / 系统状态]
+        约束：[不允许改的接口或文件]
+        最小实现：[先做哪一步，不要一次全做]
+        验收：[怎么证明功能完成]
+    scope_management:
+      label: "先锁边界，再开工"
+      kind: "短板"
+      evidence: "边界不清时，AI 很容易顺手扩大改动面。"
+      action: "首轮显式写出只允许改什么、禁止改什么。"
+      better_prompt: |
+        【重构 / 优化】
+        范围：[只允许改动的文件或模块]
+        目标：[改完应该好在哪里，一句话]
+        禁止：[不允许改动的接口 / 行为 / 文件]
+        最小第一步：[从哪里开始，改完什么算第一步完成]
+        验收：[现有测试要绿 + 手动验证点]
+    information_timing:
+      label: "重要信息不要后补"
+      kind: "短板"
+      evidence: "关键信息在第 2、3 轮才补进来，会让前几轮工作白做。"
+      action: "把关键约束和背景前置，而不是等 AI 开始后再纠偏。"
+      better_prompt: |
+        【设计 / 方案决策】
+        决策问题：[需要在哪两个方案之间选择]
+        当前约束：[性能 / 维护性 / 时间等限制]
+        已知背景：[当前架构 / 技术栈]
+        期望输出：[给出方案对比 + 推荐理由，不直接写代码]
+    correction_quality:
+      label: "纠偏要能直接改方向"
+      kind: "短板"
+      evidence: "只说“不对”不足以让 AI 快速收敛。"
+      action: "纠偏时用“哪里错了→正确边界→下一步”三段式。"
+      better_prompt: |
+        【增量推进 / 纠偏】
+        上一轮问题：[具体哪里不符合预期]
+        正确边界：[应该是什么，不应该是什么]
+        这一步只做：[把大任务拆成当前最小一步]
+        停止条件：[这一步完成的明确标志]
+  from_coaching:
+    source_note: "当前 Prompt 教练由 LLM 个性化生成，并优先使用本期真实会话数据。"
+  takeaway_actions:
+    kind_example: "真实样例"
+    kind_reinforce: "继续保留"
+    improve: "下次先照着下面这个结构发第一条消息。"
+    reinforce: "把这个有效结构迁移到另一个任务类型里。"
+  heuristic_dim_labels:
+    constraint: "约束完备度"
+    context: "上下文质量"
+    clarity: "表达清晰度"
+    depth: "任务深度"
+  heuristic_cards:
+    constraint:
+      message: "在首轮消息里加上「不要做 X」「只改 Y 文件」等明确约束，能减少 30%+ 的追问和返工。"
+      action: "下次首轮至少写清允许改什么、禁止改什么、接口能不能动。"
+    context:
+      message: "贴上相关代码片段或文件引用，让 AI 不用猜上下文，第一轮就能打中目标。"
+      action: "首轮附上目标文件路径、关键代码片段和当前现象。"
+    clarity:
+      message: "工具报错频率偏高，通常是 prompt 描述不够具体。用「现象 + 期望结果 + 环境」三段式描述问题。"
+      action: "把问题改写成：现象是什么、期望结果是什么、运行环境是什么。"
+    depth:
+      message: "给 AI 更复杂、完整的任务，让每次会话物尽其用，减少碎片化低效对话。"
+      action: "下次把定位、修改、验证、总结串成一个完整任务再开聊。"
+  heuristic_reinforce:
+    context:
+      message: "你已经有给代码上下文的习惯，继续保持——在关键任务里也带上相关架构说明。"
+      action: "接下来 3 个关键任务里，首轮额外补一段架构或模块关系说明。"
+    constraint:
+      message: "你在设定约束边界上表现不错，尝试把约束模板化，每次自动带入。"
+      action: "整理一份约束模板，固定包含允许范围、禁止项和验收标准。"
+    default:
+      message: "当前 {label} 是最稳定的输入习惯，持续强化它。"
+      action: "接下来，在 3 个不同任务里刻意复用 {label} 这项习惯。"
+  pq:
+    evidence_summary_heuristic: "基于 {sessions} 个可评估会话，你当前的 Prompt 效率均分约 {score:.1f}。"
+    evidence_summary_llm: "基于 {sessions} 个可评估会话，你当前的 Prompt 效率均分约 {score:.1f}。"
+    strength_habit: "当前最稳定的输入习惯是 {label}。"
+    headline: "你最该优先补的是「{label}」，它会直接影响返工和追问次数。"
+    source_note_heuristic: "当前 Prompt 教练优先根据可解释的真实样例与稳定规则生成。"
+    source_note_llm: "当前 Prompt 教练结合了会话语义判断与真实样例。"
+    source_note_mixed: "当前 Prompt 教练同时使用了 LLM 语义评估与代理信号回填，确保整条 PQ 主链不断档。"
+  source_breakdown:
+    mixed: "本期共覆盖 {total} 个会话，其中 LLM 语义评估 {llm} 个、代理回填 {heuristic} 个、轻量覆盖 {light} 个。"
+    llm_only: "本期共覆盖 {total} 个会话，全部来自 LLM 语义评估。"
+    heuristic_only: "本期共覆盖 {total} 个会话，当前全部由代理信号回填，其中轻量覆盖 {light} 个。"
+  heuristic:
+    unavailable_headline: "当前可用于 Prompt 教练的数据不足，等更多多轮会话后再看会更准。"
+    unavailable_source_note: "当前既没有足够的 Prompt 代理信号，也没有可稳定解释的会话样本。"
+    headline: "从稳定信号看，你现在最值得优先补的是「{label}」。"
+    evidence_summary: "约束完备 {constraint_pct}%，上下文附带 {context_pct}%，工具错误率 {tool_error_pct}%。"
+    strength_habit: "当前最稳定的输入习惯是{label}（代理值 {pct}%）。"
+    source_note: "当前 Prompt 教练基于稳定信号与样例归纳，不依赖逐轮 LLM 评估。"
+    card_evidence_gap: "启发式代理得分约 {pct}%，低于其他输入维度。"
+    card_evidence_strength: "启发式代理得分约 {pct}%，是当前最稳定的输入信号。"
+
+level_evidence:
+  growth_level_unrated: "未判级"
+  headline_low_gap: "为什么你现在是 {current_level}，而不是 {next_level}"
+  headline_level_gap: "{current_level} → {next_level} 的关键差距"
+  headline_baseline_met: "{current_level} 基线已达标"
+  headline_unrated: "当前样本还不足以正式判级"
+  headline_l5: "L5 是否站稳：你靠什么保持高杠杆协作"
+  headline_l5_baseline_met: "L5 保持线已达标"
+  verdict_low_gap: "你已经有真实协作基础，但还缺少足够稳定的基线证据，因此暂时停留在 {current_level}。"
+  verdict_level3_gap: "你已稳定在 {current_level}，但以下指标还差一步，是突破到 {next_level} 的真实阻塞点。"
+  verdict_level4_gap: "你已经到了 {current_level}，下面是迈向 {next_level} 还需要巩固的方向。"
+  verdict_baseline_met: "从基线证据看，你已经稳固达到 {current_level} 的全部门槛指标。"
+  verdict_unrated: "至少需要 {min_session_reads} 个可分析会话才能正式判级；当前先用 L2 起步线观察你最先该补的证据。"
+  verdict_l5: "这里看的不是「还能不能升」，而是你当前的高杠杆协作是否已经形成可持续保持线。"
+  verdict_l5_baseline_met: "从当前样本看，你已经满足 L5 的保持线，接下来重点是扩大可复制范围。"
+  target_caption_unrated: "L2 起步线（观察）"
+  target_caption_l5: "L5 保持线"
+  target_caption_upgrade: "{target_level} 进阶线"
+  blocker_title_unrated: "当前最缺的起步证据"
+  blocker_title_l5: "当前最容易失稳的证据"
+  blocker_title_low: "当前最拖后腿的证据"
+  blocker_title_level3: "跨级前必须补齐的证据"
+  blocker_title_level4: "高阶协作仍未站稳的证据"
+  blocker_title_no_blockers: "当前没有明显硬阻塞"
+  progress_summary_unrated: "当前仅有 {observed_session_reads} 个可分析会话；先用 {target_caption} 观察最先该补的证据。"
+  progress_summary_rated: "当前达标 {met_count} / {total_metrics} 项，评估目标是 {target_caption}。"
+  source_note_base: "当前等级来自连续评分模型；本区展示的是下一阶段证据线，用来解释为什么你暂时停在这里。"
+  source_note_heuristic_suffix: " 本次判断主要依据稳定行为信号。"
+  source_note_llm_suffix: " 本次判断结合了语义分析与稳定行为信号。"
+  next_step_default: "继续扩大高质量样本，把当前好习惯做稳定。"
+  status_met: "已达标"
+  status_unmet: "未达标"
+
+agent_asset:
+  headline: "Agent 资产足迹 · {total} 个资产文件"
+  summary: "共扫描到 {skill_count} 个技能、{prompt_count} 个提示词、{rule_count} 个规则文件。"
+
+methodology:
+  title: "AI Growth Mirror 的判断只看四件事"
+  lines:
+    - "Context Frame：首轮是否把目标、约束、验收和上下文讲清楚。"
+    - "Flow Orchestration：是否能让 AI 连续推进，而不是每一步都靠人工救火。"
+    - "Proof Loop：是否做验证、测试、回看，避免停留在“看起来可行”。"
+    - "Method Asset：是否把有效做法沉淀成模板、规则、脚本或可复用流程。"
+
+pattern_labels:
+  deep_delegator: "深度委托"
+  toolkit_orchestrator: "工具链编排"
+  verify_first: "先验证"
+  precision_seeker: "精准求解"
+  structured_executor: "结构化执行"
+  focused_delivery: "聚焦交付"
+  general: "通用"
+
+exemplar_summary:
+  outcome_labels:
+    fully_achieved: "完整交付并验证"
+    mostly_achieved: "主要目标达成"
+    partially_achieved: "有效推进但未完全闭环"
+    ongoing: "探索分析阶段"
+  default_outcome: "有效推进"
+  project: "项目：{project}"
+  task: "任务：{prompt_snippet}"
+  outcome: "结果：{outcome_label}（{files_modified} 文件 / {tools_total} 工具调用）"
+  verification: "有验证动作"
+  commits: "{git_commits} 次提交"
+  separator: "；"
+
+exemplar_why_templates:
+  single: "这次值得保留，不是因为碰巧做成了，而是因为你把“{first}”做成了可复制动作。"
+  double: "这次值得保留，关键在于你先“{first}”，再“{second}”，所以结果更容易稳定闭环。"
+
+exemplar_reuse_actions:
+  deep_delegator: "下次遇到多阶段任务，先把它拆成 2-3 个可连续委托的小闭环，再统一验收。"
+  toolkit_orchestrator: "下次出现重复动作时，优先问自己：这一步能不能沉淀成 Skill、模板或脚本。"
+  verify_first: "下次改完先跑最小验证，再决定要不要继续扩范围。"
+  precision_seeker: "下次首轮继续把目标、文件、约束和验收一次说清，减少补问轮次。"
+  structured_executor: "下次先冻结边界和阶段目标，再进入实现，避免执行中途扩面。"
+  focused_delivery: "下次继续保留单目标短闭环，把“完成定义”写在开头。"
+  general: "下次复用这次最有效的提问顺序和验证动作，而不是只复用一句话术。"
+
+level_axis_metrics:
+  explanations:
+    intent_clarity: "看你是否能把目标、约束、验收和上下文前置清楚。"
+    execution_driving: "看你是否会主动组织推进节奏，并调动 AI / 工具能力。"
+    implementation_depth: "看你是否真的进入代码、实现链路和边界，而不是停留在表层建议。"
+    delivery_closure: "看结果是否被带到验证、结论和可交付状态。"
+    adaptive_recovery: "看你在偏航、报错或阻塞时，能否基于新证据恢复推进。"
+  current_values:
+    intent_clarity: "轴分 {score} · 约束前置 {constraint_rate}% · 代码上下文 {code_context_rate}% · 具体度 {request_specificity}%"
+    execution_driving: "轴分 {score} · 平均链 {avg_chain} · 重会话 {heavy_sessions} · subagent {subagent_count} · MCP {mcp_rate}%"
+    implementation_depth: "轴分 {score} · 人均改动文件 {files_per_session} · token 体量 {token_volume_m}M · 代码验证 {code_verification_rate_pct}%"
+    delivery_closure: "轴分 {score} · 加权完成率 {completion_rate}% · 验证率 {verification_rate}% · 测试率 {test_rate}%"
+    adaptive_recovery: "轴分 {score} · 纠偏质量 {correction_quality}% · 结构化占比 {structured_rate_pct}% · 用户侧摩擦 {user_actionable_ratio_pct}% · 资产信号 {authored_assets}"
+  thresholds:
+    L2:
+      intent_clarity: 42
+      execution_driving: 45
+      implementation_depth: 40
+      delivery_closure: 40
+      adaptive_recovery: 38
+    L3:
+      intent_clarity: 56
+      execution_driving: 58
+      implementation_depth: 55
+      delivery_closure: 55
+      adaptive_recovery: 52
+    L4:
+      intent_clarity: 72
+      execution_driving: 74
+      implementation_depth: 70
+      delivery_closure: 70
+      adaptive_recovery: 68
+    L5:
+      intent_clarity: 86
+      execution_driving: 86
+      implementation_depth: 84
+      delivery_closure: 84
+      adaptive_recovery: 82
+  targets:
+    L2:
+      intent_clarity:
+        target: "把目标、相关文件、约束和验收说清楚"
+        hint: "开始减少中途补背景"
+      execution_driving:
+        target: "出现稳定推进链，且开始主动组织步骤"
+        hint: "从等待回答走向驱动协作"
+      implementation_depth:
+        target: "能进入相关代码与关键链路"
+        hint: "不是只停在方向建议"
+      delivery_closure:
+        target: "开始把一部分任务带到验证和结论"
+        hint: "不是只做出改动"
+      adaptive_recovery:
+        target: "出现基于新证据的纠偏动作"
+        hint: "偏航后能拉回正轨"
+    L3:
+      intent_clarity:
+        target: "任务 framing 稳定，首轮上下文更完整"
+        hint: "AI 更少需要先补问"
+      execution_driving:
+        target: "复杂任务能按固定节奏推进"
+        hint: "开始具备稳定编排感"
+      implementation_depth:
+        target: "会主动追实现、边界和受影响模块"
+        hint: "进入真实研发链路"
+      delivery_closure:
+        target: "验证和收尾开始成为默认动作"
+        hint: "结果更常能真正收口"
+      adaptive_recovery:
+        target: "纠偏质量和恢复推进能力稳定出现"
+        hint: "不再依赖机械重试"
+    L4:
+      intent_clarity:
+        target: "高复杂任务也能前置清楚目标和边界"
+        hint: "上下文组织开始体现经验"
+      execution_driving:
+        target: "会主动调动 subagent、MCP、计划等高杠杆能力"
+        hint: "你在组织一次协作，而不是只在发请求"
+      implementation_depth:
+        target: "能稳定进入核心实现与副作用边界"
+        hint: "代码理解和推动深度更可靠"
+      delivery_closure:
+        target: "验证、风险和 done-state 形成稳定闭环"
+        hint: "交付感开始成为主流"
+      adaptive_recovery:
+        target: "阻塞后能快速基于证据切换路径"
+        hint: "恢复推进速度更快"
+    L5:
+      intent_clarity:
+        target: "复杂任务 framing 已具备高度稳定性和迁移性"
+        hint: "输入本身就是高杠杆能力"
+      execution_driving:
+        target: "能稳定编排多工具、多模型、多路径协作"
+        hint: "高杠杆推进已可复制"
+      implementation_depth:
+        target: "复杂实现与边界问题也能持续深入推进"
+        hint: "下潜深度具有长期稳定性"
+      delivery_closure:
+        target: "高难任务也能保持验证、结论和交付闭环"
+        hint: "事实性由默认闭环保障"
+      adaptive_recovery:
+        target: "偏航恢复、方法沉淀与资产复用开始联动"
+        hint: "不仅能恢复，还能把恢复方法留下来"

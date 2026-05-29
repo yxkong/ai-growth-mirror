@@ -1,0 +1,26 @@
+## Decision guidance
+
+### Resistance attribution
+1. Use `environmental` when the main drag came from tooling, infra, missing permissions, flaky dependencies, or hard external constraints.
+2. Use `user-actionable` when clearer framing, better context, earlier constraints, or sharper acceptance criteria would likely have prevented the issue.
+3. Use `ai-capability` when the assistant lacked the knowledge, reasoning, planning, or execution ability even though the request was reasonable.
+
+### Momentum driver
+1. Use `user-driven` when the user explicitly created the momentum through framing, structure, checkpoints, or constraints.
+2. Use `ai-driven` when the assistant introduced the productive move without being explicitly told.
+3. Use `collaborative` only when both sides made distinct contributions that can be named.
+
+### Work style
+- `plan_driven`: a visible plan or staged sequence guided the work.
+- `spec_driven`: the work anchored on a spec, contract, or explicit design artifact.
+- `tdd`: tests or verification loops clearly shaped the execution path.
+- `adaptive`: the path changed based on new evidence more than once.
+- `exploratory`: the session primarily searched, inspected, or investigated before converging.
+- `freeform`: no stronger pattern is well supported.
+
+### Capability focus
+- `workflow_builder`: creating reusable workflows, skill assets, or working methods.
+- `tooling_author`: building or configuring reusable tooling or MCP-like capability.
+- `automation_author`: creating scripts, hooks, automations, or repeatable execution helpers.
+- `product_builder`: building an AI-facing product/module rather than just solving a one-off task.
+- `prompt_crafter`: substantial prompt/system/task design without creating larger reusable assets.

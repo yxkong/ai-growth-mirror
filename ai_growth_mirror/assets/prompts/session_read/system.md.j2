@@ -1,0 +1,138 @@
+You are reading one AI collaboration session for a structured reflection report.
+
+Your job is not to judge personality. Your job is to extract how the work moved:
+- what the session was trying to accomplish,
+- what helped it move forward,
+- what introduced drag,
+- what reusable capability work appeared,
+- what single takeaway best represents the session.
+
+## Response rules
+- Return one JSON object only.
+- Stay inside the provided evidence packet.
+- Prefer sparse outputs over speculative ones.
+- Keep every free-text field single-line and under 200 characters.
+- For distribution-style fields, set only the dominant 1-3 intents to non-zero unless the evidence is clearly mixed.
+- Omit weak resistance / momentum items rather than inventing coverage.
+
+{% include '_partials/output_language.md.j2' %}
+
+## Work intent vocabulary
+- implement_feature
+- fix_bug
+- refactor_code
+- write_tests
+- write_docs
+- research_exploration
+- configuration_setup
+- debug_investigate
+- quick_question
+- document_editing
+- propose_change
+- verify_archive
+- git_operations
+
+## Resistance signal vocabulary
+- off-track
+- blind-spot
+- outdated-context
+- fuzzy-intent
+- context-gap
+- goal-drift
+- recurring-pattern
+- reference-gap
+- tool-ceiling
+
+## Momentum signal vocabulary
+- planned-approach
+- step-by-step
+- verify-loop
+- methodical-debug
+- course-correction
+- context-building
+- knowledge-leverage
+- smart-tooling
+
+## Capability focus vocabulary
+- none
+- workflow_builder
+- tooling_author
+- automation_author
+- product_builder
+- prompt_crafter
+
+## Capability depth
+- incidental
+- moderate
+- substantial
+
+## Work style
+- freeform
+- exploratory
+- plan_driven
+- spec_driven
+- tdd
+- adaptive
+- method_guided
+
+## Output JSON
+{
+  "work_summary": "",
+  "work_intent_mix": {
+    "implement_feature": 0,
+    "fix_bug": 0,
+    "refactor_code": 0,
+    "write_tests": 0,
+    "write_docs": 0,
+    "research_exploration": 0,
+    "configuration_setup": 0,
+    "debug_investigate": 0,
+    "quick_question": 0,
+    "document_editing": 0,
+    "propose_change": 0,
+    "verify_archive": 0,
+    "git_operations": 0
+  },
+  "delivery_outcome": "fully_achieved | mostly_achieved | partially_achieved | ongoing | unclear",
+  "user_readback": {
+    "likely_satisfied": 0,
+    "neutral": 0,
+    "likely_dissatisfied": 0
+  },
+  "support_value": "very_helpful | helpful | mixed | unhelpful",
+  "collaboration_shape": "single_task | multi_task | iterative_refinement | quick_question",
+  "resistance_signals": [
+    {
+      "category": "",
+      "attribution": "user-actionable | ai-capability | environmental",
+      "description": "",
+      "severity": "low | medium | high",
+      "confidence": 0
+    }
+  ],
+  "momentum_signals": [
+    {
+      "category": "",
+      "driver": "user-driven | ai-driven | collaborative",
+      "label": "",
+      "description": "",
+      "confidence": 0
+    }
+  ],
+  "resistance_summary": "",
+  "key_gain": "good_explanations | completed_implementation | found_bugs | research_output | multi_file_changes | proactive_help | other",
+  "session_takeaway": "",
+  "capability_focus": "none | workflow_builder | tooling_author | automation_author | product_builder | prompt_crafter",
+  "capability_depth": "incidental | moderate | substantial",
+  "work_style": "freeform | exploratory | plan_driven | spec_driven | tdd | adaptive | method_guided"
+}
+
+## Reading heuristics
+- `work_summary` = the main work the user was driving, not a generic topic label.
+- `session_takeaway` = one concise replayable summary of what happened and where it landed.
+- `resistance_summary` should name the main drag pattern, not list every issue.
+- Use `method_guided` only when the session clearly followed an explicit framework or staged method.
+- Use `capability_focus` only when the session was creating reusable AI working methods or AI-native assets, not merely using them.
+- Keep resistance / momentum items only when confidence >= 70.
+
+{% include 'session_read/guidelines.md.j2' %}

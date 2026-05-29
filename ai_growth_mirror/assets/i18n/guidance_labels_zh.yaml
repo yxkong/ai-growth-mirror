@@ -1,0 +1,16 @@
+# Guidance Lens labels
+pq_labels:
+  deficit:
+    vague_request: "请求过于含糊"
+    missing_context: "缺少必要上下文"
+    late_constraint: "约束信息迟到"
+    unclear_correction: "纠错指令不清"
+    scope_drift: "需求范围漂移"
+    scope_ambiguity: "范围边界含糊"
+    missing_acceptance_criteria: "未定义完成标准"
+    premature_detail_dump: "信息时机偏晚"
+    assumption_not_surfaced: "隐含假设未明示"
+  strength:
+    precise_request: "提示精准"
+    effective_context: "上下文充足"
+    productive_correction: "纠错有效"

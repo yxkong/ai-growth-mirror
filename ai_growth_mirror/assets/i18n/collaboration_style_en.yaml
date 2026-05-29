@@ -1,0 +1,62 @@
+archetype:
+  name_pattern: "{planning}-{orchestration}"
+  tag_pattern: "{evidence} x {reuse}"
+
+poles:
+  planning:
+    high: "Map"
+    low: "Direct"
+  orchestration:
+    high: "Orchestrated"
+    low: "Hands-on"
+  evidence:
+    high: "Evidence"
+    low: "Conclusion"
+  reuse:
+    high: "Asset"
+    low: "Sprint"
+
+dimensions:
+  planning:
+    label: "Kickoff"
+    left_pole: "Map-first"
+    right_pole: "Direct-cut"
+    interpretation_high: "You tend to map the problem before moving"
+    interpretation_low: "You tend to dive in and tighten scope while moving"
+  orchestration:
+    label: "Execution"
+    left_pole: "Orchestrated"
+    right_pole: "Hands-on"
+    interpretation_high: "You prefer composing AI paths and capabilities"
+    interpretation_low: "You prefer actively steering each key step yourself"
+  evidence:
+    label: "Closure"
+    left_pole: "Evidence-led"
+    right_pole: "Conclusion-led"
+    interpretation_high: "You close work with proof and checks"
+    interpretation_low: "You still close too often on plausibility alone"
+  reuse:
+    label: "Reuse"
+    left_pole: "Asset-led"
+    right_pole: "Sprint-led"
+    interpretation_high: "You tend to capture patterns into reusable assets"
+    interpretation_low: "You still prioritize one-off completion over reusable assets"
+
+strengths:
+  planning: "You frame the problem before letting the AI move."
+  orchestration: "You already treat AI as a multi-path collaborator, not just a Q&A tool."
+  evidence: "You prefer to close work with evidence, which lowers rework."
+  reuse: "You are already inclined to turn methods into reusable assets."
+  fallback: "Your collaboration style is practical and willing to push real work forward."
+
+growth:
+  planning: "Freeze goal, scope, and acceptance before moving on complex tasks."
+  orchestration: "Explicitly decide when to search, delegate, or split work into parallel paths."
+  evidence: "Upgrade verification from an occasional move into a default closing step."
+  reuse: "Turn at least one recurring task each week into a template, checklist, or draft skill."
+
+narrative:
+  slogan: "You are not merely using AI session by session; you are growing a collaboration operating system."
+  description: "Right now your work looks closest to the {archetype_name} style. The meaningful difference is not whether you use AI, but how you start tasks, how you let AI move, how you decide work is truly done, and whether you preserve methods for reuse."
+  description_evidence_low: " Your biggest upgrade is likely stronger evidence-led closure."
+  description_reuse_low: " You already get results; the next step is turning results into reusable methods."

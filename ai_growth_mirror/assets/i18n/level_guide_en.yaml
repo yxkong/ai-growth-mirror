@@ -1,0 +1,49 @@
+headline: "You are currently at {current_level} ({current_score}). The level is only useful when it tells you what to train next."
+headline_unrated: "There is not enough evidence to assign a formal stage yet, so the full level guide is shown as a reference."
+
+levels:
+  L1:
+    score_range: "0-29"
+    title: "Exploring"
+    description: "AI is still a situational helper. Sessions are short, verification is rare, and methods do not transfer yet."
+    signals:
+      - "Mostly Q&A, not true collaboration"
+      - "Little planning or acceptance framing"
+      - "Quality depends on improvisation"
+    next_step: "Front-load goal, constraints, and acceptance criteria."
+  L2:
+    score_range: "30-59"
+    title: "Habit forming"
+    description: "You are bringing AI into real work, but the habit is not stable yet. Verification, scope control, and method capture are still uneven."
+    signals:
+      - "AI is helping on real tasks"
+      - "Some planning and verification appears"
+      - "Session quality still swings a lot"
+    next_step: "Turn plan-first and verification into default behaviors."
+  L3:
+    score_range: "60-79"
+    title: "Stable collaborator"
+    description: "You already have a meaningful collaboration loop and can sustain multi-step work with real outputs."
+    signals:
+      - "Complex tasks can keep moving"
+      - "Scope gets managed explicitly"
+      - "Reusable patterns start to emerge"
+    next_step: "Turn good sessions into templates and repeatable methods."
+  L4:
+    score_range: "80-89"
+    title: "High-leverage orchestrator"
+    description: "You are intentionally composing workflows, tools, and verification paths instead of merely using an assistant."
+    signals:
+      - "Multi-tool collaboration feels natural"
+      - "Hard tasks get split into paths"
+      - "High-quality sessions are consistent"
+    next_step: "Increase method assetization and team-level portability."
+  L5:
+    score_range: "90-100"
+    title: "Workflow designer"
+    description: "The question is no longer whether you can use AI, but how well you can scale and share your methods."
+    signals:
+      - "Templates, skills, and flows are common outputs"
+      - "Scoping and acceptance stay stable"
+      - "Others can learn from your method stack"
+    next_step: "Package the method into shareable public assets."

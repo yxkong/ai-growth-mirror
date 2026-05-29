@@ -1,0 +1,115 @@
+# 成长计划 — 中文 UI 骨架 + 可复用提示词模板
+#
+# 架构规则（见 docs/design/ARCHITECTURE_PRINCIPLES.md）：
+#   - 个性化内容（why/actions/evidence）= `infra/llm/coach.py` 动态生成
+#   - 本文件只提供：① UI 展示标签 ② 通用可复用的 practice_prompt 模板
+#   - heuristic 离线模式：展示 title + practice_prompt，why/actions 留空由模板降级处理
+#
+# TODO（LLM overlay，Phase 2）：`infra/llm/coach.py` 已覆盖 LLM 模式；
+# heuristic 模式下的动态 why/actions 可通过 stats 插值模板进一步改进。
+
+headline: ""
+next_focus_fallback: "巩固现有 AI 协作习惯"
+
+priorities:
+  intent_clarity:
+    title: "任务表达"
+    why: ""
+    success_signal: "首轮已写清目标、相关文件、约束与验收，AI 很少需要先补问。"
+    stop_doing: "边做边补背景，让 AI 反复追问才能开工。"
+    week_1_actions: []
+    practice_prompt: "先不要直接回答。请先帮我检查这次任务描述里是否已经包含：目标、相关文件、约束、验收标准。如果缺失，请先指出缺口并帮我补成可执行版本。"
+
+  execution_driving:
+    title: "协作驱动"
+    why: ""
+    success_signal: "复杂任务按固定节奏推进，并主动选择合适工具或并行路径。"
+    stop_doing: "被当前回答牵着走，没有明确下一步就继续泛讨论。"
+    week_1_actions: []
+    practice_prompt: "这个任务请按 侦察 -> 方案 -> 实施 -> 验证 四步推进。每一步完成后给我最小结论，再进入下一步，不要一次性铺开。"
+
+  implementation_depth:
+    title: "实现下潜"
+    why: ""
+    success_signal: "能进入核心代码、实现链路和边界，再决定改动范围。"
+    stop_doing: "先接受概念方案，实施阶段才回头补实现证据。"
+    week_1_actions: []
+    practice_prompt: "不要停在概念建议。请进入相关代码文件，定位真实实现链路、关键边界和受影响模块，再给最小修改方案。"
+
+  delivery_closure:
+    title: "交付收口"
+    why: ""
+    success_signal: "改动后有可核对的验证结果，并明确说明是否真正完成。"
+    stop_doing: "只交付改动说明，不做最小验证就宣布完成。"
+    week_1_actions: []
+    practice_prompt: "完成实现后，请继续做到可交付状态：执行最小验证、总结结果、列剩余风险，并明确这次任务是否真的完成。"
+
+  adaptive_recovery:
+    title: "恢复推进"
+    why: ""
+    success_signal: "偏航后能用新证据重设路径，而不是机械重复原方案。"
+    stop_doing: "只说“不对”却不说明错误点、边界和下一步。"
+    week_1_actions: []
+    practice_prompt: "如果当前方向不对，请不要重复原路径。先说明：1. 哪里错了 2. 新证据是什么 3. 新的最小推进路径是什么。"
+
+  friction:
+    title: "纠偏表达"
+    why: ""
+    success_signal: ""
+    stop_doing: ""
+    week_1_actions: []
+    practice_prompt: "上一轮方向不对。问题是：<具体问题>。正确边界是：<正确范围/约束>。请在不扩大范围的前提下继续，并先说明新的最小方案。"
+
+  consolidation:
+    title: "优势固化"
+    why: ""
+    success_signal: ""
+    stop_doing: ""
+    week_1_actions: []
+    practice_prompt: "请参考我之前最成功的一次协作方式，沿用相同的计划、约束和验证风格来完成这次任务。"
+
+prompt_dimensions:
+  context_provision:
+    title: "上下文建构"
+    why: ""
+    tip: "目标、现象、文件、约束、验收五段式写满再提问。"
+    success_signal: ""
+    stop_doing: ""
+    week_1_actions: []
+    practice_prompt: "目标：<你要完成什么>\n当前现象：<现状/报错/背景>\n相关文件：<路径1, 路径2>\n约束：<不允许改什么>\n验收标准：<如何算完成>\n请先简要计划，再执行，并在最后验证结果。"
+
+  request_specificity:
+    title: "请求具体度"
+    why: ""
+    tip: "把「帮我看看」改成「请定位 -> 修改 -> 验证 -> 总结」。"
+    success_signal: ""
+    stop_doing: ""
+    week_1_actions: []
+    practice_prompt: "请先定位问题根因，再给最小修改方案，执行后做 1 个验证动作，最后总结结果和剩余风险。"
+
+  scope_management:
+    title: "范围管理"
+    why: ""
+    tip: "在 prompt 中显式写出「只允许改 / 禁止改 / 不改接口」。"
+    success_signal: ""
+    stop_doing: ""
+    week_1_actions: []
+    practice_prompt: "只允许修改 <文件/模块>。不要改 API 契约、数据库结构和无关公共组件。先给最小方案，再实施。"
+
+  information_timing:
+    title: "信息时机"
+    why: ""
+    tip: "把关键背景前置到首轮，而不是等 AI 开工后再补。"
+    success_signal: ""
+    stop_doing: ""
+    week_1_actions: []
+    practice_prompt: "在开始前先基于这些约束制定计划：<约束1> <约束2> <验收标准>。如果信息不足，请先列缺口，不要直接动手。"
+
+  correction_quality:
+    title: "纠错反馈"
+    why: ""
+    tip: "发现偏航后，用「问题 -> 正确边界 -> 继续动作」三段式纠偏。"
+    success_signal: ""
+    stop_doing: ""
+    week_1_actions: []
+    practice_prompt: "上一轮方向不对。问题是：<具体问题>。正确边界是：<正确范围/约束>。请基于这个边界继续，先说新的最小方案。"

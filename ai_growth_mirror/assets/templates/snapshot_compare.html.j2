@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="{{ 'zh-CN' if language == 'zh' else 'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ labels.snapshot_page_title }}</title>
+  <style>
+    {% include 'partials/report_theme.css.j2' %}
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+    }
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+    .hero, .section {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      color: white;
+    }
+    .hero h1 { margin: 0 0 10px; font-size: 34px; }
+    .hero p { margin: 0; color: rgba(255,255,255,0.88); }
+    .grid-2, .grid-3 {
+      display: grid;
+      gap: 16px;
+    }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .section { margin-top: 18px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: white;
+    }
+    .delta-up { background: var(--accent-soft); color: var(--evidence-met); }
+    .delta-down { background: var(--warm-soft); color: #93550d; }
+    .metric-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: var(--bar-track);
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .small { color: var(--muted); font-size: 14px; }
+    .list { margin: 0; padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>{{ labels.snapshot_hero_title }}</h1>
+      <p>{{ comparison.headline }}</p>
+    </section>
+
+    <section class="section">
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ comparison.left.snapshot_id }}</h3>
+          <p class="small">{{ comparison.left.created_at }} · {{ comparison.left.date_range }}</p>
+          <p>{{ comparison.left.headline }}</p>
+          <p class="small">{{ labels.label_stage }}: {{ comparison.left.stage }} · {{ labels.label_index }}: {{ comparison.left.score }}</p>
+        </div>
+        <div class="card">
+          <h3>{{ comparison.right.snapshot_id }}</h3>
+          <p class="small">{{ comparison.right.created_at }} · {{ comparison.right.date_range }}</p>
+          <p>{{ comparison.right.headline }}</p>
+          <p class="small">{{ labels.label_stage }}: {{ comparison.right.stage }} · {{ labels.label_index }}: {{ comparison.right.score }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>{{ labels.section_share_summary }}</h2>
+      <ul class="list">
+        {% for item in comparison.share_summary %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>{{ labels.section_capability_changes }}</h2>
+      <div class="grid-3">
+        {% for item in comparison.capability_deltas %}
+        <div class="card {% if item.delta >= 0 %}delta-up{% else %}delta-down{% endif %}">
+          <div class="metric-head">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.delta >= 0 and '+' or '' }}{{ item.delta }}</span>
+          </div>
+          <div class="bar"><span style="width: {{ item.right_score }}%"></span></div>
+          <p class="small">{{ labels.label_before }}: {{ item.left_score }} · {{ labels.label_now }}: {{ item.right_score }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>{{ labels.section_focus_shift }}</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ labels.label_previous_focus }}</h3>
+          <p>{{ comparison.changed_focus.from }}</p>
+        </div>
+        <div class="card">
+          <h3>{{ labels.label_current_focus }}</h3>
+          <p>{{ comparison.changed_focus.to }}</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

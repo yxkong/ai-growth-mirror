@@ -1,0 +1,27 @@
+Session evidence packet:
+- Tool surface: {{ tool_display_name }}
+- Project context: {{ project_path }}
+- Session duration: {{ duration_minutes or "unknown" }} minutes
+- User turns: {{ user_message_count }}
+- Opening ask: "{{ first_prompt }}"
+{% if top_user_messages %}
+- Representative user turns ({{ user_messages_shown }} of {{ user_message_count }}, in order):
+{{ top_user_messages }}
+{% endif %}
+{% if tool_has_tool_calls %}
+- Tool activity: {{ tool_counts_summary }}
+- Tool-side errors: {{ tool_errors }}
+{% else %}
+- Tool activity is unavailable. Read only from messages and output evidence.
+{% endif %}
+{% if has_output_signals %}
+- Output evidence: {{ output_summary }}
+{% endif %}
+{% if ai_authoring_hints %}
+- Capability-work evidence: {{ ai_authoring_hints }}
+{% endif %}
+{% if workflow_style_hints %}
+- Work-style evidence: {{ workflow_style_hints }}
+{% endif %}
+
+Read this session and return one JSON object that follows the schema exactly.

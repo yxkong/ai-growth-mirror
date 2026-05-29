@@ -1,0 +1,634 @@
+capability_meta:
+  intent_clarity:
+    label: "Task Framing"
+    explanation: "How clearly you front-load goal, boundaries, and acceptance criteria."
+    next_action: "Make goal, relevant files, constraints, and acceptance criteria your default opening frame."
+  execution_driving:
+    label: "Execution Driving"
+    explanation: "How actively you steer the collaboration instead of following the current answer."
+    next_action: "Use a deliberate inspect -> plan -> implement -> verify progression on complex work."
+  implementation_depth:
+    label: "Implementation Depth"
+    explanation: "How consistently you move into real code, control flow, and system boundaries."
+    next_action: "Open the core files and trace the implementation path before deciding the fix."
+  delivery_closure:
+    label: "Delivery Closure"
+    explanation: "How often your sessions reach verification, conclusion, and a usable deliverable state."
+    next_action: "After implementation, always add one minimal verification step plus a done-state summary."
+  adaptive_recovery:
+    label: "Recovery Steering"
+    explanation: "How well you recover from drift, errors, or blockers using new evidence."
+    next_action: "When steering back, state what was wrong, what changed, and the new minimal path."
+
+radar_axes:
+  intent_clarity:
+    reason_high: "Goals, boundaries, and acceptance criteria are usually front-loaded."
+    reason_low: "The task context still needs to be filled in midway too often."
+  execution_driving:
+    reason_high: "You actively organize the collaboration rhythm and tool path."
+    reason_low: "The session can still stall in discussion instead of a stable execution chain."
+  implementation_depth:
+    reason_high: "You move into code, implementation, and boundaries rather than stopping at surface advice."
+    reason_low: "Depth on the core implementation path is not yet stable."
+  delivery_closure:
+    reason_high: "Tasks usually reach verification and a clear closed state."
+    reason_low: "Implementation can move forward, but verification and closure are not yet default habits."
+  adaptive_recovery:
+    reason_high: "When work drifts or stalls, you usually steer it back effectively."
+    reason_low: "Course correction and new evidence injection are still not sharp enough."
+
+growth_gaps:
+  framing_gap:
+    label: "Task framing gap"
+    evidence_summary: "The opening request still misses goal, constraints, or acceptance too often."
+    why_it_happens: "Task framing is not yet stable enough, so later background fill-in remains costly."
+    suggested_action: "Turn goal, relevant files, constraints, and acceptance criteria into a fixed opening skeleton."
+  workflow_composition_gap:
+    label: "Workflow composition gap"
+    evidence_summary: "The execution rhythm can still be pulled by the current answer."
+    why_it_happens: "Task decomposition and step composition are not yet fully internalized."
+    suggested_action: "Use a fixed inspect, plan, implement, verify rhythm for complex tasks."
+  code_penetration_gap:
+    label: "Implementation depth gap"
+    evidence_summary: "Depth on critical implementation paths and boundaries is not yet stable."
+    why_it_happens: "It is still easy to accept conceptual advice before collecting implementation evidence."
+    suggested_action: "Make 'read the code and trace the boundary first' your default move before choosing the fix."
+  verification_gap:
+    label: "Verification gap"
+    evidence_summary: "The most common missing move after changes is verification."
+    why_it_happens: "Implementation speed is ahead of verification closure, so the done definition stays unstable."
+    suggested_action: "Add at least one minimal verification step after each implementation before closing."
+  closure_gap:
+    label: "Closure gap"
+    evidence_summary: "Results often get close to done, but conclusion and residual risk are under-explained."
+    why_it_happens: "More attention goes into making the change than proving the result is deliverable."
+    suggested_action: "End each task with result, verification, remaining risk, and explicit done-state."
+  debug_recovery_gap:
+    label: "Recovery steering gap"
+    evidence_summary: "Course correction and new evidence injection are still not stable enough."
+    why_it_happens: "Retries can still repeat the path rather than reset from new evidence."
+    suggested_action: "When blocked, state what is wrong, what new evidence you have, and what the next minimal path is."
+
+growth_stage:
+  L1:
+    label: "Observation start"
+    summary: "You have entered real AI collaboration, but stable methods are not formed yet."
+  L2:
+    label: "Collaboration forming"
+    summary: "You can move work forward, but good outcomes are still not stable and can depend on improvisation."
+  L3:
+    label: "Stable execution"
+    summary: "You can already move most tasks forward reliably; the next step is to make closure more solid."
+  L4:
+    label: "Reliable closure"
+    summary: "You are not only pushing work forward, but more often bringing it to verification and deliverable state."
+  L5:
+    label: "Scaled reuse"
+    summary: "You already show strong reuse and leverage; the next growth target is durable consistency and method capture."
+
+pq_dim_labels:
+  context_provision: "Context"
+  request_specificity: "Specificity"
+  scope_management: "Scope"
+  information_timing: "Timing"
+  correction_quality: "Correction"
+
+goal_labels:
+  implement_feature: "Feature implementation"
+  fix_bug: "Bug fix"
+  refactor_code: "Refactoring"
+  write_tests: "Writing tests"
+  write_docs: "Documentation"
+  research_exploration: "Research"
+  configuration_setup: "Configuration"
+  debug_investigate: "Debugging"
+  quick_question: "Quick question"
+  document_editing: "Document editing"
+  propose_change: "Change proposal"
+  verify_archive: "Verification"
+  git_operations: "Git operations"
+
+tool_labels:
+  shell_command: "Terminal execution"
+  bash: "Terminal execution"
+  apply_patch: "Precise patching"
+  edit: "File editing"
+  write: "File writing"
+  update_plan: "Task planning"
+  search: "Research"
+  web_search_call: "Research"
+  web_fetch: "Web fetch"
+  open: "File open"
+  open_page: "Page open"
+  click: "Page interaction"
+  screenshot: "Page inspection"
+  view_image: "Image view"
+  read: "Code reading"
+  grep: "Search in files"
+  rg: "Search in files"
+  strreplace: "Precise replace"
+  shell: "Terminal execution"
+
+tool_label_mcp: "MCP tool"
+pq_deficit_count_format: "{label} x {count}"
+
+weekdays:
+  - "Mon"
+  - "Tue"
+  - "Wed"
+  - "Thu"
+  - "Fri"
+  - "Sat"
+  - "Sun"
+
+friction_labels:
+  context-confusion: "Context confusion"
+  scope-creep: "Scope creep"
+  hallucination: "Hallucination"
+  ambiguous-request: "Ambiguous request"
+  tool-misuse: "Tool misuse"
+  missing-context: "Missing context"
+  format-issues: "Format issues"
+  repetition: "Repetition"
+  incomplete-output: "Incomplete output"
+  tool-ceiling: "Tool ceiling"
+  fuzzy-intent: "Fuzzy intent"
+  blind-spot: "Blind spot"
+  outdated-context: "Outdated context"
+  off-track: "Off track"
+  reference-gap: "Reference gap"
+  context-gap: "Context gap"
+  recurring-pattern: "Recurring pattern"
+  goal-drift: "Goal drift"
+
+exemplar_techniques:
+  deep_delegator: "Split the task into parallel paths, then converge on acceptance."
+  toolkit_orchestrator: "Capture repeated work as reusable skills, templates, or combinations."
+  verify_first: "Verify after changes instead of stopping at plausibility."
+  precision_seeker: "Front-load context, files, constraints, and goals."
+  structured_executor: "Freeze the plan and boundaries before execution."
+  focused_delivery: "Focus on one target and close the loop fast."
+  general: "Keep the most effective prompt and validation pattern from this session."
+exemplar_fact_labels:
+  files: "{count} files"
+  commits: "{count} commits"
+  verification: "verification loop"
+  constraints: "constraints upfront"
+  context: "code context"
+  tool_calls: "{count} tool calls"
+  max_chain: "max chain {count}"
+exemplar_signal_phrases:
+  delegation_reach: "break the task into delegable steps"
+  closed_loop: "verify right after the change"
+  ecosystem_use: "reuse existing skills, templates, or rules"
+  capability_reach: "bring in higher-leverage tools on purpose"
+  intent_precision: "state constraints clearly in the first turn"
+  context_richness: "attach key code and context up front"
+  prompt_depth: "state the task end-to-end in one go"
+  engagement_depth: "close the gap through focused follow-up turns"
+exemplar_technique_templates:
+  single: "The method worked because you {first}."
+  double: "The method worked because you first {first}, then {second}."
+
+wins:
+  headline: "These are not generic compliments; they are strengths already visible in your working data."
+  cards:
+    strongest_dim:
+      title: "{label} is already becoming a default habit"
+      evidence: "This dimension scores {score:.1f}, currently your strongest of the five core growth axes."
+    delivery_closure:
+      title: "Verification is entering your default loop"
+      evidence: "Your current verification behavior rate is about {pct}%."
+      why: "This means you are not just asking for outputs, but also for proof before trusting them."
+      next_action: "Extend verification beyond tests into logs, builds, UI checks, or data checks."
+    prompt_strength:
+      title: "Your prompt strength is already visible in {label}"
+      why: "This means some parts of your prompt craft are already reusable strengths."
+      next_action: "Transfer that strength into your weaker dimension: {weakest_label}."
+    exemplars:
+      title: "You already have portable methods worth reusing"
+      evidence: "This cycle surfaced {count} high-value examples, including {labels}."
+      why: "Growth is not only about scoring; it is about keeping methods so the next cycle starts higher."
+      next_action: "Turn one of those examples into a default prompt or workflow template."
+    style_lens:
+      title: "Your collaboration operating system already has a clear edge"
+      why: "This is not labeling for its own sake; it points to the working pattern you can reproduce consistently."
+      next_action: "Keep that edge, but anchor it to more stable planning and closure."
+
+summary:
+  growth_level_unrated: "Unrated"
+  title: "This cycle's collaboration evolution"
+  subtitle_suffix: " · AI Growth Mirror"
+  share_title: "This cycle's takeaway"
+  strongest_signal: "Most stable habit: {strongest}"
+  source_note:
+    heuristic: "This report is grounded in this cycle's real sessions and stable collaboration signals."
+    llm: "This report is grounded in this cycle's real sessions and deeper semantic analysis."
+    coaching_suffix_heuristic: " Training advice prioritizes stable rules and real examples."
+  headline:
+    ready: "You are currently at {growth_level}, which means AI is already a real part of your workflow. The next best leverage point is {weakest}, so your good results become easier to repeat."
+    unrated: "There is not enough analyzable evidence to rate the stage yet, so the next best move is to turn {weakest} into a default habit."
+  chips:
+    date_range: "Date range"
+    active_days: "Active days"
+    code_sessions: "Code sessions"
+    delivery_closure: "Delivery closure"
+    analysis_mode: "Analysis mode"
+    analysis_mode_heuristic: "Standard analysis"
+    analysis_mode_llm: "Deep analysis"
+    unknown: "unknown"
+  share_lines:
+    line1: "Ran {session_count} sessions across {active_days} active days, with {heavy_session_count} high-intensity delegated sessions."
+    line2: "Your strongest habit is {strongest}, which means you already have a reusable collaboration pattern."
+    line3: "If you turn {weakest} into a default move, it becomes easier to deliver results at the level of {next_focus}."
+
+work_focus:
+  default_goal: "Implementation"
+  default_tool: "Terminal execution"
+  headline: "Recently you are mainly using AI for {primary_goal}-type work, with {primary_tool} as the dominant collaboration entry point."
+
+collaboration_rhythm:
+  headline: "This period looks like {rhythm_label} — slice tasks and checkpoints to match that rhythm."
+  types:
+    burst:
+      label: "Short-loop push"
+      summary: "You tend to split work into short sessions: try fast, adjust fast."
+      next_action: "End each loop with one explicit acceptance check so speed does not skip closure."
+    deep_focus:
+      label: "Deep focus"
+      summary: "You stay on fewer themes longer and use extended sessions to reach a full conclusion."
+      next_action: "Set goal, boundaries, and exit criteria up front so deep work does not sprawl."
+    balanced:
+      label: "Dual rhythm"
+      summary: "You switch between quick probes and longer deep dives without a strong bias."
+      next_action: "Pick the rhythm before you start: short loops for exploration, deep dives for delivery."
+
+usage_overview:
+  headline: "This is not only about how often you used AI, but how much collaboration volume you carried, how much leverage you used, and how efficient the cache was."
+  summary: "This period includes {session_count} sessions, about {tool_calls} tool calls, roughly {token_volume} total tokens, and {advanced_feature_ratio}% high-leverage feature usage."
+  hero_support_line: "{summary} Supporting context: total cost {total_cost}, avg per session {avg_cost}, cache hit {cache_hit}."
+  coverage_note_partial: "Token / cost / cache cards only include sources with local usage detail: {covered}. {missing} has no local detail and is excluded."
+  coverage_note_none: "Sources {missing} have no local usage detail, so token / cost / cache are not full totals."
+  memory_note: "Memory usage is not collected yet, so this report currently shows tokens, cost, cache, and high-leverage collaboration signals only."
+  unknown_cost: "--"
+  unknown_cache: "--"
+  unknown_usage: "--"
+  token_card_label: "Token volume"
+  token_card_value: "{token_volume}"
+  token_card_detail: "Input {input_tokens} / Output {output_tokens} / Cache {cache_tokens}"
+  cache_card_label: "Cost / Cache"
+  cache_card_value: "{total_cost} · {cache_hit}"
+  cache_card_detail: "Avg per session {avg_cost} · Read {cache_read} / Write {cache_write}"
+  leverage_card_label: "High-leverage usage"
+  leverage_card_value: "{advanced_feature_ratio}%"
+  leverage_card_detail: "Subagent sessions {subagent_count} · MCP coverage {mcp_rate}% · Tool breadth {tool_diversity}"
+  intensity_card_label: "Collaboration intensity"
+  intensity_card_value: "Avg chain {avg_chain}"
+  intensity_card_detail: "Median duration {median_minutes} min · Heavy sessions {heavy_count}"
+
+friction:
+  empty_headline: "No major friction hotspot is visible yet; keep building more high-quality sessions."
+  primary_headline: "Your main friction source is {primary_label}, which determines whether the next move is prompt practice, workflow redesign, or tooling improvement."
+  actions:
+    user-actionable:
+      - "Front-load goals, constraints, and acceptance criteria."
+      - "Use problem -> corrected boundary -> next step when steering back."
+    environmental:
+      - "Verify environment, paths, dependencies, and permissions first."
+      - "Capture recurring environment issues as scripts or checklists."
+    ai-capability:
+      - "Lower scope on hard tasks and ask for the smallest viable approach first."
+      - "Turn model limitations into manual verification checkpoints."
+
+growth_delta:
+  prev_label: "Prev {date}"
+
+prompt_coach:
+  strength_card:
+    label_prefix: "Keep this habit: {label}"
+    evidence: "This is currently your most stable prompt habit, so it is already becoming reusable."
+    message: "Do not only fix weaknesses; transfer this strength into more task types."
+    action: "Over the next two weeks, deliberately reuse the {label} habit in three different tasks."
+  deficit_cards:
+    missing-context:
+      label: "Most turn-wasting pattern: missing context"
+      kind: "Evidence"
+      evidence: "{count} recent sessions show missing-context signals, so the AI often clarifies before it can move."
+      action: "Turn goal, symptom, files, constraints, and acceptance into a fixed opening skeleton."
+    missing-acceptance-criteria:
+      label: "Most early-closure pattern: missing acceptance"
+      kind: "Evidence"
+      evidence: "{count} recent sessions lack explicit done criteria, so the AI closes too early."
+      action: "Always state one minimal verifiable acceptance condition."
+    vague-request:
+      label: "Most advice-prone pattern: vague request"
+      kind: "Evidence"
+      evidence: "{count} recent sessions use wish-like requests, which invite advice instead of execution."
+      action: "Rewrite the request into diagnose, modify, verify, summarize."
+    unclear-correction:
+      label: "Most drift-prone pattern: weak correction"
+      kind: "Evidence"
+      evidence: "{count} recent sessions show a weak boundary reset after drift."
+      action: "State the mistake, the correct boundary, and the next step together."
+  deficit_message: "This is not a one-off miss; it is the most stable failure pattern right now."
+  dimension_gap_message: "If this gap becomes stable, both clarification count and rework cost will drop."
+  dimension_cards:
+    context_provision:
+      label: "Front-load context instead of letting the AI guess"
+      kind: "Gap"
+      evidence: "When files, symptoms, or constraints are missing, rework climbs quickly."
+      action: "State symptom, relevant files, constraints, and acceptance in the first turn."
+      better_prompt: |
+        [Bug Fix]
+        Symptom: [exact error or unexpected behavior]
+        Reproduce: [steps to trigger]
+        Files: [path1, path2]
+        Constraints: [what must not change]
+        Done when: [how to verify the fix]
+    request_specificity:
+      label: "Ask for actions, not wishes"
+      kind: "Gap"
+      evidence: "Open-ended requests invite advice instead of execution."
+      action: "Replace generic help with diagnose → modify → verify → summarize."
+      better_prompt: |
+        [Feature Implementation]
+        Goal: [one-sentence feature description]
+        Current state: [relevant code or system state]
+        Constraints: [interfaces or files that cannot change]
+        First step only: [smallest increment, not the full feature]
+        Done when: [how to verify success]
+    scope_management:
+      label: "Lock scope before execution"
+      kind: "Gap"
+      evidence: "When scope is fuzzy, AI tends to widen the change surface."
+      action: "State allowed files, forbidden areas, and whether interfaces may change."
+      better_prompt: |
+        [Refactor / Optimize]
+        Scope: [only these files or modules]
+        Goal: [one-sentence improvement target]
+        Forbidden: [interfaces or behaviors that must stay the same]
+        First step: [where to start, what done looks like for step 1]
+        Done when: [existing tests green + manual check point]
+    information_timing:
+      label: "Do not add the crucial context too late"
+      kind: "Gap"
+      evidence: "Late constraints make the first few turns partially wasted."
+      action: "Front-load the key constraints instead of correcting after the AI started."
+      better_prompt: |
+        [Design / Decision]
+        Decision: [which two approaches to choose between]
+        Constraints: [performance / maintainability / time]
+        Background: [current architecture or tech stack]
+        Expected output: [comparison + recommendation, no code yet]
+    correction_quality:
+      label: "Make course-correction directional"
+      kind: "Gap"
+      evidence: "Saying only 'this is wrong' does not steer fast enough."
+      action: "Use what is wrong → correct boundary → next step."
+      better_prompt: |
+        [Incremental / Course-correction]
+        Previous issue: [what specifically was wrong]
+        Correct boundary: [what should and should not happen]
+        This step only: [the smallest next action]
+        Done when: [clear completion signal for this step]
+  from_coaching:
+    source_note: "This prompt coach is LLM-personalized and grounded in this cycle's real session data."
+  takeaway_actions:
+    kind_example: "Real example"
+    kind_reinforce: "Keep this"
+    improve: "Use the structure below for your next opening message."
+    reinforce: "Carry this working pattern into a different task type."
+  heuristic_dim_labels:
+    constraint: "Constraint completeness"
+    context: "Context quality"
+    clarity: "Expression clarity"
+    depth: "Task depth"
+  heuristic_cards:
+    constraint:
+      message: "Add explicit constraints like 'do not touch X' or 'only modify Y' in your first message; this cuts rework by 30%+."
+      action: "In your next opening message, state allowed files, forbidden areas, and whether interfaces may change."
+    context:
+      message: "Attach relevant code snippets or file references so AI doesn't have to guess context."
+      action: "Attach target file paths, key code snippets, and the current symptom in your first turn."
+    clarity:
+      message: "High tool error rate often signals vague prompts. Describe issues as 'symptom + expected result + environment'."
+      action: "Rewrite the issue as symptom, expected result, and runtime environment."
+    depth:
+      message: "Assign more complete, end-to-end tasks to maximize each session's value."
+      action: "Next time, bundle diagnose, modify, verify, and summarize into one complete task."
+  heuristic_reinforce:
+    context:
+      message: "You already have a solid context habit; extend it to include architecture notes for key tasks."
+      action: "For your next three key tasks, add a short architecture or module-relationship note in the opening turn."
+    constraint:
+      message: "You're good at setting constraints; try templating them so they're included automatically."
+      action: "Draft a constraint template that always includes allowed scope, forbidden areas, and acceptance criteria."
+    default:
+      message: "Your most stable prompt habit is {label}; keep reinforcing it."
+      action: "Over the next two weeks, deliberately reuse your {label} habit in three different tasks."
+  pq:
+    evidence_summary_heuristic: "Across {sessions} evaluable sessions, your current prompt efficiency averages about {score:.1f}."
+    evidence_summary_llm: "Across {sessions} evaluable sessions, your current prompt efficiency averages about {score:.1f}."
+    strength_habit: "Your most stable prompt habit right now is {label}."
+    headline: "Your biggest prompt leverage is {label}; it most directly affects rework and clarifications."
+    source_note_heuristic: "This prompt coach prioritizes explainable real examples and stable rules."
+    source_note_llm: "This prompt coach combines semantic judgments with real-session examples."
+    source_note_mixed: "This prompt coach combines LLM semantic evaluation with proxy backfill so the PQ chain stays continuous across the full report window."
+  source_breakdown:
+    mixed: "Covered {total} sessions this period: {llm} with LLM semantic evaluation, {heuristic} with proxy backfill, including {light} lightweight proxy reads."
+    llm_only: "Covered {total} sessions this period, all with LLM semantic evaluation."
+    heuristic_only: "Covered {total} sessions this period, all with proxy backfill, including {light} lightweight proxy reads."
+  heuristic:
+    unavailable_headline: "Not enough prompt-quality data yet; revisit after more multi-turn sessions."
+    unavailable_source_note: "There are not enough prompt proxy signals or stable session samples yet."
+    headline: "From the stable signals, your biggest prompt leverage is {label}."
+    evidence_summary: "Constraint rate {constraint_pct}%, context rate {context_pct}%, tool error rate {tool_error_pct}%."
+    strength_habit: "Your most stable prompt habit is {label} (proxy {pct}%)."
+    source_note: "This prompt coach is based on stable signals and example-backed patterns rather than per-turn LLM judgments."
+    card_evidence_gap: "Heuristic proxy score is about {pct}%, below your other input dimensions."
+    card_evidence_strength: "Heuristic proxy score is about {pct}%, your most stable input signal."
+
+level_evidence:
+  growth_level_unrated: "Unrated"
+  headline_low_gap: "Why you are {current_level} instead of {next_level}"
+  headline_level_gap: "{current_level} → {next_level}: The remaining gaps"
+  headline_baseline_met: "{current_level} baseline fully met"
+  headline_unrated: "There is not enough evidence to assign a formal stage yet"
+  headline_l5: "How stable is L5: what keeps your leverage real"
+  headline_l5_baseline_met: "L5 sustain line fully met"
+  verdict_low_gap: "You already have real collaboration signals, but the baseline evidence is not stable enough yet, so you still land in {current_level}."
+  verdict_level3_gap: "You are solidly at {current_level}. The metrics below are the real blockers between here and {next_level}."
+  verdict_level4_gap: "You are at {current_level}. Here is what still needs to solidify before reaching {next_level}."
+  verdict_baseline_met: "On all baseline evidence, you have solidly reached every {current_level} threshold."
+  verdict_unrated: "At least {min_session_reads} analyzable sessions are needed for a formal stage. Until then, the L2 starting line is used as an observation baseline."
+  verdict_l5: "This is no longer about leveling up; it checks whether your high-leverage workflow is sustainably real."
+  verdict_l5_baseline_met: "On current samples, you already meet the L5 sustain line; the next focus is expanding what you can reproduce."
+  target_caption_unrated: "L2 starting line (observation)"
+  target_caption_l5: "L5 sustain line"
+  target_caption_upgrade: "{target_level} upgrade line"
+  blocker_title_unrated: "The first evidence still missing"
+  blocker_title_l5: "The signals most likely to destabilize this level"
+  blocker_title_low: "Main evidence holding you back"
+  blocker_title_level3: "Evidence that must turn green before the jump"
+  blocker_title_level4: "What still keeps advanced collaboration unstable"
+  blocker_title_no_blockers: "No major hard blockers right now"
+  progress_summary_unrated: "Only {observed_session_reads} analyzable sessions are available; {target_caption} is shown as an observation baseline."
+  progress_summary_rated: "{met_count} / {total_metrics} signals are currently met against the {target_caption}."
+  source_note_base: "The stage comes from the continuous scoring model; this section shows the next-stage evidence line to explain what is still missing."
+  source_note_heuristic_suffix: " This read is mainly grounded in stable behavior signals."
+  source_note_llm_suffix: " This read combines semantic analysis with stable behavior signals."
+  next_step_default: "Keep expanding high-quality samples and stabilize the good habits."
+  status_met: "Met"
+  status_unmet: "Not Met"
+
+agent_asset:
+  headline: "Agent Asset Footprint · {total} asset files"
+  summary: "Found {skill_count} skills, {prompt_count} prompts, {rule_count} rules."
+
+methodology:
+  title: "AI Growth Mirror evaluates only four things"
+  lines:
+    - "Context Frame: whether goals, constraints, acceptance, and context are clear up front."
+    - "Flow Orchestration: whether AI can keep moving instead of needing manual rescue every step."
+    - "Proof Loop: whether you verify, test, and review instead of stopping at plausibility."
+    - "Method Asset: whether effective patterns are preserved as templates, rules, scripts, or reusable flows."
+
+pattern_labels:
+  deep_delegator: "Deep Delegator"
+  toolkit_orchestrator: "Toolkit Orchestrator"
+  verify_first: "Verify First"
+  precision_seeker: "Precision Seeker"
+  structured_executor: "Structured Executor"
+  focused_delivery: "Focused Delivery"
+  general: "General"
+
+exemplar_summary:
+  outcome_labels:
+    fully_achieved: "fully delivered and verified"
+    mostly_achieved: "main goal achieved"
+    partially_achieved: "good progress, not fully closed"
+    ongoing: "exploration / analysis"
+  default_outcome: "meaningful progress"
+  project: "Project: {project}"
+  task: "Task: {prompt_snippet}"
+  outcome: "Outcome: {outcome_label} ({files_modified} files / {tools_total} tool calls)"
+  verification: "with verification"
+  commits: "{git_commits} commit(s)"
+  separator: "; "
+
+exemplar_why_templates:
+  single: "This pattern is worth keeping not because it happened to work once, but because you made “{first}” repeatable."
+  double: "This pattern is worth keeping because you first “{first}”, then “{second}”, which made the outcome easier to close reliably."
+
+exemplar_reuse_actions:
+  deep_delegator: "Next time you face a multi-stage task, split it into 2-3 delegable mini-loops before the final acceptance pass."
+  toolkit_orchestrator: "When the same action repeats, ask whether it should become a Skill, template, or script instead of staying manual."
+  verify_first: "After the next change, run the smallest proof step before deciding to expand scope."
+  precision_seeker: "Keep giving the goal, files, constraints, and acceptance criteria in the first message to reduce clarification turns."
+  structured_executor: "Freeze the boundary and stage goal before implementation so the execution path does not expand halfway through."
+  focused_delivery: "Keep the single-goal short loop pattern and write the completion definition up front."
+  general: "Reuse the question order and validation move from this session, not just one memorable phrase."
+
+level_axis_metrics:
+  explanations:
+    intent_clarity: "Checks whether goal, constraints, acceptance, and context are front-loaded clearly."
+    execution_driving: "Checks whether you actively organize the rhythm and leverage AI/tool capabilities."
+    implementation_depth: "Checks whether you enter real code, implementation paths, and boundaries instead of staying at surface advice."
+    delivery_closure: "Checks whether work reaches verification, conclusion, and a deliverable state."
+    adaptive_recovery: "Checks whether you recover from drift, errors, or blockers using new evidence."
+  current_values:
+    intent_clarity: "Axis {score} · constraints {constraint_rate}% · code context {code_context_rate}% · specificity {request_specificity}%"
+    execution_driving: "Axis {score} · avg chain {avg_chain} · heavy {heavy_sessions} · subagent {subagent_count} · MCP {mcp_rate}%"
+    implementation_depth: "Axis {score} · files/session {files_per_session} · token volume {token_volume_m}M · code proof {code_verification_rate_pct}%"
+    delivery_closure: "Axis {score} · weighted completion {completion_rate}% · verification {verification_rate}% · tests {test_rate}%"
+    adaptive_recovery: "Axis {score} · correction quality {correction_quality}% · structured share {structured_rate_pct}% · user friction {user_actionable_ratio_pct}% · authored assets {authored_assets}"
+  thresholds:
+    L2:
+      intent_clarity: 42
+      execution_driving: 45
+      implementation_depth: 40
+      delivery_closure: 40
+      adaptive_recovery: 38
+    L3:
+      intent_clarity: 56
+      execution_driving: 58
+      implementation_depth: 55
+      delivery_closure: 55
+      adaptive_recovery: 52
+    L4:
+      intent_clarity: 72
+      execution_driving: 74
+      implementation_depth: 70
+      delivery_closure: 70
+      adaptive_recovery: 68
+    L5:
+      intent_clarity: 86
+      execution_driving: 86
+      implementation_depth: 84
+      delivery_closure: 84
+      adaptive_recovery: 82
+  targets:
+    L2:
+      intent_clarity:
+        target: "State goal, relevant files, constraints, and acceptance clearly"
+        hint: "Background starts arriving earlier"
+      execution_driving:
+        target: "A stable execution chain appears, with explicit step control"
+        hint: "You move from waiting for answers to driving collaboration"
+      implementation_depth:
+        target: "Enter the relevant code and implementation path"
+        hint: "Not just directional advice"
+      delivery_closure:
+        target: "Some tasks reach verification and a real conclusion"
+        hint: "Not just making changes"
+      adaptive_recovery:
+        target: "Course correction uses new evidence"
+        hint: "Drift can be pulled back"
+    L3:
+      intent_clarity:
+        target: "Task framing is stable and the opening context is more complete"
+        hint: "AI needs fewer clarification turns"
+      execution_driving:
+        target: "Complex tasks follow a deliberate rhythm"
+        hint: "Execution begins to feel orchestrated"
+      implementation_depth:
+        target: "You actively trace implementation, boundaries, and impacted modules"
+        hint: "You are in the real engineering path"
+      delivery_closure:
+        target: "Verification and closure are becoming default moves"
+        hint: "Results close more reliably"
+      adaptive_recovery:
+        target: "Recovery steering appears consistently"
+        hint: "Less mechanical retrying"
+    L4:
+      intent_clarity:
+        target: "Even complex tasks are front-loaded with clear goal and boundary"
+        hint: "Context organization shows real working maturity"
+      execution_driving:
+        target: "You deliberately leverage plan, subagent, MCP, or similar high-leverage paths"
+        hint: "You are organizing a collaboration, not just issuing requests"
+      implementation_depth:
+        target: "You consistently enter core implementation and side-effect boundaries"
+        hint: "Code reasoning is more reliable"
+      delivery_closure:
+        target: "Verification, risk, and done-state form a stable closure loop"
+        hint: "Deliverability becomes normal"
+      adaptive_recovery:
+        target: "Path switching after blockers is fast and evidence-based"
+        hint: "Recovery speed improves"
+    L5:
+      intent_clarity:
+        target: "Framing is highly stable and portable even on hard tasks"
+        hint: "Input quality itself becomes leverage"
+      execution_driving:
+        target: "Multi-tool, multi-model, multi-path orchestration is stable"
+        hint: "High-leverage steering is repeatable"
+      implementation_depth:
+        target: "Deep implementation work stays strong even on hard boundary problems"
+        hint: "Depth becomes durable"
+      delivery_closure:
+        target: "Even difficult tasks keep a verification and delivery loop"
+        hint: "Factual closure is protected by default"
+      adaptive_recovery:
+        target: "Recovery, method capture, and asset reuse begin to reinforce each other"
+        hint: "You do not only recover; you preserve the recovery pattern"

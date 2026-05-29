@@ -1,0 +1,48 @@
+# AI Growth Mirror — 配置文件模板
+# 复制此文件为 config.yaml 后按需修改
+# 默认读取路径：当前目录 ./config.yaml（若存在），否则 ~/.ai-growth-mirror/config.yaml
+#
+# ⚠️ config.yaml 包含 API Key，已加入 .gitignore，请勿提交
+
+# ── AI 工具数据源 ──────────────────────────────────────────
+tools:
+  cursor:
+    enabled: true
+    # data_root: ~/.cursor   # 默认自动检测，无需填写
+  codex:
+    enabled: true
+    # data_root: ~/.codex
+  # claude_code:
+  #   enabled: false
+
+# ── LLM 配置（heuristic 模式无需填写）──────────────────────
+# 支持 provider: deepseek / openai / openai_compatible / claude / gemini / glm
+# 硅基流动、DashScope 等 OpenAI 兼容网关统一用 openai_compatible + base_url + model
+llm:
+  provider: deepseek
+  model: deepseek-v4-flash           # 留空则使用该 provider 的默认模型
+  api_key: ""                   # 或设置环境变量 DEEPSEEK_API_KEY
+  base_url: https://api.deepseek.com
+
+  # OpenAI 兼容接口示例（硅基流动 / 百炼等）：
+  # provider: openai_compatible
+  # model: deepseek-ai/DeepSeek-V3.2
+  # api_key: sk-xxx
+  # base_url: https://api.siliconflow.cn/v1
+
+# ── 报告配置 ──────────────────────────────────────────────
+report:
+  language: zh                  # zh | en
+  # output_dir: .               # 报告输出目录，默认当前目录
+
+  # 你的 AI 资产根目录（skills、prompts、rules 等）
+  # 用于资产统计和会话中 skill 引用识别
+  asset_roots:
+    - /path/to/your/agent-hub   # 示例：本地 agent hub 根目录
+    # - ~/.cursor/skills-cursor # 示例：Cursor 技能目录
+    # - ~/.claude/skills        # 示例：Claude 技能目录
+# ── 缓存配置 ──────────────────────────────────────────────
+cache:
+  enabled: true
+  ttl_days: 0                   # 0=不按天数过期（实际仅随会话更新或 SCHEMA 变更失效）
+  # dir: .ai-growth-mirror-runtime/cache   # 默认；与报告同工作区，已 gitignore

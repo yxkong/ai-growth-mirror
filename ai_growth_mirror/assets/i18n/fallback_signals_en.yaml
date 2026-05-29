@@ -1,0 +1,43 @@
+summary:
+  verified_delivery: "Verified delivery completed with clear acceptance steps."
+  implementation_progress: "Implementation progressed with concrete edits."
+  investigation_progress: "Debugging work produced actionable clues."
+  exploratory_progress: "Exploration generated reusable context."
+
+blockers:
+  tool_ceiling: "The session hit a tool or environment ceiling."
+  fuzzy_intent: "The request stayed too vague for a precise execution path."
+  off_track: "The collaboration drifted before converging on the core task."
+
+accelerators:
+  verify_loop: "Closed the loop with execution or tests."
+  planned_approach: "Started from a plan before editing."
+  context_building: "Provided concrete files, errors, or constraints."
+
+goal_text:
+  implementation: "Implementation and delivery"
+  debugging: "Debugging and repair"
+  exploration: "Research and exploration"
+
+synopsis_templates:
+  implementation: "{goal} landed with edits and validation."
+  debugging: "{goal} advanced through diagnosis and verification."
+  fallback: "The session focused on {goal}."
+
+pq_texts:
+  effective_context_desc: "The opening prompt already included key files, errors, or code context, so AI could move faster."
+  reinforce_context_label: "Keep the opening-context habit"
+  context_what_worked: "You brought the key files, symptoms, and context into the first turn."
+  context_why_effective: "That reduces guessing and follow-up questions, so the first answer is closer to an executable result."
+  missing_context_desc: "The opening prompt missed key files, symptoms, or boundaries, so AI had to clarify before moving."
+  missing_context_improvement: "Front-load the symptom, relevant files, constraints, and acceptance in the first message."
+  improve_context_label: "Rebuild the opening context block"
+  context_better_prompt: "Symptom: [issue]\nRelevant files: [paths]\nConstraints: [must not change]\nDone when: [verification]"
+  context_why_improve: "Giving enough context up front reduces rework and clarification turns."
+  precise_request_desc: "The opening request set a clearer target and boundary, making execution easier."
+  missing_acceptance_desc: "Without explicit acceptance criteria, AI is more likely to stop too early."
+  missing_acceptance_improvement: "Add one minimal, verifiable definition of done."
+  vague_request_desc: "When the request is too short or vague, AI tends to give advice instead of direct output."
+  vague_request_improvement: "Rewrite the ask as diagnose -> modify -> verify -> summarize."
+  unclear_correction_desc: "Multiple interruptions without a reset boundary make correction more expensive."
+  unclear_correction_improvement: "When correcting, say what was wrong, what the correct boundary is, and what to do next."
