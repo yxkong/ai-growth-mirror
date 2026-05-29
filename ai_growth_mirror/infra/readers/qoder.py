@@ -12,9 +12,10 @@ import os
 import re
 import sqlite3
 from collections import Counter
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any, Iterator
 
 from ...domain.session.model import SessionRef, SessionRecord
 from ...domain.signals.tooling import compute_tier_counts, normalize_tool_name
@@ -48,6 +49,21 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
             appdata_path("QCoder IDE"),
         ]
 
+    def _storage_roots(self) -> list[Path]:
+        """Scan extra install paths only when using the default data root."""
+        from .workspace_storage import _dedupe_paths
+
+        candidates = list(self.data_roots)
+        if len(candidates) == 1 and candidates[0] == self.default_data_root:
+            candidates.extend(self.extra_storage_roots())
+        resolved: list[Path] = []
+        for root in _dedupe_paths(candidates):
+            if root.name == "workspaceStorage":
+                resolved.append(root)
+            resolved.append(root / "User" / "workspaceStorage")
+            resolved.append(root / "workspaceStorage")
+        return _dedupe_paths(resolved)
+
     def is_available(self) -> bool:
         """Check if QCoder data is available."""
         # Check workspaceStorage directories
@@ -63,14 +79,45 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
     def iter_raw_sessions(self) -> Iterator[SessionRef]:
         """Iterate over raw session references from both JSONL and SQLite sources."""
         seen: set[str] = set()
+        workspaces_with_chat_files: set[str] = set()
 
-        # First: try workspaceStorage chatSessions (JSON/JSONL format)
         for session_file, workspace_dir in self._iter_session_files():
             session_id = session_file.stem
             if session_id in seen:
                 continue
             start_time = self._read_session_start_time(session_file)
             source_paths = [session_file]
+            workspace_json = workspace_dir / "workspace.json"
+            if workspace_json.exists():
+                source_paths.append(workspace_json)
+            seen.add(session_id)
+            workspaces_with_chat_files.add(str(workspace_dir).lower())
+            yield SessionRef(
+                session_id=session_id,
+                tool_name=self.tool_name,
+                start_time=start_time,
+                source_paths=source_paths,
+                source_mtime=_max_mtime(source_paths),
+            )
+
+        for workspace_dir in self._iter_workspace_dirs():
+            state_db = workspace_dir / "state.vscdb"
+            if not state_db.exists():
+                continue
+            workspace_key = str(workspace_dir).lower()
+            if workspace_key in workspaces_with_chat_files:
+                continue
+            session_id = workspace_dir.name
+            if session_id in seen:
+                continue
+            try:
+                start_time = datetime.fromtimestamp(
+                    state_db.stat().st_mtime,
+                    tz=timezone.utc,
+                )
+            except OSError:
+                start_time = datetime.now(timezone.utc)
+            source_paths = [state_db]
             workspace_json = workspace_dir / "workspace.json"
             if workspace_json.exists():
                 source_paths.append(workspace_json)
@@ -85,17 +132,24 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
 
     def parse_session(self, raw: SessionRef) -> SessionRecord:
         """Parse a single session from raw reference."""
-        # Determine source type
         source_file = raw.source_paths[0]
-        
+
         if source_file.suffix.lower() in (".json", ".jsonl"):
-            # Use parent class method for JSON/JSONL format
-            return super().parse_session(raw)
-        elif source_file.name == "state.vscdb":
-            # Parse SQLite database format
+            return self._enrich_workspace_session(super().parse_session(raw))
+        if source_file.name == "state.vscdb":
             return self._parse_state_db(raw, source_file)
-        else:
-            return self._create_minimal_session(raw)
+        return self._create_minimal_session(raw)
+
+    @staticmethod
+    def _enrich_workspace_session(record: SessionRecord) -> SessionRecord:
+        """Fill orchestration counters that WorkspaceStorageChatAdapter leaves at zero."""
+        tool_counts = record.tool_counts or {}
+        subagent_count = sum(tool_counts.get(name, 0) for name in SUBAGENT_TOOL_NAMES)
+        if record.uses_subagent and subagent_count == 0:
+            subagent_count = 1
+        if subagent_count == record.subagent_invocation_count:
+            return record
+        return replace(record, subagent_invocation_count=subagent_count)
 
     def _parse_state_db(self, raw: SessionRef, state_db: Path) -> SessionRecord:
         """Parse session data from state.vscdb with full feature extraction."""
@@ -191,7 +245,7 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
                                 mcp_server_authored = True
 
             # Extract model information
-            models_used = self._extract_models(cursor)
+            models_used = self._extract_models_from_vscdb(cursor)
 
             # Extract session metadata
             session_metadata = self._extract_session_metadata(cursor)
@@ -322,7 +376,7 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
             pass
         return []
 
-    def _extract_models(self, cursor: sqlite3.Cursor) -> list[str]:
+    def _extract_models_from_vscdb(self, cursor: sqlite3.Cursor) -> list[str]:
         """Extract model information from state.vscdb."""
         models: set[str] = set()
         try:
@@ -335,11 +389,13 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
                     if isinstance(data, dict):
                         for session_data in data.values():
                             if isinstance(session_data, dict):
-                                for model in session_data.values():
-                                    if isinstance(model, str):
-                                        # Clean up model name
-                                        model = model.replace("_", "-")
-                                        models.add(model)
+                                model = session_data.get("model")
+                                if isinstance(model, str) and model.strip():
+                                    models.add(model.strip().replace("_", "-"))
+                                else:
+                                    for item in session_data.values():
+                                        if isinstance(item, str) and item.strip():
+                                            models.add(item.strip().replace("_", "-"))
         except Exception:
             pass
         return sorted(models)
