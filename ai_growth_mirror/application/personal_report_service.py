@@ -18,8 +18,12 @@ from ..domain.session.model import SessionRecord
 from ..domain.session.scope import SessionScope
 from ..domain.signals.model import SessionRead
 from ..infra.llm.coach import generate_growth_guidance
-from ..infra.snapshots import archive_personal_report_snapshot, load_snapshot_index
-from ..product import LEGACY_SNAPSHOT_ARCHIVE_DIRNAMES, SNAPSHOT_ARCHIVE_DIRNAME
+from ..infra.snapshots import (
+    SNAPSHOT_ARCHIVE_DIRNAME,
+    archive_personal_report_snapshot,
+    load_previous_snapshot_source,
+    load_recent_snapshot_sources,
+)
 from .label_catalogs import load_report_label_catalogs
 from .html_render import render_personal_report_html, render_share_card_html
 from .summary_payload import build_personal_summary_payload
@@ -74,8 +78,12 @@ def generate_personal_report(
         except Exception:
             pass
 
-    prev_profile, prev_snapshot_created_at = _load_previous_profile(
+    previous_snapshot = load_previous_snapshot_source(
         output_path.parent / SNAPSHOT_ARCHIVE_DIRNAME
+    )
+    historical_snapshots = load_recent_snapshot_sources(
+        output_path.parent / SNAPSHOT_ARCHIVE_DIRNAME,
+        window_days=30,
     )
 
     view = build_personal_report_view(
@@ -87,10 +95,12 @@ def generate_personal_report(
         since=since,
         until=until,
         asset_stats=stats.agent_asset,
-        prev_profile=prev_profile,
-        prev_snapshot_created_at=prev_snapshot_created_at,
+        previous_snapshot=previous_snapshot,
+        historical_snapshots=historical_snapshots,
         coaching=coaching,
         session_read_mode=session_read_mode,
+        quality_eligible=quality_eligible or 0,
+        extraction_failed=extraction_failed,
         catalogs=catalogs,
     )
     html = render_personal_report_html(view=view, language=language, redact=redact)
@@ -114,13 +124,16 @@ def generate_personal_report(
             redact=redact,
         )
     )
+    summary_payload = build_personal_summary_payload(view)
+    core_payload["growth_trajectory"] = summary_payload.get("growth_trajectory", {"available": False})
+    core_payload["prompt_coach"] = summary_payload.get("prompt_coach", {})
+    core_payload["growth_plan"] = summary_payload.get("growth_plan", {})
     if write_sidecar:
         sidecar_path = output_path.with_suffix(".json")
         sidecar_path.write_text(
             _json.dumps(core_payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-    summary_payload = build_personal_summary_payload(view)
     share_html = render_share_card_html(
         summary_payload=summary_payload,
         template_labels=catalogs.template_labels,
@@ -139,35 +152,3 @@ def generate_personal_report(
         view=view,
         sidecar_payload=core_payload,
     )
-
-
-def _load_previous_profile(archive_root: Path) -> tuple[dict[str, object] | None, str]:
-    """Load the previous snapshot profile, if available, before writing the current one."""
-    candidates: list[tuple[str, Path, str]] = []
-    for root in _candidate_snapshot_roots(archive_root):
-        try:
-            index = load_snapshot_index(root)
-        except Exception:
-            continue
-        for entry in index:
-            candidates.append((entry.created_at, root, entry.snapshot_id))
-    if not candidates:
-        return None, ""
-
-    candidates.sort(key=lambda item: item[0], reverse=True)
-    for created_at, root, snapshot_id in candidates:
-        profile_path = root / "snapshots" / snapshot_id / "profile.json"
-        try:
-            return _json.loads(profile_path.read_text(encoding="utf-8")), created_at
-        except Exception:
-            continue
-    return None, ""
-
-
-def _candidate_snapshot_roots(primary_archive_root: Path) -> list[Path]:
-    roots = [primary_archive_root]
-    for dirname in LEGACY_SNAPSHOT_ARCHIVE_DIRNAMES:
-        legacy_root = primary_archive_root.with_name(dirname)
-        if legacy_root not in roots:
-            roots.append(legacy_root)
-    return roots

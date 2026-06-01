@@ -7,17 +7,17 @@ from ai_growth_mirror.infra.readers.cursor import CursorAdapter
 from ai_growth_mirror.domain.growth.scorer import aggregate
 from ai_growth_mirror.domain.growth.model import GrowthProfile
 from ai_growth_mirror.application.growth_plan import build_growth_plan
-from ai_growth_mirror.application.personal_report_service import (
-    _load_previous_profile,
-    generate_personal_report,
-)
+from ai_growth_mirror.application.personal_report_service import generate_personal_report
 from ai_growth_mirror.application.summary_payload import build_personal_summary_payload
 from ai_growth_mirror.application.report_view import build_personal_report_view, _build_level_evidence
+from ai_growth_mirror.domain.snapshots.model import SnapshotCoverage, SnapshotMethodAssets, SnapshotPromptQuality, SnapshotSource
+from ai_growth_mirror.domain.snapshots.trajectory import build_snapshot_trajectory_window
 from tests.conftest import load_report_label_catalogs, run_workspace
 from ai_growth_mirror.infra.snapshots import (
     SNAPSHOT_ARCHIVE_DIRNAME,
     build_snapshot_comparison,
     compare_snapshots,
+    load_previous_snapshot_source,
 )
 from ai_growth_mirror.application.html_render import render_personal_report_html, render_share_card_html
 
@@ -80,6 +80,23 @@ def _make_facets(session_id: str, *, score_bias: int = 0) -> SessionRead:
         capability_depth="incidental",
         work_style="plan_driven",
     )
+
+
+def _snapshot_index_entry(snapshot_id: str, created_at: str) -> dict[str, str]:
+    prefix = f"snapshots/{snapshot_id}"
+    return {
+        "snapshot_id": snapshot_id,
+        "created_at": created_at,
+        "tool_display_name": "Codex CLI",
+        "report_title": "test report",
+        "date_range": "2026-05-01 – 2026-05-31",
+        "report_path": f"{prefix}/report.html",
+        "report_json_path": f"{prefix}/report.json",
+        "profile_path": f"{prefix}/profile.json",
+        "summary_path": f"{prefix}/summary.json",
+        "normalized_summary_path": f"{prefix}/normalized-summary.json",
+        "compare_hint": f"ai-growth-mirror compare {snapshot_id} <other_snapshot_id>",
+    }
 
 
 def test_build_growth_plan_returns_two_priorities():
@@ -228,6 +245,27 @@ def test_personal_summary_payload_contains_share_surface_fields():
     assert payload["share_card"]["current_breakthrough"] == view.summary.next_focus
 
 
+def test_personal_summary_payload_exports_closed_loop_fields():
+    sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/b")]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+    payload = build_personal_summary_payload(view)
+
+    assert "growth_trajectory" in payload
+    assert "prompt_coach" in payload
+    assert "growth_plan" in payload
+    assert payload["prompt_coach"]["source_summary"]["llm_session_count"] >= 0
+    assert isinstance(payload["prompt_coach"]["rewrite_cards"], list)
+    assert isinstance(payload["growth_plan"]["priorities"], list)
+
+
 def test_prompt_coach_prefers_real_takeaway_examples():
     from ai_growth_mirror.domain.signals.model import PromptLensTakeaway
 
@@ -257,6 +295,59 @@ def test_prompt_coach_prefers_real_takeaway_examples():
     assert view.prompt_coach.takeaways[0].label == "先把背景交代完整"
     assert "帮我看看这个问题" in view.prompt_coach.takeaways[0].evidence
     assert "相关文件：handler.py" in view.prompt_coach.takeaways[0].better_prompt
+
+
+def test_snapshot_trajectory_window_collapses_same_day_points():
+    def _source(snapshot_id: str, created_at: str, score: int) -> SnapshotSource:
+        return SnapshotSource(
+            snapshot_id=snapshot_id,
+            created_at=created_at,
+            date_range="2026-05",
+            tool_display_name="Codex CLI",
+            growth_level="L3",
+            mirror_score=score,
+            headline="headline",
+            next_focus="focus",
+            strongest_axis_key="intent_clarity",
+            weakest_axis_key="delivery_closure",
+            axis_scores={
+                "intent_clarity": float(score),
+                "execution_driving": float(score - 2),
+                "implementation_depth": float(score - 4),
+                "delivery_closure": float(score - 6),
+                "adaptive_recovery": float(score - 3),
+            },
+            prompt_quality_dimensions={"context_provision": float(score - 10)},
+            actionable_friction_counts={
+                "vague_request": 3,
+                "missing_context": 2,
+                "scope_drift": 1,
+                "missing_acceptance_criteria": 1,
+                "unclear_correction": 0,
+            },
+            prompt_quality=SnapshotPromptQuality(),
+            friction_type_counts={},
+            friction_by_attribution={},
+            method_assets=SnapshotMethodAssets(),
+            coverage=SnapshotCoverage(session_count=4, session_read_count=4, has_usage_data=True),
+            evidence_by_topic={},
+            sample_count=4,
+            point_confidence="medium",
+        )
+
+    window = build_snapshot_trajectory_window(
+        [
+            _source("a", "2026-05-29 10:00:00", 50),
+            _source("b", "2026-05-30 10:00:00", 58),
+            _source("c1", "2026-05-31 09:00:00", 60),
+            _source("c2", "2026-05-31 18:00:00", 68),
+        ]
+    )
+
+    assert len(window.points) == 4
+    assert len(window.display_points) == 3
+    assert window.display_points[-1].snapshot_id == "c2"
+    assert window.trend_summary.label in {"sustained_up", "volatile_up"}
 
 def test_exemplars_do_not_repeat_same_category():
     sessions = [
@@ -323,9 +414,9 @@ def test_snapshot_comparison_data_structure():
         right_summary=right_summary,
         language="zh",
     )
-    assert comparison["best_up"]["label"]
-    assert comparison["changed_focus"]["from"] == "交付收口"
-    assert len(comparison["capability_deltas"]) == 5
+    assert comparison["current"]["mirror_score"] >= 0
+    assert comparison["previous"]["next_focus"] == "交付收口"
+    assert len(comparison["axis_deltas"]) == 5
 
 
 def test_generate_personal_report_creates_snapshot_archive(tmp_path: Path):
@@ -360,7 +451,7 @@ def test_generate_personal_report_creates_snapshot_archive(tmp_path: Path):
     assert (snapshot_dir / "normalized-summary.json").exists()
 
 
-def test_load_previous_profile_prefers_most_recent_snapshot(tmp_path: Path):
+def test_load_previous_snapshot_source_prefers_most_recent_snapshot(tmp_path: Path):
     workspace_tmp = run_workspace(tmp_path, "snapshot_prev_latest")
     archive_root = workspace_tmp / SNAPSHOT_ARCHIVE_DIRNAME
     snapshots_root = archive_root / "snapshots"
@@ -371,8 +462,9 @@ def test_load_previous_profile_prefers_most_recent_snapshot(tmp_path: Path):
     for snapshot_id, score in ((old_id, 12), (new_id, 66)):
         snapshot_dir = snapshots_root / snapshot_id
         snapshot_dir.mkdir(parents=True)
-        (snapshot_dir / "profile.json").write_text(
-            json.dumps({"summary": {"mirror_score": score}}),
+        (snapshot_dir / "profile.json").write_text(json.dumps({}), encoding="utf-8")
+        (snapshot_dir / "summary.json").write_text(
+            json.dumps({"snapshot_id": snapshot_id, "created_at": "2026-05-29 12:00:00", "score": score}),
             encoding="utf-8",
         )
 
@@ -380,26 +472,27 @@ def test_load_previous_profile_prefers_most_recent_snapshot(tmp_path: Path):
         "schema_version": "1.0",
         "latest_snapshot_id": new_id,
         "snapshots": [
-            {"snapshot_id": new_id, "created_at": "2026-05-29 12:00:00"},
-            {"snapshot_id": old_id, "created_at": "2026-05-28 23:00:00"},
+            _snapshot_index_entry(new_id, "2026-05-29 12:00:00"),
+            _snapshot_index_entry(old_id, "2026-05-28 23:00:00"),
         ],
     }
     (archive_root / "index.json").write_text(json.dumps(index), encoding="utf-8")
 
-    profile, created_at = _load_previous_profile(archive_root)
-    assert profile is not None
-    assert created_at == "2026-05-29 12:00:00"
-    assert profile["summary"]["mirror_score"] == 66
+    source = load_previous_snapshot_source(archive_root)
+    assert source is not None
+    assert source.created_at == "2026-05-29 12:00:00"
+    assert source.mirror_score == 66
 
 
-def test_load_previous_profile_falls_back_to_legacy_snapshot_archive(tmp_path: Path):
+def test_load_previous_snapshot_source_falls_back_to_legacy_snapshot_archive(tmp_path: Path):
     workspace_tmp = run_workspace(tmp_path, "snapshot_prev_legacy")
     legacy_root = workspace_tmp / "snapshot-archive"
     snapshot_id = "20260526-075444"
     snapshot_dir = legacy_root / "snapshots" / snapshot_id
     snapshot_dir.mkdir(parents=True)
-    (snapshot_dir / "profile.json").write_text(
-        json.dumps({"summary": {"mirror_score": 48}}),
+    (snapshot_dir / "profile.json").write_text(json.dumps({}), encoding="utf-8")
+    (snapshot_dir / "summary.json").write_text(
+        json.dumps({"snapshot_id": snapshot_id, "created_at": "2026-05-26 07:54:44", "score": 48}),
         encoding="utf-8",
     )
     (legacy_root / "index.json").write_text(
@@ -408,17 +501,17 @@ def test_load_previous_profile_falls_back_to_legacy_snapshot_archive(tmp_path: P
                 "schema_version": "1.0",
                 "latest_snapshot_id": snapshot_id,
                 "snapshots": [
-                    {"snapshot_id": snapshot_id, "created_at": "2026-05-26 07:54:44"},
+                    _snapshot_index_entry(snapshot_id, "2026-05-26 07:54:44"),
                 ],
             }
         ),
         encoding="utf-8",
     )
 
-    profile, created_at = _load_previous_profile(workspace_tmp / SNAPSHOT_ARCHIVE_DIRNAME)
-    assert profile is not None
-    assert created_at == "2026-05-26 07:54:44"
-    assert profile["summary"]["mirror_score"] == 48
+    source = load_previous_snapshot_source(workspace_tmp / SNAPSHOT_ARCHIVE_DIRNAME)
+    assert source is not None
+    assert source.created_at == "2026-05-26 07:54:44"
+    assert source.mirror_score == 48
 
 
 def test_level_evidence_uses_level_specific_target_for_l5():
@@ -738,3 +831,5 @@ def test_snapshot_compare_html_escapes_untrusted_summary_fields(tmp_path: Path):
     html = out.read_text(encoding="utf-8")
     assert xss_focus not in html
     assert "&lt;img" in html
+    payload = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
+    assert payload["current"]["next_focus"] == xss_focus

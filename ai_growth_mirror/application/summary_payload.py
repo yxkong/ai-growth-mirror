@@ -5,6 +5,140 @@ from __future__ import annotations
 from .report_view import PersonalReportView
 
 
+def _growth_trajectory_payload(view: PersonalReportView) -> dict[str, object]:
+    if not view.growth_trajectory:
+        return {"available": False, "window_days": 30, "points": [], "trend_summary": {}, "latest_vs_previous": {}}
+    payload = dict(view.growth_trajectory.data or {})
+    payload["available"] = bool(view.growth_trajectory.available)
+    payload.setdefault("window_days", 30)
+    payload.setdefault("points", [])
+    payload.setdefault("display_points", [])
+    payload.setdefault("trend_summary", {})
+    payload.setdefault("latest_vs_previous", {})
+    return payload
+
+
+def _prompt_coach_payload(view: PersonalReportView) -> dict[str, object]:
+    coach = view.prompt_coach
+    return {
+        "headline": coach.headline,
+        "strongest_label": coach.strongest_label,
+        "weakest_label": coach.weakest_label,
+        "evidence_summary": coach.evidence_summary,
+        "strength_habit": coach.strength_habit,
+        "source_note": coach.source_note,
+        "light_state_note": coach.light_state_note,
+        "source_summary": {
+            "llm_session_count": coach.source_summary.llm_session_count,
+            "heuristic_session_count": coach.source_summary.heuristic_session_count,
+            "light_session_count": coach.source_summary.light_session_count,
+            "evaluated_user_messages": coach.source_summary.evaluated_user_messages,
+        },
+        "weak_dimensions": list(coach.weak_dimensions),
+        "deficits": list(coach.deficits),
+        "top_deficits": [
+            {
+                "id": item.id,
+                "category": item.category,
+                "label": item.label,
+                "description": item.description,
+                "impact": item.impact,
+                "confidence": item.confidence,
+                "evidence_refs": list(item.evidence_refs),
+                "source": item.source,
+            }
+            for item in coach.top_deficits
+        ],
+        "rewrite_cards": [
+            {
+                "id": item.id,
+                "scene": item.scene,
+                "original": item.original,
+                "problem": item.problem,
+                "better_prompt": item.better_prompt,
+                "why": item.why,
+                "category": item.category,
+                "confidence": item.confidence,
+                "evidence_refs": list(item.evidence_refs),
+                "source_note": item.source_note,
+            }
+            for item in coach.rewrite_cards
+        ],
+        "takeaways": [
+            {
+                "label": item.label,
+                "kind": item.kind,
+                "evidence": item.evidence,
+                "message": item.message,
+                "action": item.action,
+                "better_prompt": item.better_prompt,
+            }
+            for item in coach.takeaways
+        ],
+        "universal_template": {
+            "id": coach.universal_template.id,
+            "title": coach.universal_template.title,
+            "scene": coach.universal_template.scene,
+            "common_gap": coach.universal_template.common_gap,
+            "body": coach.universal_template.template,
+        }
+        if coach.universal_template
+        else {},
+        "scenario_templates": [
+            {
+                "id": item.id,
+                "title": item.title,
+                "scene": item.scene,
+                "common_gap": item.common_gap,
+                "template": item.template,
+            }
+            for item in coach.scenario_templates
+        ],
+        "preflight_checklist": [
+            {
+                "id": item.id,
+                "text": item.text,
+                "related_deficit_id": item.related_deficit_id,
+            }
+            for item in coach.preflight_checklist
+        ],
+        "seven_day_training_plan": [
+            {
+                "day": item.day,
+                "theme": item.theme,
+                "action": item.action,
+                "practice_prompt": item.practice_prompt,
+            }
+            for item in coach.seven_day_training_plan
+        ],
+    }
+
+
+def _growth_plan_payload(view: PersonalReportView) -> dict[str, object]:
+    return {
+        "headline": view.growth_plan.headline,
+        "next_focus": view.growth_plan.next_focus,
+        "priorities": [
+            {
+                "id": item.id,
+                "key": item.key,
+                "title": item.title,
+                "why": item.why,
+                "evidence_refs": list(item.evidence_refs),
+                "week_1_actions": list(item.week_1_actions),
+                "week_2_actions": list(item.week_2_actions),
+                "practice_prompt": item.practice_prompt,
+                "success_signal": item.success_signal,
+                "stop_doing": item.stop_doing,
+                "linked_prompt_deficit_ids": list(item.linked_prompt_deficit_ids),
+                "linked_template_ids": list(item.linked_template_ids),
+                "linked_rewrite_card_ids": list(item.linked_rewrite_card_ids),
+            }
+            for item in view.growth_plan.priorities
+        ],
+    }
+
+
 def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object]:
     growth_stage = view.growth_stage
     gap_rankings = [
@@ -30,23 +164,6 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
         }
         for item in view.radar_axes
     ]
-    trend_signals = {
-        "score_delta": view.growth_delta.score_delta if view.growth_delta and view.growth_delta.available else 0,
-        "axis_deltas": {
-            item.get("key", ""): item.get("delta", 0.0)
-            for item in []
-        },
-        "gap_changes": (
-            [*view.growth_delta.improved_dims, *view.growth_delta.regressed_dims]
-            if view.growth_delta and view.growth_delta.available
-            else []
-        ),
-        "trend_summary": (
-            view.level_evidence.progress_summary
-            if view.growth_delta and view.growth_delta.available
-            else ""
-        ),
-    }
     return {
         "schema_version": "2.0",
         "report_type": "personal_growth_summary",
@@ -121,7 +238,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
             "key_patterns": [item.title for item in view.wins.wins[:3]],
             "risk_overview": list(view.level_evidence.blockers[:3]),
         },
-        "trend_signals": trend_signals,
+        "growth_trajectory": _growth_trajectory_payload(view),
         "next_actions": [
             {
                 "key": item.key,
@@ -186,27 +303,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
             }
             for item in view.exemplars
         ],
-        "prompt_coach": {
-            "headline": view.prompt_coach.headline,
-            "strongest_label": view.prompt_coach.strongest_label,
-            "weakest_label": view.prompt_coach.weakest_label,
-            "evidence_summary": view.prompt_coach.evidence_summary,
-            "strength_habit": view.prompt_coach.strength_habit,
-            "source_note": view.prompt_coach.source_note,
-            "weak_dimensions": list(view.prompt_coach.weak_dimensions),
-            "deficits": list(view.prompt_coach.deficits),
-            "takeaways": [
-                {
-                    "label": item.label,
-                    "kind": item.kind,
-                    "evidence": item.evidence,
-                    "message": item.message,
-                    "action": item.action,
-                    "better_prompt": item.better_prompt,
-                }
-                for item in view.prompt_coach.takeaways
-            ],
-        },
+        "prompt_coach": _prompt_coach_payload(view),
         "style_system": {
             "archetype_name": view.style_lens.archetype_name,
             "archetype_tag": view.style_lens.archetype_tag,
@@ -225,21 +322,5 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
                 for item in view.style_lens.dimensions
             ],
         },
-        "growth_plan": {
-            "headline": view.growth_plan.headline,
-            "next_focus": view.growth_plan.next_focus,
-            "priorities": [
-                {
-                    "key": item.key,
-                    "title": item.title,
-                    "why": item.why,
-                    "success_signal": item.success_signal,
-                    "stop_doing": item.stop_doing,
-                    "week_1_actions": list(item.week_1_actions),
-                    "week_2_actions": list(item.week_2_actions),
-                    "practice_prompt": item.practice_prompt,
-                }
-                for item in view.growth_plan.priorities
-            ],
-        },
+        "growth_plan": _growth_plan_payload(view),
     }

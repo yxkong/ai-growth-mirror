@@ -13,7 +13,7 @@
       color: var(--ink);
     }
     .page {
-      max-width: 1100px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 28px 18px 60px;
     }
@@ -24,9 +24,7 @@
       padding: 24px;
       box-shadow: var(--shadow);
     }
-    .hero {
-      color: white;
-    }
+    .hero { color: white; }
     .hero-brand {
       width: min(320px, 100%);
       margin-bottom: 14px;
@@ -39,24 +37,24 @@
     }
     .hero h1 { margin: 0 0 10px; font-size: 34px; }
     .hero p { margin: 0; color: rgba(255,255,255,0.88); }
+    .section { margin-top: 18px; }
     .grid-2, .grid-3 {
       display: grid;
       gap: 16px;
     }
     .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
     .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .section { margin-top: 18px; }
     .card {
       border: 1px solid var(--line);
       border-radius: 18px;
       padding: 16px;
       background: white;
     }
-    .delta-up { background: var(--accent-soft); color: var(--evidence-met); }
-    .delta-down { background: var(--warm-soft); color: #93550d; }
+    .metric { margin-top: 12px; }
     .metric-head {
       display: flex;
       justify-content: space-between;
+      gap: 12px;
       margin-bottom: 8px;
       font-size: 14px;
     }
@@ -67,8 +65,28 @@
       overflow: hidden;
       margin-bottom: 8px;
     }
+    .bar span {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+      border-radius: inherit;
+    }
     .small { color: var(--muted); font-size: 14px; }
     .list { margin: 0; padding-left: 18px; }
+    .chip {
+      display: inline-block;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    .note {
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px 14px;
+    }
   </style>
 </head>
 <body>
@@ -78,61 +96,176 @@
         {% include 'logo/ai-growth-mirror-logo-horizontal.svg' %}
       </div>
       <h1>{{ labels.snapshot_hero_title }}</h1>
-      <p>{{ comparison.headline }}</p>
+      <p>{{ page.trajectory.overview }}</p>
     </section>
 
     <section class="section">
       <div class="grid-2">
         <div class="card">
-          <h3>{{ comparison.left.snapshot_id }}</h3>
-          <p class="small">{{ comparison.left.created_at }} · {{ comparison.left.date_range }}</p>
-          <p>{{ comparison.left.headline }}</p>
-          <p class="small">{{ labels.label_stage }}: {{ comparison.left.stage }} · {{ labels.label_index }}: {{ comparison.left.score }}</p>
+          <h3>{{ page.left_snapshot_id }}</h3>
+          <p class="small">{{ page.left_created_at }} · {{ page.left_date_range }}</p>
+          <p>{{ page.left_headline }}</p>
         </div>
         <div class="card">
-          <h3>{{ comparison.right.snapshot_id }}</h3>
-          <p class="small">{{ comparison.right.created_at }} · {{ comparison.right.date_range }}</p>
-          <p>{{ comparison.right.headline }}</p>
-          <p class="small">{{ labels.label_stage }}: {{ comparison.right.stage }} · {{ labels.label_index }}: {{ comparison.right.score }}</p>
+          <h3>{{ page.right_snapshot_id }}</h3>
+          <p class="small">{{ page.right_created_at }} · {{ page.right_date_range }}</p>
+          <p>{{ page.right_headline }}</p>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px">{{ page.trajectory.confidence_note }}</div>
+    </section>
+
+    <section class="section">
+      <h2>{{ labels.section_growth_delta }}</h2>
+      <p class="small">{{ labels.label_compared_with }} {{ page.trajectory.prev_label }}</p>
+      <div class="grid-3" style="margin-top:12px">
+        {% for card in page.trajectory.summary_cards %}
+        <div class="card">
+          <div class="small">{{ card.label }}</div>
+          <div style="font-size:28px; font-weight:700; margin:8px 0; color:{% if card.tone in ['up', 'high'] %}var(--accent){% elif card.tone in ['down', 'low'] %}var(--friction){% else %}var(--ink){% endif %}">{{ card.value }}</div>
+          <div class="small">{{ card.caption }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ labels.section_axis_deltas }}</h3>
+          {% for axis in page.trajectory.axis_deltas %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ axis.label }}</strong>
+              <span style="color:{% if axis.direction == 'up' %}var(--accent){% elif axis.direction == 'down' %}var(--friction){% else %}var(--muted){% endif %}">
+                {{ '+' if axis.delta >= 0 else '' }}{{ '%.1f'|format(axis.delta) }}
+              </span>
+            </div>
+            <div class="bar"><span style="width: {{ axis.current }}%"></span></div>
+            <p class="small">{{ labels.label_previous }} {{ '%.1f'|format(axis.previous) }} · {{ labels.label_current }} {{ '%.1f'|format(axis.current) }}</p>
+            <p class="small">{{ axis.explanation }}</p>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="card">
+          <h3>{{ labels.section_score_waterfall }}</h3>
+          <p class="small">{{ labels.label_estimated_contribution }}</p>
+          {% for step in page.trajectory.waterfall_steps %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ step.label }}</strong>
+              <span style="color:{% if step.direction == 'up' %}var(--accent){% elif step.direction == 'down' %}var(--friction){% else %}var(--muted){% endif %}">
+                {{ '+' if step.contribution >= 0 else '' }}{{ '%.1f'|format(step.contribution) }}
+              </span>
+            </div>
+            <div class="bar"><span style="width: {{ (step.contribution|abs * 12)|round(0, 'ceil') }}%; background:{% if step.direction == 'down' %}var(--friction){% else %}var(--accent){% endif %}"></span></div>
+            <p class="small">{{ labels.label_delta }} {{ '+' if step.delta >= 0 else '' }}{{ '%.1f'|format(step.delta) }}</p>
+          </div>
+          {% endfor %}
         </div>
       </div>
     </section>
 
     <section class="section">
-      <h2>{{ labels.section_share_summary }}</h2>
-      <ul class="list">
-        {% for item in comparison.share_summary %}
-        <li>{{ item }}</li>
-        {% endfor %}
-      </ul>
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ labels.label_prompt_quality }}</h3>
+          <p>{{ page.trajectory.prompt_quality.headline }}</p>
+          <p class="small">{{ page.trajectory.prompt_quality.summary }}</p>
+          <p class="small">{{ page.trajectory.prompt_quality.source_note }}</p>
+          <p class="small">{{ page.trajectory.prompt_quality.confidence_note }}</p>
+        </div>
+        <div class="card">
+          <h3>{{ labels.label_method_assets }}</h3>
+          <p>{{ page.trajectory.method_assets.summary }}</p>
+          <p class="small">{{ page.trajectory.method_assets.detail }}</p>
+          {% for metric in page.trajectory.method_assets.metrics %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ metric.label }}</strong>
+              <span>{{ metric.delta }}</span>
+            </div>
+            <p class="small">{{ labels.label_previous }} {{ metric.previous }} · {{ labels.label_current }} {{ metric.current }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
     </section>
 
     <section class="section">
-      <h2>{{ labels.section_capability_changes }}</h2>
-      <div class="grid-3">
-        {% for item in comparison.capability_deltas %}
-        <div class="card {% if item.delta >= 0 %}delta-up{% else %}delta-down{% endif %}">
+      <h2>{{ labels.section_friction_changes }}</h2>
+      <p>{{ page.trajectory.friction.summary }}</p>
+      <p class="small">{{ page.trajectory.friction.recovery_note }}</p>
+      <div class="grid-2" style="margin-top:12px">
+        <div>
+          <p class="small"><strong>{{ labels.label_reduced_friction }}</strong></p>
+          {% for item in page.trajectory.friction.reduced_types %}
+          <span class="chip" style="background:var(--accent-soft);color:var(--accent)">{{ item }}</span>
+          {% endfor %}
+          {% if not page.trajectory.friction.reduced_types %}<span class="small">-</span>{% endif %}
+        </div>
+        <div>
+          <p class="small"><strong>{{ labels.label_increased_friction }}</strong></p>
+          {% for item in page.trajectory.friction.increased_types %}
+          <span class="chip" style="background:var(--friction-soft);color:var(--friction)">{{ item }}</span>
+          {% endfor %}
+          {% if not page.trajectory.friction.increased_types %}<span class="small">-</span>{% endif %}
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:12px">
+        {% for item in page.trajectory.friction.changes %}
+        <div class="card">
           <div class="metric-head">
             <strong>{{ item.label }}</strong>
-            <span>{{ item.delta >= 0 and '+' or '' }}{{ item.delta }}</span>
+            <span style="color:{% if item.direction == 'down' %}var(--accent){% elif item.direction == 'up' %}var(--friction){% else %}var(--muted){% endif %}">
+              {{ '+' if item.delta >= 0 else '' }}{{ item.delta }}
+            </span>
           </div>
-          <div class="bar"><span style="width: {{ item.right_score }}%"></span></div>
-          <p class="small">{{ labels.label_before }}: {{ item.left_score }} · {{ labels.label_now }}: {{ item.right_score }}</p>
+          <p class="small">{{ labels.label_previous }} {{ item.previous }} · {{ labels.label_current }} {{ item.current }}</p>
         </div>
         {% endfor %}
       </div>
     </section>
 
     <section class="section">
-      <h2>{{ labels.section_focus_shift }}</h2>
       <div class="grid-2">
         <div class="card">
-          <h3>{{ labels.label_previous_focus }}</h3>
-          <p>{{ comparison.changed_focus.from }}</p>
+          <h3>{{ labels.section_evidence_cards }}</h3>
+          <div class="grid-2">
+            {% for card in page.trajectory.evidence_cards %}
+            <div class="card">
+              <h3>{{ card.title }}</h3>
+              <p class="small">{{ card.body }}</p>
+              <ul class="list">
+                {% for evidence in card.evidence %}
+                <li class="small">{{ evidence }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endfor %}
+          </div>
         </div>
         <div class="card">
-          <h3>{{ labels.label_current_focus }}</h3>
-          <p>{{ comparison.changed_focus.to }}</p>
+          <h3>{{ labels.section_next_priorities }}</h3>
+          {% for item in page.trajectory.next_priorities %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ item.title }}</strong>
+            </div>
+            <p class="small">{{ item.body }}</p>
+            <ul class="list">
+              {% for reason in item.reasons %}
+              <li class="small">{{ reason }}</li>
+              {% endfor %}
+            </ul>
+            <ul class="list">
+              {% for evidence in item.evidence %}
+              <li class="small">{{ evidence }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
         </div>
       </div>
     </section>

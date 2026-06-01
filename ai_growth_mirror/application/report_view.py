@@ -19,10 +19,18 @@ from ..domain.growth.model import (
 from ..domain.growth.capability import compute_capability_scores
 from ..domain.growth.scorer import MIN_SESSION_READS_FOR_MIRROR_SCORE
 from ..domain.growth.coaching import CoachingContent
+from ..domain.snapshots.model import SnapshotSource
 from ..domain.signals.collab import CollaborationStyleResult, compute_collaboration_style
 from ..domain.growth.highlights import Exemplar, pattern_label, surface_highlights
+from ..domain.snapshots.trajectory import build_snapshot_trajectory_window
+from .growth_trajectory import (
+    GrowthTrajectoryView,
+    build_growth_trajectory_view,
+    build_runtime_snapshot_source,
+)
 from .growth_plan import GrowthPlanView, GrowthPriorityView, build_growth_plan
 from .label_catalogs import ReportLabelCatalogs
+from .prompt_coach import build_prompt_coach_view
 
 
 def _view_i18n(catalogs: ReportLabelCatalogs) -> dict:
@@ -229,6 +237,64 @@ class PromptCoachDimensionView:
 
 
 @dataclass
+class PromptCoachSourceSummaryView:
+    llm_session_count: int = 0
+    heuristic_session_count: int = 0
+    light_session_count: int = 0
+    evaluated_user_messages: int = 0
+
+
+@dataclass
+class PromptCoachDeficitView:
+    id: str
+    category: str
+    label: str
+    description: str
+    impact: str
+    confidence: str
+    evidence_refs: list[str] = field(default_factory=list)
+    source: str = ""
+
+
+@dataclass
+class PromptCoachRewriteCardView:
+    id: str
+    scene: str
+    original: str
+    problem: str
+    better_prompt: str
+    why: str
+    category: str
+    confidence: str
+    evidence_refs: list[str] = field(default_factory=list)
+    source_note: str = ""
+
+
+@dataclass
+class PromptCoachTemplateView:
+    id: str
+    title: str
+    scene: str
+    common_gap: str
+    template: str
+
+
+@dataclass
+class PromptCoachChecklistItemView:
+    id: str
+    text: str
+    related_deficit_id: str
+
+
+@dataclass
+class PromptCoachSevenDayView:
+    day: int
+    theme: str
+    action: str
+    practice_prompt: str
+
+
+@dataclass
 class PromptCoachView:
     available: bool
     headline: str
@@ -241,6 +307,14 @@ class PromptCoachView:
     deficits: list[str] = field(default_factory=list)
     dimension_scores: list[PromptCoachDimensionView] = field(default_factory=list)
     takeaways: list[PromptCoachTakeawayView] = field(default_factory=list)
+    source_summary: PromptCoachSourceSummaryView = field(default_factory=PromptCoachSourceSummaryView)
+    top_deficits: list[PromptCoachDeficitView] = field(default_factory=list)
+    rewrite_cards: list[PromptCoachRewriteCardView] = field(default_factory=list)
+    universal_template: Optional[PromptCoachTemplateView] = None
+    scenario_templates: list[PromptCoachTemplateView] = field(default_factory=list)
+    preflight_checklist: list[PromptCoachChecklistItemView] = field(default_factory=list)
+    seven_day_training_plan: list[PromptCoachSevenDayView] = field(default_factory=list)
+    light_state_note: str = ""
 
 
 @dataclass
@@ -415,21 +489,6 @@ class AgentAssetFootprintView:
 
 
 @dataclass
-class GrowthDeltaView:
-    """本期 vs 上期成长对比，仅当 snapshot archive 有上期数据时才填充。"""
-    available: bool
-    prev_label: str = ""        # e.g. "上期 2026-04-26"
-    score_delta: int = 0        # 正数表示成长
-    level_delta: int = 0        # +1 / 0 / -1
-    prev_score: int = 0
-    curr_score: int = 0
-    prev_level: str = ""
-    curr_level: str = ""
-    improved_dims: list[str] = field(default_factory=list)   # 进步的维度
-    regressed_dims: list[str] = field(default_factory=list)  # 退步的维度
-
-
-@dataclass
 class RadarChartView:
     size: int
     center: int
@@ -461,7 +520,7 @@ class PersonalReportView:
     growth_plan: GrowthPlanView
     generated_at: str
     agent_asset: Optional[AgentAssetFootprintView] = None
-    growth_delta: Optional[GrowthDeltaView] = None
+    growth_trajectory: Optional[GrowthTrajectoryView] = None
     radar_axes: list[RadarAxis] = field(default_factory=list)
     radar_chart: Optional[RadarChartView] = None
     gap_rankings: list[GrowthGap] = field(default_factory=list)
@@ -496,61 +555,6 @@ def build_agent_asset_footprint(
     )
 
 
-def build_growth_delta(
-    stats: GrowthProfile,
-    prev_profile: dict[str, object] | None,
-    prev_created_at: str = "",
-    *,
-    catalogs: ReportLabelCatalogs,
-) -> Optional[GrowthDeltaView]:
-    """Compare current stats against a preloaded previous snapshot profile."""
-    if not prev_profile:
-        return GrowthDeltaView(available=False)
-    prev_summary = prev_profile.get("summary", {})
-    prev_score = prev_summary.get("mirror_score", prev_profile.get("score", 0))
-    prev_level = prev_summary.get("growth_level", prev_profile.get("stage", ""))
-    curr_score = stats.mirror_score
-    curr_level = stats.growth_level
-    score_delta = curr_score - prev_score
-    level_map = {"L1": 1, "L2": 2, "L3": 3, "L4": 4, "L5": 5}
-    level_delta = level_map.get(curr_level, 0) - level_map.get(prev_level, 0)
-    # Compare sub-score dimensions
-    capability = prev_profile.get("capability", {})
-    prev_dimensions = capability.get("dimensions", []) if isinstance(capability, dict) else []
-    prev_sub = {
-        item.get("key", ""): item.get("score", 0)
-        for item in prev_dimensions
-        if isinstance(item, dict)
-    }
-    curr_sub = compute_capability_scores(stats)
-    dim_meta = _view_i18n(catalogs)["capability_meta"]
-    improved, regressed = [], []
-    for dim in curr_sub:
-        entry = dim_meta.get(dim, {})
-        label = entry.get("label", dim)
-        p = prev_sub.get(dim, 0)
-        c = curr_sub.get(dim, 0)
-        if c > p + 0.5:
-            improved.append(label)
-        elif c < p - 0.5:
-            regressed.append(label)
-    prev_label = _view_i18n(catalogs).get("growth_delta", {}).get("prev_label", "Prev {date}").format(
-        date=prev_created_at[:10]
-    )
-    return GrowthDeltaView(
-        available=True,
-        prev_label=prev_label,
-        score_delta=score_delta,
-        level_delta=level_delta,
-        prev_score=prev_score,
-        curr_score=curr_score,
-        prev_level=prev_level,
-        curr_level=curr_level,
-        improved_dims=improved[:3],
-        regressed_dims=regressed[:2],
-    )
-
-
 def build_personal_report_view(
     *,
     sessions: list[SessionRecord],
@@ -562,43 +566,23 @@ def build_personal_report_view(
     since: Optional[datetime] = None,
     until: Optional[datetime] = None,
     asset_stats: Optional[AgentAssetStats] = None,
-    prev_profile: dict[str, object] | None = None,
-    prev_snapshot_created_at: str = "",
+    previous_snapshot: SnapshotSource | None = None,
+    historical_snapshots: list[SnapshotSource] | None = None,
     coaching: CoachingContent | None = None,
     session_read_mode: str = "heuristic",
+    quality_eligible: int = 0,
+    extraction_failed: int = 0,
 ) -> PersonalReportView:
     capability_scores = compute_capability_scores(stats)
     capability = _build_capability_section(capability_scores, catalogs)
-    if coaching and coaching.priorities:
-        gp_priorities = [
-            GrowthPriorityView(
-                key=p.key,
-                title=p.title,
-                why=p.why,
-                success_signal=p.success_signal,
-                stop_doing=p.stop_doing,
-                week_1_actions=p.week_1_actions,
-                week_2_actions=p.week_2_actions,
-                practice_prompt=p.practice_prompt,
-            )
-            for p in coaching.priorities
-        ]
-        growth_plan = GrowthPlanView(
-            headline=coaching.growth_headline,
-            next_focus=gp_priorities[0].title if gp_priorities else "",
-            priorities=gp_priorities,
-        )
-    else:
-        growth_plan = build_growth_plan(
-            stats=stats,
-            capability_scores=capability_scores,
-            catalogs=catalogs,
-        )
     exemplars = _build_exemplars(sessions, session_reads, redact, catalogs)
-    if coaching and coaching.prompt_coach_takeaways:
-        prompt_coach = _build_prompt_coach_from_coaching(coaching, stats, catalogs)
-    else:
-        prompt_coach = _build_prompt_coach(stats, session_read_mode, catalogs)
+    prompt_coach = build_prompt_coach_view(
+        stats=stats,
+        session_reads=session_reads,
+        session_read_mode=session_read_mode,
+        catalogs=catalogs,
+        coaching=coaching,
+    )
     friction = _build_friction(stats, catalogs)
     localized_radar_axes = _localize_radar_axes(stats, catalogs)
     localized_gap_rankings = _localize_gap_rankings(stats, catalogs)
@@ -607,6 +591,13 @@ def build_personal_report_view(
         localized_radar_axes,
         localized_gap_rankings,
         catalogs,
+    )
+    growth_plan = build_growth_plan(
+        stats=stats,
+        capability_scores=capability_scores,
+        catalogs=catalogs,
+        prompt_coach=prompt_coach,
+        growth_trajectory=None,
     )
     summary = _build_summary(
         stats=stats,
@@ -635,17 +626,74 @@ def build_personal_report_view(
         catalogs=catalogs,
     )
     agent_asset = build_agent_asset_footprint(asset_stats, catalogs=catalogs)
-    growth_delta = build_growth_delta(
-        stats,
-        prev_profile,
-        prev_snapshot_created_at,
+    labels = _template_labels(catalogs)
+    history_sources = list(historical_snapshots or [])
+    if previous_snapshot is None and history_sources:
+        previous_snapshot = history_sources[-1]
+    current_snapshot = build_runtime_snapshot_source(
+        stats=stats,
+        session_reads=session_reads,
+        summary=summary,
+        capability=capability,
+        prompt_coach=prompt_coach,
+        growth_plan=growth_plan,
+        agent_asset=agent_asset,
+        exemplars=exemplars,
+        tool_display_name=tool_display_name,
+        date_range=_compute_date_range(sessions, since=since, until=until),
+        created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        quality_eligible=quality_eligible,
+        extraction_failed=extraction_failed,
+    )
+    growth_trajectory = build_growth_trajectory_view(
+        current_source=current_snapshot,
+        previous_source=previous_snapshot,
+        history_sources=history_sources,
         catalogs=catalogs,
     )
-    labels = _template_labels(catalogs)
+    growth_plan = build_growth_plan(
+        stats=stats,
+        capability_scores=capability_scores,
+        catalogs=catalogs,
+        prompt_coach=prompt_coach,
+        growth_trajectory=growth_trajectory,
+    )
+    summary = _build_summary(
+        stats=stats,
+        tool_display_name=tool_display_name,
+        date_range=_compute_date_range(sessions, since=since, until=until),
+        capability=capability,
+        growth_plan=growth_plan,
+        redact=redact,
+        coaching=coaching,
+        session_read_mode=session_read_mode,
+        catalogs=catalogs,
+    )
+    current_snapshot = build_runtime_snapshot_source(
+        stats=stats,
+        session_reads=session_reads,
+        summary=summary,
+        capability=capability,
+        prompt_coach=prompt_coach,
+        growth_plan=growth_plan,
+        agent_asset=agent_asset,
+        exemplars=exemplars,
+        tool_display_name=tool_display_name,
+        date_range=_compute_date_range(sessions, since=since, until=until),
+        created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        quality_eligible=quality_eligible,
+        extraction_failed=extraction_failed,
+    )
+    growth_trajectory = build_growth_trajectory_view(
+        current_source=current_snapshot,
+        previous_source=previous_snapshot,
+        history_sources=history_sources,
+        catalogs=catalogs,
+    )
     sections = _build_report_sections(
         labels,
         has_agent_asset=agent_asset is not None,
-        has_growth_delta=bool(growth_delta and growth_delta.available),
+        has_growth_delta=bool(growth_trajectory and growth_trajectory.available),
     )
     return PersonalReportView(
         report_title=labels.get("report_title", "AI 成长镜"),
@@ -667,7 +715,7 @@ def build_personal_report_view(
         growth_plan=growth_plan,
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
         agent_asset=agent_asset,
-        growth_delta=growth_delta,
+        growth_trajectory=growth_trajectory,
         radar_axes=localized_radar_axes,
         radar_chart=_build_radar_chart(localized_radar_axes),
         gap_rankings=localized_gap_rankings,

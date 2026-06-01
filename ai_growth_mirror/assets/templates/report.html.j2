@@ -1165,6 +1165,9 @@
           <p class="small">{{ view.labels['label_strongest_dim'] }}{{ view.prompt_coach.strongest_label }}</p>
           <p class="small">{{ view.labels['label_weakest_dim'] }}{{ view.prompt_coach.weakest_label }}</p>
           <p class="small">{{ view.labels['label_focus_first'] }}{{ view.prompt_coach.weak_dimensions | join(' / ') }}</p>
+          {% if view.prompt_coach.light_state_note %}
+          <div class="note">{{ view.prompt_coach.light_state_note }}</div>
+          {% endif %}
           {% if view.prompt_coach.dimension_scores %}
           <div class="metric" style="margin-top:16px;">
             <strong>{{ view.labels['label_prompt_dimensions'] }}</strong>
@@ -1180,34 +1183,93 @@
           {% endfor %}
           {% endif %}
           <div class="note">{{ view.prompt_coach.strength_habit }}</div>
+          <p class="small muted" style="margin-top:12px">
+            {{ view.labels.get('label_source_boundary', '来源说明：') }}
+            LLM {{ view.prompt_coach.source_summary.llm_session_count }} /
+            heuristic {{ view.prompt_coach.source_summary.heuristic_session_count }} /
+            light {{ view.prompt_coach.source_summary.light_session_count }} /
+            msg {{ view.prompt_coach.source_summary.evaluated_user_messages }}
+          </p>
         </div>
         <div class="card">
-          <h3>{{ view.labels['label_frequent_deficits'] }}</h3>
+          <h3>{{ view.labels.get('label_top_deficits', view.labels['label_frequent_deficits']) }}</h3>
+          {% for deficit in view.prompt_coach.top_deficits %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ deficit.label }}</strong>
+              <span>{{ deficit.confidence }}</span>
+            </div>
+            <p class="small">{{ deficit.description }}</p>
+            <p class="small muted">{{ deficit.impact }}</p>
+            {% if deficit.evidence_refs %}
+            <ul class="list">
+              {% for evidence in deficit.evidence_refs %}
+              <li class="small">{{ evidence }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:18px">
+        {% for card in view.prompt_coach.rewrite_cards %}
+        <div class="coach-card">
+          <h3>{{ view.labels.get('label_scene', '场景') }} · {{ card.scene }}</h3>
+          {% if card.original %}
+          <p class="small"><strong>{{ view.labels.get('label_original_prompt', '原始提法') }}</strong></p>
+          <div class="code">{{ card.original }}</div>
+          {% endif %}
+          <p class="coach-tip"><strong>{{ view.labels.get('label_problem', '问题') }}</strong>{{ card.problem }}</p>
+          <p class="coach-tip"><strong>{{ view.labels['label_better_prompt'] }}</strong></p>
+          <div class="code">{{ card.better_prompt }}</div>
+          <p class="coach-tip"><strong>{{ view.labels['label_why_shows_up'] }}</strong>{{ card.why }}</p>
+          <p class="small muted">{{ view.labels.get('label_confidence_note', '置信说明：') }}{{ card.confidence }} · {{ card.source_note }}</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="grid-2" style="margin-top:18px">
+        <div class="card">
+          <h3>{{ view.labels.get('label_universal_template', '通用模板') }}</h3>
+          <p class="small muted">{{ view.prompt_coach.universal_template.common_gap }}</p>
+          <div class="code">{{ view.prompt_coach.universal_template.template }}</div>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels.get('label_preflight_checklist', '发送前自检') }}</h3>
           <ul class="list">
-            {% for deficit in view.prompt_coach.deficits %}
-            <li>{{ deficit }}</li>
+            {% for item in view.prompt_coach.preflight_checklist %}
+            <li>{{ item.text }}</li>
             {% endfor %}
           </ul>
         </div>
       </div>
-      <div class="grid-2" style="margin-top:18px">
-        {% for takeaway in view.prompt_coach.takeaways %}
-        <div class="coach-card">
-          <h3>{{ takeaway.label }}</h3>
-          <p class="coach-tip"><strong>{{ view.labels['label_type'] }}</strong>{{ takeaway.kind }}</p>
-          <p class="coach-tip"><strong>{{ view.labels['label_why_shows_up'] }}</strong>{{ takeaway.evidence }}</p>
-          <p class="coach-tip"><strong>{{ view.labels['label_coach_note'] }}</strong>{{ takeaway.message }}</p>
-          <p class="coach-tip"><strong>{{ view.labels['label_next_move'] }}</strong>{{ takeaway.action }}</p>
-          {% if takeaway.better_prompt %}
-          <details style="margin-top:0.75rem;">
-            <summary class="theme-link" style="cursor:pointer; font-size:0.8rem; font-weight:600;">
-              {{ view.labels['label_reference_structure'] }}
-            </summary>
-            <div style="margin-top:0.5rem; background:var(--separator); border:1px solid var(--line); border-radius:6px; padding:0.75rem; font-family:monospace; font-size:0.78rem; color:var(--ink); white-space:pre-wrap; line-height:1.6;">{{ takeaway.better_prompt }}</div>
-          </details>
-          {% endif %}
+
+      <div class="card" style="margin-top:18px">
+        <h3>{{ view.labels.get('label_scenario_templates', '场景化模板') }}</h3>
+        <div class="grid-2">
+          {% for item in view.prompt_coach.scenario_templates %}
+          <div class="card">
+            <h3>{{ item.title or item.scene }}</h3>
+            <p class="small muted">{{ item.common_gap }}</p>
+            <div class="code">{{ item.template }}</div>
+          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <h3>{{ view.labels.get('label_seven_day_training', '7 天微训练') }}</h3>
+        <div class="grid-2">
+          {% for item in view.prompt_coach.seven_day_training_plan %}
+          <div class="card">
+            <p class="small"><strong>Day {{ item.day }}</strong> · {{ item.theme }}</p>
+            <p class="small">{{ item.action }}</p>
+            <div class="code">{{ item.practice_prompt }}</div>
+          </div>
+          {% endfor %}
+        </div>
       </div>
       {% else %}
       <div class="note">{{ view.prompt_coach.headline }}</div>
@@ -1279,12 +1341,26 @@
           {{ view.labels['label_heuristic_why_hint'] }}
         </p>
         {% endif %}
+        {% if priority.evidence_refs %}
+        <p class="small"><strong>{{ view.labels.get('label_training_source', '训练来源：') }}</strong></p>
+        <ul class="list">
+          {% for evidence in priority.evidence_refs %}
+          <li>{{ evidence }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
         <div class="note">{{ view.labels['label_sprint_focus_note'] }}</div>
         {% if priority.success_signal %}
         <p class="small"><strong>{{ view.labels['label_success_signal'] }}</strong>{{ priority.success_signal }}</p>
         {% endif %}
         {% if priority.stop_doing %}
         <p class="small"><strong>{{ view.labels['label_stop_doing'] }}</strong>{{ priority.stop_doing }}</p>
+        {% endif %}
+        {% if priority.linked_prompt_deficit_ids or priority.linked_template_ids or priority.linked_rewrite_card_ids %}
+        <p class="small muted">
+          <strong>{{ view.labels.get('label_linked_sources', '关联来源：') }}</strong>
+          {{ (priority.linked_prompt_deficit_ids + priority.linked_template_ids + priority.linked_rewrite_card_ids) | join(' / ') }}
+        </p>
         {% endif %}
         {% if priority.week_1_actions or priority.week_2_actions %}
         <div class="grid-2">
@@ -1426,37 +1502,259 @@
     </section>
     {% endif %}
 
-    {% if view.growth_delta and view.growth_delta.available %}
+    {% if view.growth_trajectory and (view.growth_trajectory.available or (view.growth_trajectory.trend and view.growth_trajectory.trend.points|length >= 2)) %}
     <section class="section" id="section-growth-delta">
       <h2 class="section-title">{{ view.labels['section_growth_delta'] }}</h2>
-      <p class="muted">{{ view.labels['label_compared_with'] }} {{ view.growth_delta.prev_label }}</p>
+      {% if view.growth_trajectory.trend %}
+      <h3>{{ view.labels.get('label_trend_window', '近 30 天趋势') }}</h3>
       <div class="grid-3" style="margin-top:12px">
         <div class="card">
-          <div class="kpi-label">{{ view.labels['label_score_change'] }}</div>
-          <div class="kpi-value" style="color:{% if view.growth_delta.score_delta >= 0 %}var(--accent){% else %}var(--muted){% endif %}">
-            {{ '+' if view.growth_delta.score_delta >= 0 else '' }}{{ view.growth_delta.score_delta }}
-          </div>
-          <div class="small muted">{{ view.growth_delta.prev_score }} → {{ view.growth_delta.curr_score }}</div>
+          <div class="kpi-label">{{ view.labels.get('label_trend_summary', '趋势结论') }}</div>
+          <div class="kpi-value">{{ view.growth_trajectory.trend.summary_label }}</div>
+          <div class="small muted">{{ view.growth_trajectory.trend.summary_text }}</div>
         </div>
         <div class="card">
-          <div class="kpi-label">{{ view.labels['label_current_level'] }}</div>
-          <div class="kpi-value">{{ view.growth_delta.curr_level }}</div>
-          {% if view.growth_delta.level_delta != 0 %}
-          <div class="small" style="color:{% if view.growth_delta.level_delta > 0 %}var(--accent){% else %}var(--muted){% endif %}">
-            {% if view.growth_delta.level_delta > 0 %}{{ view.labels['label_level_up'] }}{% else %}{{ view.labels['label_level_down'] }}{% endif %}
+          <div class="kpi-label">{{ view.labels.get('label_confidence', '置信度') }}</div>
+          <div class="small">{{ view.growth_trajectory.trend.confidence_note }}</div>
+          <div class="small muted">{{ view.growth_trajectory.trend.data_sufficiency }}</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">{{ view.labels.get('label_display_points', '展示点位') }}</div>
+          <div class="small">{{ view.growth_trajectory.trend.points | length }} {{ view.labels['label_active_days'] }}</div>
+          <div class="small muted">{{ view.labels.get('label_display_points_note', '同一天默认展示最后一次快照') }}</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>{{ view.labels.get('label_score_trend', '协作指数趋势') }}</h3>
+          <svg viewBox="0 0 100 40" style="width:100%; height:120px">
+            <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="{{ view.growth_trajectory.trend.score_series.polyline }}"></polyline>
+          </svg>
+          <p class="small">{{ view.growth_trajectory.trend.score_series.previous_value }} → {{ view.growth_trajectory.trend.score_series.latest_value }} ({{ '%+.1f'|format(view.growth_trajectory.trend.score_series.latest_delta) }})</p>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels.get('label_axis_trend', '五轴趋势') }}</h3>
+          {% for series in view.growth_trajectory.trend.axis_series %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ series.label }}</strong>
+              <span>{{ series.latest_value }} / {{ '%+.1f'|format(series.latest_delta) }}</span>
+            </div>
+            <svg viewBox="0 0 100 24" style="width:100%; height:42px">
+              <polyline fill="none" stroke="{{ series.color }}" stroke-width="2.5" points="{{ series.polyline }}"></polyline>
+            </svg>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>{{ view.labels['label_prompt_quality'] }}</h3>
+          {% for series in view.growth_trajectory.trend.prompt_quality_series %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ series.label }}</strong>
+              <span>{{ series.latest_value }} / {{ '%+.1f'|format(series.latest_delta) }}</span>
+            </div>
+            <svg viewBox="0 0 100 24" style="width:100%; height:42px">
+              <polyline fill="none" stroke="{{ series.color }}" stroke-width="2.5" points="{{ series.polyline }}"></polyline>
+            </svg>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="card">
+          <h3>{{ view.labels['section_friction_changes'] }}</h3>
+          {% for series in view.growth_trajectory.trend.friction_series %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ series.label }}</strong>
+              <span>{{ series.latest_value }} / {{ '%+.1f'|format(series.latest_delta) }}</span>
+            </div>
+            <svg viewBox="0 0 100 24" style="width:100%; height:42px">
+              <polyline fill="none" stroke="{{ series.color }}" stroke-width="2.5" points="{{ series.polyline }}"></polyline>
+            </svg>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if view.growth_trajectory.available %}
+      <h3 style="margin-top:24px">{{ view.labels.get('label_latest_vs_previous', '本期 vs 上一期变化诊断') }}</h3>
+      <p class="muted">{{ view.labels['label_compared_with'] }} {{ view.growth_trajectory.prev_label }}</p>
+      <p class="section-sub">{{ view.growth_trajectory.overview }}</p>
+      <div class="grid-3" style="margin-top:12px">
+        {% for card in view.growth_trajectory.summary_cards %}
+        <div class="card">
+          <div class="kpi-label">{{ card.label }}</div>
+          <div class="kpi-value" style="color:{% if card.tone in ['up', 'high'] %}var(--accent){% elif card.tone in ['down', 'low'] %}var(--friction){% else %}var(--ink){% endif %}">
+            {{ card.value }}
+          </div>
+          <div class="small muted">{{ card.caption }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="note" style="margin-top:12px">{{ view.growth_trajectory.confidence_note }}</div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>{{ view.labels['section_axis_deltas'] }}</h3>
+          {% for axis in view.growth_trajectory.axis_deltas %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ axis.label }}</strong>
+              <span style="color:{% if axis.direction == 'up' %}var(--accent){% elif axis.direction == 'down' %}var(--friction){% else %}var(--muted){% endif %}">
+                {{ '+' if axis.delta >= 0 else '' }}{{ '%.1f'|format(axis.delta) }}
+              </span>
+            </div>
+            <div class="bar"><span style="width: {{ axis.current }}%"></span></div>
+            <p class="small">{{ view.labels['label_previous'] }} {{ '%.1f'|format(axis.previous) }} · {{ view.labels['label_current'] }} {{ '%.1f'|format(axis.current) }}</p>
+            <p class="small muted">{{ axis.explanation }}</p>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="card">
+          <h3>{{ view.labels['section_score_waterfall'] }}</h3>
+          <p class="small muted">{{ view.labels['label_estimated_contribution'] }}</p>
+          {% for step in view.growth_trajectory.waterfall_steps %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ step.label }}</strong>
+              <span style="color:{% if step.direction == 'up' %}var(--accent){% elif step.direction == 'down' %}var(--friction){% else %}var(--muted){% endif %}">
+                {{ '+' if step.contribution >= 0 else '' }}{{ '%.1f'|format(step.contribution) }}
+              </span>
+            </div>
+            <div class="bar"><span style="width: {{ (step.contribution|abs * 12)|round(0, 'ceil') }}%; background:{% if step.direction == 'down' %}var(--friction){% else %}var(--accent){% endif %}"></span></div>
+            <p class="small muted">{{ view.labels['label_delta'] }} {{ '+' if step.delta >= 0 else '' }}{{ '%.1f'|format(step.delta) }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>{{ view.labels['label_prompt_quality'] }}</h3>
+          <p>{{ view.growth_trajectory.prompt_quality.headline }}</p>
+          <p class="small">{{ view.growth_trajectory.prompt_quality.summary }}</p>
+          <p class="small muted">{{ view.growth_trajectory.prompt_quality.source_note }}</p>
+          <p class="small muted">{{ view.growth_trajectory.prompt_quality.confidence_note }}</p>
+          {% if view.growth_trajectory.prompt_quality.improved %}
+          <p class="small"><strong>{{ view.labels['label_improved_dims'] }}</strong></p>
+          <div class="small">
+            {% for item in view.growth_trajectory.prompt_quality.improved %}
+            <span class="chip" style="background:var(--accent-soft);color:var(--accent);border:none">{{ item }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if view.growth_trajectory.prompt_quality.worsened %}
+          <p class="small" style="margin-top:10px"><strong>{{ view.labels['label_gap_rankings'] }}</strong></p>
+          <div class="small">
+            {% for item in view.growth_trajectory.prompt_quality.worsened %}
+            <span class="chip" style="background:var(--friction-soft);color:var(--friction);border:none">{{ item }}</span>
+            {% endfor %}
           </div>
           {% endif %}
         </div>
+
         <div class="card">
-          <div class="kpi-label">{{ view.labels['label_improved_dims'] }}</div>
-          <div class="small">
-            {% for dim in view.growth_delta.improved_dims %}
-            <span class="chip" style="background:var(--accent-soft);color:var(--accent);border:none">{{ dim }}</span>
-            {% endfor %}
-            {% if not view.growth_delta.improved_dims %}<span class="muted">–</span>{% endif %}
+          <h3>{{ view.labels['label_method_assets'] }}</h3>
+          <p>{{ view.growth_trajectory.method_assets.summary }}</p>
+          <p class="small muted">{{ view.growth_trajectory.method_assets.detail }}</p>
+          {% for metric in view.growth_trajectory.method_assets.metrics %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ metric.label }}</strong>
+              <span>{{ metric.delta }}</span>
+            </div>
+            <p class="small">{{ view.labels['label_previous'] }} {{ metric.previous }} · {{ view.labels['label_current'] }} {{ metric.current }}</p>
           </div>
+          {% endfor %}
         </div>
       </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>{{ view.labels['section_friction_changes'] }}</h3>
+        <p>{{ view.growth_trajectory.friction.summary }}</p>
+        <p class="small muted">{{ view.growth_trajectory.friction.recovery_note }}</p>
+        <div class="grid-2" style="margin-top:12px">
+          <div>
+            <p class="small"><strong>{{ view.labels['label_reduced_friction'] }}</strong></p>
+            <div class="small">
+              {% for item in view.growth_trajectory.friction.reduced_types %}
+              <span class="chip" style="background:var(--accent-soft);color:var(--accent);border:none">{{ item }}</span>
+              {% endfor %}
+              {% if not view.growth_trajectory.friction.reduced_types %}<span class="muted">–</span>{% endif %}
+            </div>
+          </div>
+          <div>
+            <p class="small"><strong>{{ view.labels['label_increased_friction'] }}</strong></p>
+            <div class="small">
+              {% for item in view.growth_trajectory.friction.increased_types %}
+              <span class="chip" style="background:var(--friction-soft);color:var(--friction);border:none">{{ item }}</span>
+              {% endfor %}
+              {% if not view.growth_trajectory.friction.increased_types %}<span class="muted">–</span>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="grid-3" style="margin-top:12px">
+          {% for item in view.growth_trajectory.friction.changes %}
+          <div class="card">
+            <div class="metric-head">
+              <strong>{{ item.label }}</strong>
+              <span style="color:{% if item.direction == 'down' %}var(--accent){% elif item.direction == 'up' %}var(--friction){% else %}var(--muted){% endif %}">
+                {{ '+' if item.delta >= 0 else '' }}{{ item.delta }}
+              </span>
+            </div>
+            <p class="small muted">{{ view.labels['label_previous'] }} {{ item.previous }} · {{ view.labels['label_current'] }} {{ item.current }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>{{ view.labels['section_evidence_cards'] }}</h3>
+          <div class="grid-2">
+            {% for card in view.growth_trajectory.evidence_cards %}
+            <div class="card">
+              <h3>{{ card.title }}</h3>
+              <p class="small">{{ card.body }}</p>
+              <ul class="list">
+                {% for evidence in card.evidence %}
+                <li class="small muted">{{ evidence }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>{{ view.labels['section_next_priorities'] }}</h3>
+          {% for item in view.growth_trajectory.next_priorities %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ item.title }}</strong>
+            </div>
+            <p class="small">{{ item.body }}</p>
+            <ul class="list">
+              {% for reason in item.reasons %}
+              <li class="small">{{ reason }}</li>
+              {% endfor %}
+            </ul>
+            <ul class="list">
+              {% for evidence in item.evidence %}
+              <li class="small muted">{{ evidence }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </section>
     {% endif %}
 

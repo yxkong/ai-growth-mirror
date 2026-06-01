@@ -11,6 +11,7 @@ from ..assets import ASSETS_DIR, TEMPLATES_DIR
 
 if TYPE_CHECKING:
     from .report_view import PersonalReportView
+    from .growth_trajectory import SnapshotComparisonPageView
 
 
 def _jinja_env() -> Environment:
@@ -53,4 +54,20 @@ def render_share_card_html(
         labels=labels,
         language=language,
         theme_variant="personal",
+    )
+
+
+def render_snapshot_compare_html(
+    *,
+    page: "SnapshotComparisonPageView",
+    template_labels: dict[str, str],
+    language: str = "zh",
+) -> str:
+    env = _jinja_env()
+    template = env.get_template("snapshot_compare.html.j2")
+    return template.render(
+        page=page,
+        labels=template_labels,
+        language=language,
+        theme_variant="snapshot",
     )

@@ -414,7 +414,7 @@ def compare_cmd(
         output_path=output.expanduser() if output else None,
         language=language,
     )
-    click.echo(f"Comparison written to {out.resolve()}")
+    click.echo(f"Comparison written to {out.resolve()} (JSON: {out.with_suffix('.json').resolve()})")
 
 
 @cli.group("cache")

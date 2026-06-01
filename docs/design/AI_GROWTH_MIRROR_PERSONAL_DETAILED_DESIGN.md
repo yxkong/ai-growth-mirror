@@ -57,6 +57,13 @@ score_target: 9.9
 
 - **AI 资产足迹**（`#section-agent-asset`，需 hub / asset 配置）
 - **成长轨迹对比**（`#section-growth-delta`，需当前生成前已存在历史 snapshot；通常第 2 次 generate 起出现）
+  - 顶部先展示 **近 30 天趋势结论**，趋势指标至少覆盖 `mirror_score`、`growth_level`、五轴、Prompt Quality 五维、行动型摩擦五类
+  - 同一天多次 generate 时，页面默认只展示当天最后一次 snapshot；sidecar JSON 必须保留完整点位
+  - 当 `display_points < 3` 时只展示已有点位和“数据不足”说明，不强行做长期趋势判断
+  - 若存在上一期 snapshot，则同区块下半部分继续展示 **本期 vs 上一期变化诊断**
+  - 诊断区顶部必须包含 5 张 summary cards：当前阶段、协作指数变化、最大进步轴、当前短板轴、置信度/样本量说明
+  - 诊断区中部至少包含五轴对比、成长变化瀑布、Prompt Quality 来源说明、摩擦与恢复变化、方法资产沉淀
+  - 诊断区底部必须有关键证据卡片与下一阶段优先训练建议，所有结论都要能回到 sidecar JSON 的结构化字段
 - **协作风格透镜**（`#section-style-lens`，附录，不在主导航）
 
 约束：
@@ -65,6 +72,8 @@ score_target: 9.9
 - 分享页只保留对外可发的一句话、3 条关键信息与阶段/分数，不出现“适合分享的一页摘要”这类内部产物式文案。
 - 主报告必须提供完整快速导航，导航顺序与页面锚点顺序一致。
 - “成长轨迹对比”固定表示“本期 vs 当前生成前最近一份 snapshot”，不是任意两期自由拼接。
+- 无历史 snapshot 时，主报告不展示空图表；第一次 generate 只归档 snapshot，不显示该区块。
+- 对比区块里的 Prompt Quality、usage、样本量都必须显式说明置信边界，禁止把 heuristic 或低样本包装成确定结论。
 
 ## 4. 文案策略
 
@@ -187,6 +196,36 @@ score_target: 9.9
 
 - 报告里必须显式告诉用户：本期有多少会话来自 `LLM 语义评估`，多少来自 `代理回填`
 - `session_read_mode=heuristic` 的含义是“当前来源模式”，不是“另一种 Prompt 质量定义”
+
+## 5.4.2 Prompt 成长教练升级边界
+
+`Prompt 成长教练` 已从“解释分数”升级为 **AI 提需求训练器**，固定输出以下五层：
+
+1. `top_deficits`：本期最主要的提需求短板，至少包含问题定义、影响、来源边界、置信度、证据摘要
+2. `rewrite_cards`：2-4 张“原始提法 vs 更好提法”训练卡
+3. `universal_template`：通用提需求模板，必须覆盖背景、当前问题、目标结果、约束、参考、验收、输出格式
+4. `scenario_templates`：至少覆盖代码 Review、需求设计、Bug 排查、架构改造、文案优化、图表分析
+5. `preflight_checklist` / `seven_day_training_plan`：面向下一次发送前自检和短周期练习
+
+硬约束：
+
+- 只有在真实 `PromptLensTakeaway.original` 存在时，才允许展示用户原始提法
+- 只有 heuristic 数据时，必须明确标记为代理来源
+- 短会话不足时，不隐藏模块；改为展示轻量模板、自检清单和来源说明
+
+## 5.4.3 下一阶段训练冲刺联动规则
+
+`下一阶段训练冲刺` 必须消费两类上游结果：
+
+- `growth_trajectory`：近 30 天持续低迷轴、本期最新退步轴、本期最新证据
+- `prompt_coach`：top deficits、rewrite cards、通用/场景模板
+
+联动规则：
+
+- Prompt 维度或 deficit 明显偏弱时，优先输出 `prompt:*` 类型训练任务
+- `intent_clarity + missing-context / vague-request` 合并成“需求表达训练”
+- `delivery_closure + missing-acceptance-criteria` 合并成“验收标准训练”
+- 每个训练任务都必须附带 `evidence_refs` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids`
 
 ## 5.4.1 usage 模块
 
@@ -378,4 +417,3 @@ score_target: 9.9
 - 2026-05-27：分享卡改为对外可发的结论卡；主报告补完整导航、减少重复块，Prompt 教练优先展示真实样例与改写示例。
 - 2026-05-27：对齐当前代码——HTML 在 `application/html_render.py`；导航顺序与 README 一致；文档去旧产品面表述。
 - 2026-05-29：公开 Wrapped Hero/用量口径/协作节奏文案与配色语义对齐；文档治理备份后更新本节。
-

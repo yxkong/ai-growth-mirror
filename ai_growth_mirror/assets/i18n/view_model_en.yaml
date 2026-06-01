@@ -303,6 +303,128 @@ friction:
 growth_delta:
   prev_label: "Prev {date}"
 
+growth_trajectory:
+  prev_label: "Prev {date}"
+  sample_caption: "Based on at least {sample_size} effective session reads"
+  page_subtitle: "Structured growth comparison between any two snapshots."
+  confidence_levels:
+    high: "High confidence"
+    medium: "Medium confidence"
+    low: "Low confidence"
+  overall:
+    stage_up: "Compared with the previous snapshot, you completed a stage jump. The clearest lift comes from {axis_label}, which means this capability is becoming repeatable instead of occasional."
+    stage_down: "Compared with the previous snapshot, your stage moved down. This usually means the weakest axis did not stay stable, so the next move is to stop regression before expanding scope."
+    score_up: "Compared with the previous snapshot, you are getting stronger overall. The score moved {delta}, which means you are not only finishing tasks but also building a more repeatable collaboration method."
+    score_down: "Compared with the previous snapshot, you regressed overall ({delta}). This is not just score noise; execution stability or recovery capacity did not keep up with task complexity."
+    stable: "Compared with the previous snapshot, you are broadly flat. Existing strengths are holding, but the next leap has not formed yet."
+  summary_cards:
+    stage: "Current stage"
+    score: "Score change"
+    strongest_gain: "Largest gain"
+    primary_gap: "Primary gap"
+    confidence: "Confidence"
+  confidence:
+    high: "This trend read is strong enough to guide the next training block directly."
+    medium: "This trend read is moderately reliable; check it against one or two recent real tasks."
+    low: "This trend read is low confidence. Treat it as a direction hint, not a hard conclusion."
+    reasons:
+      small_sample: "The comparison window is too small."
+      limited_sample: "The comparison window is still small."
+      extraction_failed: "Some sessions failed extraction."
+      missing_usage: "Usage coverage is incomplete."
+      prompt_proxy: "Prompt Quality is mostly proxy-filled or under-sampled."
+      prompt_mixed: "Prompt Quality mixes LLM and proxy signals."
+  axis:
+    up: "{label} improved by {delta}, which means this capability is becoming more stable. The next step is to transfer it into more task types."
+    down: "{label} dropped by {delta}, which means it is not a default habit yet. Rebuild it by turning '{next_action}' into a stable move."
+    flat: "{label} is mostly flat. You are holding ground, but not yet creating a new jump on this axis."
+  prompt_quality:
+    headline: "Prompt Quality shift"
+    improved: "Prompt Quality is improving ({delta}), which means input structure and correction sharpness are getting better."
+    regressed: "Prompt Quality regressed ({delta}), which means the opening scaffold or correction boundary is still unstable."
+    stable: "Prompt Quality is broadly flat, so no new input leap is visible yet."
+    insufficient: "Prompt Quality is under-sampled. Keep the source note, but avoid strong claims."
+    source_note: "Previous LLM {prev_llm} / heuristic {prev_heuristic} / light {prev_light}; current LLM {curr_llm} / heuristic {curr_heuristic} / light {curr_light}"
+    confidence_high: "Prompt Quality is mostly backed by LLM semantic evaluation."
+    confidence_medium: "Prompt Quality mixes LLM and heuristic proxy signals, so keep the boundary explicit."
+    confidence_low: "Prompt Quality is low-sample or mostly heuristic, so treat it as a training hint only."
+  friction:
+    more: "Total friction is rising ({delta}), which means blockers are not being absorbed effectively yet."
+    less: "Total friction is falling ({delta}), which means you are removing avoidable rework and blockers."
+    flat: "Total friction is roughly flat. The key is whether blocker types have shifted."
+    recovery_up: "Recovery capacity is improving: once work drifts, you are better at bringing it back with fresh evidence."
+    recovery_down: "Recovery capacity is weakening: the next move is to reduce repeated drift and user-side blockers."
+    recovery_flat: "Recovery capacity is mostly flat, so keep watching whether correction moves become stable."
+  method_assets:
+    stronger: "Method asset accumulation is stronger. You are moving from one-off prompting toward reusable workflows."
+    weaker: "Method asset accumulation did not keep up with execution this cycle, so results still depend too much on live improvisation."
+    detail: "Asset files changed {asset_delta}, reusable workflows changed {workflow_delta}, assetized session rate changed {assetization_delta}."
+    metric_total_assets: "Asset files"
+    metric_workflow_assets: "Reusable workflows"
+    metric_assetization_rate: "Assetized session rate"
+  evidence_cards:
+    overall:
+      title: "Evidence for the overall shift"
+      up: "These signals show that the overall lift is not accidental; several indicators improved together."
+      down: "These signals show that the regression is not a one-off miss; several stable indicators weakened together."
+      flat: "These signals show that you are preserving current strengths more than creating a new leap."
+    strongest_gain:
+      title: "Evidence for the largest gain: {axis_label}"
+      up: "This axis improved the most, so it is becoming the next growth engine."
+      down: "This axis is marked as a gain area, but still carries regression risk."
+      flat: "This axis does not yet show a clear positive shift."
+    primary_gap:
+      title: "Evidence for the primary gap: {axis_label}"
+      up: "Even without further decline, this axis still constrains the overall system most."
+      down: "This axis is both the current gap and a regressing one, so it deserves first priority."
+      flat: "This axis has not really lifted yet, so it is the best place to invest next."
+    friction:
+      title: "Evidence for friction change"
+      up: "These signals show that blockers are increasing and already affecting delivery rhythm."
+      down: "These signals show that low-value friction is dropping and recovery is smoother."
+      flat: "These signals show blocker types are shifting, so total count alone is misleading."
+    method_assets:
+      title: "Evidence for method assets"
+      up: "These signals show you are not only finishing tasks, but also turning the method into reusable assets."
+      down: "These signals show reusable-method accumulation did not keep up with task difficulty."
+      flat: "These signals show asset accumulation is broadly flat, so keep watching for real reuse closure."
+  priorities:
+    primary: "Train {label} first"
+    secondary: "Train {label} second"
+    body: "Do not expand too many fronts at once. Turn this axis into a stable move first, then see whether the overall score rises naturally."
+    reason_codes:
+      weakest_axis: "It is still the weakest current axis."
+      regressed_axis: "It also regressed the most compared with the previous snapshot."
+      friction_hotspot: "Related blockers are still recurring."
+      prompt_gap: "Prompt Quality is not supporting this capability well enough."
+      method_gap: "Method accumulation has not kept up with this capability."
+  trend:
+    score_label: "Collaboration index"
+    labels:
+      data_insufficient: "Data insufficient"
+      stable: "Mostly flat"
+      sustained_up: "Sustained up"
+      volatile_up: "Volatile up"
+      volatile_down: "Volatile down"
+    explanations:
+      insufficient_points: "There are not enough points in the last 30 days yet, so show the signals but avoid forcing a trend claim."
+      stable_band: "The last 30 days are relatively stable overall, so you are mainly holding current habits."
+      steady_improvement: "The last 30 days show a steady lift, which suggests your method is becoming more repeatable."
+      improving_with_swings: "There is noise, but the overall line is still improving."
+      declining_with_swings: "Recent regression is visible, and the priority is to stop the decline."
+      steady_decline: "The last 30 days show a more consistent decline, which means the current method is not holding yet."
+      mixed_but_flat: "There are swings, but zoomed out the trend is still broadly flat."
+    confidence:
+      high: "Sample size and source coverage are strong enough to use directly for training."
+      medium: "This trend is useful, but still worth checking against one or two recent real tasks."
+      low: "Use this as a direction hint rather than a hard conclusion."
+    friction_labels:
+      vague_request: "Vague request"
+      missing_context: "Missing context"
+      scope_drift: "Scope drift"
+      missing_acceptance_criteria: "Missing acceptance"
+      unclear_correction: "Unclear correction"
+
 prompt_coach:
   strength_card:
     label_prefix: "Keep this habit: {label}"
@@ -438,6 +560,146 @@ prompt_coach:
     mixed: "Covered {total} sessions this period: {llm} with LLM semantic evaluation, {heuristic} with proxy backfill, including {light} lightweight proxy reads."
     llm_only: "Covered {total} sessions this period, all with LLM semantic evaluation."
     heuristic_only: "Covered {total} sessions this period, all with proxy backfill, including {light} lightweight proxy reads."
+  trainer:
+    headline_from_deficit: "The next prompt habit to fix first is {label}; it is the most likely to send the AI off course."
+    headline_from_dimension: "The next prompt dimension to improve first is {label}."
+    headline_light: "Start with the templates and pre-send checklist; the trend will become clearer once you have more sessions."
+    evidence_summary: "The primary issue right now is {deficit}; related signals appear {count} times across {sessions} evaluable sessions."
+    light_evidence_summary: "There are not many evaluable sessions yet, so start with lightweight templates and a preflight checklist."
+    source_note_llm: "This section is mainly backed by LLM semantic evaluation."
+    source_note_mixed: "This section mixes LLM semantic evaluation with heuristic proxy backfill."
+    source_note_heuristic: "This section is currently driven mainly by heuristic proxy signals."
+    source_note_light: "This section currently offers lightweight templates and checklist guidance instead of strong judgments."
+    light_state_note: "The session sample is still small, so the main value here is reusable structure."
+    heuristic_state_note: "This read includes heuristic proxy sources, so treat it as training guidance rather than a hard evaluation."
+    strength_habit: "Your most stable prompt habit right now is {label}."
+    deficits:
+      missing-context:
+        description: "Background, symptom, or key files are not fully present in the first message."
+        impact: "The AI has to clarify or guess before it can move, which increases rework."
+      vague-request:
+        description: "The request expresses intent, but not an execution sequence or done definition."
+        impact: "The AI is more likely to give advice instead of entering an executable path."
+      late-constraint:
+        description: "Critical constraints arrive only in later turns."
+        impact: "Early work becomes partially wasted and has to be redone."
+      unclear-correction:
+        description: "Course correction says what is wrong, but not the correct boundary."
+        impact: "The AI can continue along the same incorrect path."
+      scope-drift:
+        description: "The change boundary is not locked before execution."
+        impact: "The AI can widen the change surface and create extra risk."
+      missing-acceptance-criteria:
+        description: "The request does not define what counts as passing."
+        impact: "The AI can close too early and still leave follow-up work."
+      assumption-not-surfaced:
+        description: "Important assumptions remain implicit instead of being stated."
+        impact: "The AI fills them in on its own, which makes the output unstable."
+    rewrite_problem_map:
+      context_provision: "The original request is missing critical context, so the AI has to guess."
+      request_specificity: "The original request is too broad and does not define the action path."
+      scope_management: "The original request does not lock scope."
+      information_timing: "The original request introduces critical constraints too late."
+      correction_quality: "The original correction does not define a clear boundary reset."
+    rewrite_problem_default: "The original wording is not stable enough and leaves too much room for guessing."
+    rewrite_why_default: "The better version front-loads context, goal, and boundary, so the AI can move correctly in the first turn."
+    rewrite_fallbacks:
+      context_provision:
+        scene: "requirements_design"
+        problem: "The opening context is too thin, so the AI has to clarify first."
+        better_prompt: "Background: ...\nCurrent problem: ...\nTarget outcome: ...\nConstraints: ...\nReferences: ...\nAcceptance: ...\nOutput format: ..."
+        why: "Once context and acceptance are front-loaded, the AI can go directly into execution."
+      request_specificity:
+        scene: "code_review"
+        problem: "The ask is too broad, so the AI cannot tell whether to diagnose, modify, or verify first."
+        better_prompt: "Please diagnose first, then give the minimal change, and finally state whether it passes the acceptance criteria."
+        why: "A clear action order makes delivery more stable."
+    universal_template:
+      title: "Reusable universal request template"
+      common_gap: "The most common gap is that background, acceptance, and output format are not stated together."
+      body: |
+        Background: ...
+        Current problem: ...
+        Target outcome: ...
+        Constraints: ...
+        References: ...
+        Acceptance criteria: ...
+        Output format: ...
+    scenario_templates:
+      - id: "template:code_review"
+        title: "Code Review"
+        scene: "code_review"
+        common_gap: "The most common omission is the review goal and evaluation standard."
+        template: "Please review this change. Background: ... Current problem: ... Target outcome: identify risks, regressions, and missing tests. Constraints: do not redesign the architecture. References: ... Acceptance criteria: findings prioritized by severity. Output format: findings first."
+      - id: "template:requirements_design"
+        title: "Requirements Design"
+        scene: "requirements_design"
+        common_gap: "The most common omission is scope, constraints, and acceptance."
+        template: "Please help design this requirement. Background: ... Current problem: ... Target outcome: a plan ready for implementation. Constraints: ... References: ... Acceptance criteria: include scope, flow, risk, and acceptance. Output format: structured sections."
+      - id: "template:bug_triage"
+        title: "Bug Triage"
+        scene: "bug_triage"
+        common_gap: "The most common omission is the symptom, reproduction condition, and forbidden changes."
+        template: "Please help triage this bug. Background: ... Current problem: ... Target outcome: identify the root cause and the minimal fix path. Constraints: do not change the API contract. References: logs / file paths ... Acceptance criteria: root cause and verification path are explicit. Output format: root cause -> change -> verify."
+      - id: "template:architecture_refactor"
+        title: "Architecture Refactor"
+        scene: "architecture_refactor"
+        common_gap: "The most common omission is the scope boundary and what must stay untouched."
+        template: "Please assess this architecture refactor. Background: ... Current problem: ... Target outcome: a gradual refactor plan. Constraints: do not change external interfaces. References: ... Acceptance criteria: include benefits, risks, and migration steps. Output format: options + recommendation."
+      - id: "template:copy_polish"
+        title: "Copy Polish"
+        scene: "copy_polish"
+        common_gap: "The most common omission is audience, tone, and pass criteria."
+        template: "Please improve this copy. Background: ... Current problem: ... Target outcome: who it is for and what effect it should create. Constraints: tone / length / banned phrases ... References: original text ... Acceptance criteria: clearer and more focused. Output format: issue summary + improved version."
+      - id: "template:chart_analysis"
+        title: "Chart Analysis"
+        scene: "chart_analysis"
+        common_gap: "The most common omission is the actual question you want the chart to answer."
+        template: "Please analyze this chart. Background: ... Current problem: the exact question I want answered. Target outcome: key conclusions and next-step suggestions. Constraints: do not invent missing data. References: chart / dataset ... Acceptance criteria: every conclusion ties back to the data. Output format: conclusion -> evidence -> recommendation."
+    checklist_map:
+      missing-context:
+        - "Did I state the background, symptom, and key files clearly?"
+        - "Did I include the target outcome and constraints?"
+      vague-request:
+        - "Did I turn this into a concrete action sequence?"
+        - "Did I specify the output format?"
+      late-constraint:
+        - "Are the critical constraints already in the first message?"
+      unclear-correction:
+        - "If the last answer drifted, did I state the mistake, the correct boundary, and the next step together?"
+      scope-drift:
+        - "Did I say what can change and what must not change?"
+      missing-acceptance-criteria:
+        - "Did I define what counts as passing?"
+      assumption-not-surfaced:
+        - "Did I turn my hidden assumptions into explicit context?"
+    checklist_default:
+      - "Did I state the target outcome?"
+      - "Did I say what must not be done?"
+      - "Did I define acceptance criteria?"
+      - "Did I specify the output format?"
+    seven_day_plan:
+      - day: 1
+        theme: "Spot {deficit}"
+        action: "Review one real request from today and mark where {deficit} showed up."
+      - day: 2
+        theme: "Front-load context"
+        action: "Before each request, add background, target, and constraints."
+      - day: 3
+        theme: "Use the template"
+        action: "Pick one real task and send it with the improved structure."
+      - day: 4
+        theme: "Add acceptance"
+        action: "Add one sentence that defines what passing looks like."
+      - day: 5
+        theme: "Lock scope"
+        action: "State what is allowed to change and what is not."
+      - day: 6
+        theme: "Correction drill"
+        action: "When the AI drifts, resend using problem -> correct boundary -> next step."
+      - day: 7
+        theme: "Review and keep"
+        action: "Pick the most effective rewrite card and turn it into your default template."
   heuristic:
     unavailable_headline: "Not enough prompt-quality data yet; revisit after more multi-turn sessions."
     unavailable_source_note: "There are not enough prompt proxy signals or stable session samples yet."
