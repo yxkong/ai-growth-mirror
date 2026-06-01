@@ -10,6 +10,8 @@ from ai_growth_mirror.infra.readers.base import BaseSessionAdapter
 
 from ai_growth_mirror.infra.readers.claude_code import ClaudeCodeSessionAdapter
 
+from ai_growth_mirror.infra.readers.codebuddy import CodeBuddyAdapter
+
 from ai_growth_mirror.infra.readers.codex import CodexAdapter
 
 from ai_growth_mirror.infra.readers.cursor import CursorAdapter
@@ -27,6 +29,8 @@ from ai_growth_mirror.infra.readers.trae import TraeAdapter
 ADAPTER_BY_NAME: dict[str, type[BaseSessionAdapter]] = {
 
     ClaudeCodeSessionAdapter.tool_name: ClaudeCodeSessionAdapter,
+
+    CodeBuddyAdapter.tool_name: CodeBuddyAdapter,
 
     CodexAdapter.tool_name: CodexAdapter,
 
@@ -49,6 +53,8 @@ __all__ = [
     "BaseSessionAdapter",
 
     "ClaudeCodeSessionAdapter",
+
+    "CodeBuddyAdapter",
 
     "CodexAdapter",
 

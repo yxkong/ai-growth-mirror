@@ -2,7 +2,7 @@
 title: Growth Mirror Design Index
 domain: growth_mirror
 status: canonical
-updated_at: 2026-05-29
+updated_at: 2026-06-01
 ---
 
 # AI Growth Mirror 文档索引
@@ -44,3 +44,4 @@ updated_at: 2026-05-29
 - 2026-05-26：索引标题去旧品牌词化；阅读顺序改为当前活动区真实文档。
 - 2026-05-27：文档与代码同步（Python 3.12+、CLI compare/cache、去 bak 发布边界）；传播设计 status 统一为 supporting。
 - 2026-05-29：对外口径统一为 AI 成长镜；去除历史版本暴露文案，并补齐成长轨迹对比说明入口。
+- 2026-06-01：架构总纲补齐 7 款工具（国际/国产分组）与产品主流程图，与仓级 README 同步。

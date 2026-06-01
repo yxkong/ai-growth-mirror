@@ -2,7 +2,7 @@
 title: AI Growth Mirror Docs Index
 domain: growth_mirror
 status: canonical
-updated_at: 2026-05-29
+updated_at: 2026-06-01
 ---
 
 # AI Growth Mirror 文档入口
@@ -12,7 +12,7 @@ updated_at: 2026-05-29
 - [架构总纲](./design/ARCHITECTURE_PRINCIPLES.md)
 - [设计索引](./design/README.md)
 - [仓库治理说明](./config/OPEN_SOURCE_GOVERNANCE.md)
-- 仓级 README 与 `CONTRIBUTING.md`（安装、CLI、Python **3.12+**、验证命令）
+- 仓级 README 与 `CONTRIBUTING.md`（安装、CLI、**核心流程图**、Python **3.12+**、验证命令）
 
 ## 使用规则
 

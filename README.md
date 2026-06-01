@@ -1,10 +1,155 @@
 ﻿# AI Growth Mirror
 
-**AI Growth Mirror** 是一个本地优先的 AI 协作能力分析工具。在**当前工作目录**扫描 Cursor、Codex、Claude Code等工具的历史会话，生成个人成长报告。
+**AI Growth Mirror**（个人成长镜）是一款**本地优先**的 AI 协作能力分析工具。从本机 AI 编码工具的日志目录读取历史会话（Cursor、Codex、Claude Code、CodeBuddy、Trae、QCoder、Gemini 等 7 款），经统一适配、信号提取与五轴评分，生成可交互的个人成长报告。
 
-> 核心目标：帮助 AI 工具用户看清自己的协作模式，找到下一步最值得投入的成长方向。
+> **核心目标**：帮 AI 编码用户看清自己的协作模式、摩擦瓶颈与资产化程度，明确下一步最值得投入的成长方向。
 
-**工作区模型**：在你要放报告的目录执行 CLI（通常是仓库根或项目根）。报告、快照、分析缓存都写在**该目录**，不会默认写到用户 home；本地产物已 `.gitignore`，不提交 git。
+**工作区模型**：在你要**产出报告**的目录执行 CLI（通常是仓库根或项目根）。会话数据来自各工具默认路径（如 `~/.cursor/`、`~/.codex/`）；报告、快照、分析缓存写入**当前工作目录**，不会默认写到用户 home。本地产物已 `.gitignore`，不提交 git。
+
+---
+
+## 核心流程
+
+```mermaid
+flowchart TB
+    subgraph L1["📂 数据采集"]
+        direction TB
+        subgraph tools_intl["tools_intl"]
+            direction LR
+            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini]
+        end
+        subgraph tools_cn["tools_cn"]
+            direction LR
+            t_buddy[CodeBuddy] --- t_trae[Trae] --- t_qcoder[QCoder]
+        end
+        t_adapter[统一 Adapter]
+        tools_intl --> t_adapter
+        tools_cn --> t_adapter
+    end
+
+    subgraph L2["📊 信号提取"]
+        sig_in[LLM / Heuristic] --> sig_out[协作成长信号]
+    end
+
+    subgraph L3["📈 成长评分"]
+        sc_radar[五轴雷达] --> sc_level[L1-L5 等级] --> sc_plan[摩擦 · 训练建议]
+    end
+
+    subgraph L4["📄 报告渲染"]
+        direction TB
+        rpt_asm[报告组装]
+        rpt_html[主报告]
+        rpt_json[Sidecar]
+        rpt_share[分享卡]
+        rpt_snap[快照]
+        rpt_asm --> rpt_html & rpt_json & rpt_share & rpt_snap
+    end
+
+    L1 --> L2 --> L3 --> L4
+```
+
+### 流程说明
+
+**Step 1 — 数据采集**：按 `--tools` 自动选取 Adapter，扫描本机日志目录。先轻量发现会话，再按需深度解析，结果缓存到工作区，重复运行更快。
+
+**Step 2 — 信号提取**：`heuristic` 纯本地推导协作信号；`llm` 用 API Key 做语义深读。两种模式输出同一套成长信号（交付结果、Prompt 质量、摩擦点等）。
+
+**Step 3 — 成长评分**：聚合全部会话，生成五轴雷达与 L1–L5 等级，定位摩擦根因，给出下一阶段训练冲刺建议。
+
+**Step 4 — 报告渲染**：一键产出 HTML 主报告、JSON sidecar、对外分享卡，并归档快照——下次 generate 自动对比成长轨迹。
+
+### 会话是怎么被读懂的？（以 Cursor / Codex 为例）
+
+无论你日常用 **Cursor** 还是 **Codex CLI**，Growth Mirror 做的事一样：**静默读取本机已有日志，无需额外插件或上传完整对话**。其他工具（Claude Code、CodeBuddy、Trae 等）走同一套适配引擎，只是数据源路径不同。
+
+```mermaid
+flowchart TB
+    C[Cursor] --> M1[发现 · 筛选 · 缓存]
+    X[Codex CLI] --> M1
+    M1 --> M2[提取成长信号]
+    M2 --> M3[统一成长报告]
+```
+
+**你能得到什么**：Cursor 侧优先用完整转录还原工具链与验证行为；Codex 侧额外解析 Token 用量，报告 Hero 可直接展示成本。两种数据源最终汇入**同一份成长报告**——换工具不用换评估标准。
+
+### 一套引擎，读懂 7 款工具
+
+Growth Mirror 为每款 AI 编码工具配备独立 Adapter，但对外体验一致：指定 `--tools all` 或按需勾选，其余交给 pipeline。
+
+| 工具 | Adapter |
+|------|---------|
+| Claude Code | `ClaudeCodeSessionAdapter` |
+| Codex | `CodexAdapter` |
+| Cursor | `CursorAdapter` |
+| Gemini | `GeminiAdapter` |
+| CodeBuddy | `CodeBuddyAdapter` |
+| Trae | `TraeAdapter` |
+| QCoder | `QCoderAdapter` |
+
+新增工具只需实现「发现会话 → 解析 → 标准化」三步，即可接入现有评分与报告链路。
+
+---
+
+## 产品概览
+
+AI Growth Mirror 把分散在各 AI 编码工具里的会话历史，转成一份**可行动**的成长报告：不只统计用了多少次 AI，更回答「协作模式如何、卡在哪里、下一步练什么」。
+
+### 核心能力
+
+| 能力 | 说明 |
+|------|------|
+| **多工具聚合** | 国际主流（Claude Code、Codex、Cursor、Gemini）+ 国产（CodeBuddy、Trae、QCoder）共 7 款；`--tools all` 一次扫齐 |
+| **双模式分析** | `heuristic` 纯本地规则（零外部调用）/ `llm` 语义深度分析（需 API Key）/ `auto` 按 Key 自动切换 |
+| **五轴雷达评分** | 意图清晰度、执行驱动力、实施深度、交付闭环、适应恢复力 — 五个维度量化 AI 协作能力 |
+| **L1–L5 成长等级** | 从初学者到专家，阶梯式评估，每个等级有具体行为描述 |
+| **个性化成长教练** | LLM 模式下生成改进建议、训练冲刺计划与 Prompt 优化指南 |
+| **摩擦根因分析** | 区分用户可行动阻力、AI 能力边界与环境阻力，定位成长瓶颈 |
+| **协作风格洞察** | 识别深度委托者、工具编排者、验证先行等高信号协作模式 |
+| **成长轨迹对比** | 每次生成自动归档快照；报告内默认对比「本期 vs 上一期」，也可用 CLI 任意两期对比 |
+| **资产足迹** | 可选扫描本地 skills、prompts、rules 等 Agent 资产，评估资产化成熟度 |
+| **脱敏分享** | `--redact` 隐藏敏感信息，输出可对外分享的精简版报告 |
+| **智能缓存** | mtime 增量缓存，相同会话不重复解析，重复运行更快 |
+| **i18n** | 中英文双语，报告语言可切换 |
+
+### 分析模式
+
+| 模式 | 说明 | 隐私性 | API Key |
+|------|------|--------|---------|
+| **`auto`**（默认） | 有 Key → LLM session read + coaching；无 Key → heuristic | 自适应 | 可选 |
+| **`heuristic`** | 基于会话元数据（工具链、文件修改、token 等）的规则引擎；coaching 仍可在有 Key 时调 LLM | 完全本地 | session read 不需要 |
+| **`llm`** | 每会话 LLM 语义 session read，提取深度协作信号 | 摘要级上传 | 需要 |
+
+建议先用 `heuristic` 或 `auto`（无 Key）验证 reader 接入，再开 `llm`。
+
+### 成长等级
+
+| 等级 | 分数 | 典型特征 |
+|------|------|----------|
+| **L1 · 初学者** | 0–37 | 刚接触 AI 编码，prompt 简短，以单次问答为主 |
+| **L2 · 成长中** | 38–55 | 开始尝试多轮协作，偶尔使用工具调用 |
+| **L3 · 较稳定** | 56–74 | 形成稳定协作节奏，能自主驱动中等复杂度任务 |
+| **L4 · 高水平** | 75–89 | 擅长拆解复杂任务，熟练运用工具链和子代理 |
+| **L5 · 专家** | 90–100 | 精通端到端 AI 协作，具备系统性资产建设能力 |
+
+> 会话数 < 5 不评分；< 8 封顶 L3；< 15 封顶 L4。建议积累 15+ 个会话以获得稳定评分。
+
+### 五轴雷达维度
+
+| 维度 | 权重 | 衡量内容 |
+|------|------|----------|
+| **意图清晰度** | 20% | Prompt 的约束性、代码上下文丰富度、范围管理能力 |
+| **执行驱动力** | 22% | 自主工具链长度、子代理使用、工具层级多样性 |
+| **实施深度** | 22% | 文件修改量、token 消耗、代码验证率 |
+| **交付闭环** | 22% | 任务完成率、验证行为率、测试运行率、git 提交率 |
+| **适应恢复力** | 14% | 纠错质量、摩擦后的恢复速度、从失败中学习的能力 |
+
+### CLI 命令一览
+
+| 命令 | 用途 |
+|------|------|
+| `ai-growth-mirror generate` | 扫描会话 → 分析 → 生成成长报告 |
+| `ai-growth-mirror compare <left> <right>` | 对比任意两期快照，可视化成长变化 |
+| `ai-growth-mirror cache prune` | 清理过期缓存，释放磁盘空间 |
 
 ---
 
@@ -156,36 +301,37 @@ print(result.output_path, result.session_count, result.growth_level)
 
 ---
 
-## 分析模式
-
-| 模式 | 说明 | API Key |
-|------|------|---------|
-| `auto` | 有 Key → LLM session read + coaching；无 Key → heuristic（**CLI 默认**） | 可选 |
-| `heuristic` | 规则 session read；coaching 仍可在有 Key 时调 LLM | session read 不需要 |
-| `llm` | 每会话 LLM 语义 session read | 需要 |
-
-建议先用 `heuristic` 或 `auto`（无 Key）验证 reader 接入，再开 `llm`。
-
----
-
 ## 支持的 AI 工具
 
-CLI `--tools` 可选：`all` | `cursor` | `codex` | `claude` | `trae` | `qcoder`（`claude` 为 `claude_code` 别名）。
+CLI `--tools` 可选：`all` | `cursor` | `codex` | `claude` | `codebuddy` | `gemini` | `trae` | `qcoder`（`claude` 为 `claude_code` 别名）。
 
-| 工具 | 配置键 `tools.*` | 典型数据源 | 备注 |
-|------|------------------|------------|------|
-| Cursor | `cursor` | `~/.cursor/` | 默认启用 |
-| Codex | `codex` | `~/.codex/` | 默认启用 |
-| Claude Code | `claude_code` | `~/.claude/` | 需在 config 中 `enabled: true` |
-| Trae | `trae` | `~/.trae-cn/` 或 Windows workspaceStorage | 默认随 `all` |
-| QCoder | `qcoder` | `~/.qoder/` 或 Windows workspaceStorage | 默认随 `all` |
+| 类型 | 工具 | 配置键 `tools.*` | 典型数据源 | 备注 |
+|------|------|------------------|------------|------|
+| 国际主流 | Claude Code | `claude_code` | `~/.claude/` | 需在 config 中 `enabled: true` |
+| 国际主流 | Codex | `codex` | `~/.codex/` | 默认启用 |
+| 国际主流 | Cursor | `cursor` | `~/.cursor/` | 默认启用 |
+| 国际主流 | Gemini | `gemini` | `~/.gemini/antigravity/brain/` | 默认随 `all` |
+| 国产 | CodeBuddy | `codebuddy` | `~/.codebuddy/` | 默认随 `all` |
+| 国产 | Trae | `trae` | `~/.trae-cn/` 或 Windows workspaceStorage | 默认随 `all` |
+| 国产 | QCoder | `qcoder` | `~/.qoder/` 或 Windows workspaceStorage | 默认随 `all` |
+
+### Cursor / Codex 数据源说明
+
+两款最常用工具的数据，Growth Mirror 都会自动找齐：
+
+| 工具 | 数据源 | 读什么 | 报告里多出来的价值 |
+|------|--------|--------|-------------------|
+| **Cursor** | `ai-code-tracking.db` + `agent-transcripts/*.jsonl` | 会话索引与完整转录 | 工具链、Skill/MCP、验证行为、协作节奏 |
+| **Codex** | `state_5.sqlite` + `rollout-*.jsonl` | 线程索引与 Rollout 转录 | 上述信号 + **Token 用量与成本**（Hero 卡片） |
+
+有完整转录时优先用转录；索引仅作发现与补全。其余工具同理——**你照常写代码，报告在后台把日志变成成长洞察**。
 
 ---
 
 ## Token / 成本 / 缓存（报告内）
 
-- 只统计 reader 能解析 **usage 字段**的会话（以 **Codex、Claude Code** 为主）
-- Cursor / Trae / QCoder 仍参与成长评分；无 usage 时 Hero 显示 `--`，不填 0
+- 只统计 reader 能解析 **usage 字段**的会话（以 **Codex、Claude Code、Gemini** 为主）
+- Cursor / Trae / QCoder / CodeBuddy 仍参与成长评分；无 usage 时 Hero 显示 `--`，不填 0
 - `memory` 当前未采集，报告会标注
 
 ---

@@ -1,13 +1,13 @@
 # AI Growth Mirror — 架构总纲
 
 > **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审查以此为准。
-> 最后更新：2026-05-29（personal 主链）
+> 最后更新：2026-06-01（personal 主链 · 产品流程图）
 
 ---
 
 ## 1. 产品定位
 
-AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**。它分析用户与 AI 编程工具（Claude Code、Cursor、Codex 等）的交互历史，生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
+AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、CodeBuddy、Trae、QCoder 共 7 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
 
 **核心目标**：帮助使用 AI 工具的人提升自我，不是给单人用的报告工具，而是对所有 AI 工具用户通用的产品。
 
@@ -43,6 +43,59 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 - **Adaptive Recovery**：遇到偏航、报错、阻塞时能否基于新证据恢复推进
 
 `mirror_score` 与 `growth_level` 可以继续保留为产品字段，但必须由这五轴与置信修正推出，不得再回退为旧六维线性加权模型的换皮版本。
+
+### 1.3 支持的 AI 编码工具
+
+与仓级 `README.md` 一致，当前接入 **7 款** AI 编码工具：
+
+| 类型 | 工具 |
+|------|------|
+| 国际主流 | Claude Code、Codex、Cursor、Gemini |
+| 国产 | CodeBuddy、Trae、QCoder |
+
+CLI `--tools all` 一次扫齐；也可按需指定单个或多个。各工具经统一 Adapter 适配层汇入同一套评分与报告链路。
+
+### 1.4 产品主流程
+
+对外流程图与 `README.md` §核心流程 保持一致：
+
+```mermaid
+flowchart TB
+    subgraph L1["📂 数据采集"]
+        direction TB
+        subgraph tools_intl["tools_intl"]
+            direction LR
+            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini]
+        end
+        subgraph tools_cn["tools_cn"]
+            direction LR
+            t_buddy[CodeBuddy] --- t_trae[Trae] --- t_qcoder[QCoder]
+        end
+        t_adapter[统一 Adapter]
+        tools_intl --> t_adapter
+        tools_cn --> t_adapter
+    end
+
+    subgraph L2["📊 信号提取"]
+        sig_in[LLM / Heuristic] --> sig_out[协作成长信号]
+    end
+
+    subgraph L3["📈 成长评分"]
+        sc_radar[五轴雷达] --> sc_level[L1-L5 等级] --> sc_plan[摩擦 · 训练建议]
+    end
+
+    subgraph L4["📄 报告渲染"]
+        direction TB
+        rpt_asm[报告组装]
+        rpt_html[主报告]
+        rpt_json[Sidecar]
+        rpt_share[分享卡]
+        rpt_snap[快照]
+        rpt_asm --> rpt_html & rpt_json & rpt_share & rpt_snap
+    end
+
+    L1 --> L2 --> L3 --> L4
+```
 
 ---
 
@@ -334,7 +387,7 @@ application/orchestrator.generate_report_artifacts()
 
 | 扩展场景 | 扩展位置 |
 |---|---|
-| 新增 AI 工具（如 Gemini CLI） | `infra/readers/` 新增 adapter，实现 `BaseSessionAdapter` |
+| 新增 AI 工具 | `infra/readers/` 新增 adapter，实现 `BaseSessionAdapter` |
 | 新增 Session Read 提取维度 | `domain/signals/model.py` 加字段 + `prompts/session_read/system.md.j2` 更新 schema |
 | 新增报告板块 | `application/report_view.py` + `assets/templates/report.html.j2` |
 | 新增 LLM 生成内容 | `assets/prompts/` 新建模板 + `infra/llm/` 对应调用点 |
