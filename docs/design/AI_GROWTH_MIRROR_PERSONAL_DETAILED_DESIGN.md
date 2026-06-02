@@ -174,9 +174,9 @@ score_target: 9.9
 - `pq_deficit_counts`
 - `pq_top_takeaways`
 - `pq_sessions_evaluated`
-- `pq_llm_session_count`
-- `pq_heuristic_session_count`
-- `pq_light_session_count`
+- `pq_llm_session_count`（兼容保留）/ `pq_heuristic_session_count`（兼容保留）/ `pq_light_session_count`（兼容保留）
+- `pq_llm_evaluated_count` / `pq_insufficient_count` / `pq_llm_failed_count` / `pq_llm_unavailable_count`（按 `evaluation_status` 统计，P1 新增）
+- `PromptLensScores.evaluation_status`：`llm_evaluated | insufficient_input | llm_failed | llm_unavailable | not_applicable`
 
 前台区块：
 
@@ -194,8 +194,9 @@ score_target: 9.9
 
 来源说明约束：
 
-- 报告里必须显式告诉用户：本期有多少会话来自 `LLM 语义评估`，多少来自 `代理回填`
-- `session_read_mode=heuristic` 的含义是“当前来源模式”，不是“另一种 Prompt 质量定义”
+- 报告里必须显式告诉用户：本期有多少会话完成 LLM 语义判断（`llm_evaluated`）、多少因会话过短回退代理（`insufficient_input`）、多少 LLM 失败（`llm_failed`）、多少整体未配 LLM（`llm_unavailable`）
+- `session_read_mode=heuristic` 的含义是"当前来源模式"，不是"另一种 Prompt 质量定义"
+- 主报告按非零子句拼装人话；禁止展示 `LLM n / heuristic n / light n` 并列数字
 
 ## 5.4.2 Prompt 成长教练升级边界
 
@@ -206,8 +207,9 @@ score_target: 9.9
 3. `universal_template`：通用提需求模板，必须覆盖背景、当前问题、目标结果、约束、参考、验收、输出格式
 4. `scenario_templates`：至少覆盖代码 Review、需求设计、Bug 排查、架构改造、文案优化、图表分析
 5. `prompt_style`：识别 `explicit_requirement_prompt / indexed_prompt / mixed_prompt / under_specified_prompt`
-6. `closure_guidance`：按任务类型给出正确收口方式，而不是默认要求测试
-7. `preflight_checklist` / `recommended_training_inputs`：面向下一次发送前自检和训练输入建议
+6. `closure_guidance`：按任务类型给出正确收口方式，而不是默认要求测试；携带 `mode`（`open_ended | engineered` 派生，不升 schema）；`open_ended` 适用于探索/设计/分析/文案，`engineered` 适用于代码/配置/SQL/结构化生成
+7. `friction_synthesis`：标签综合判断层，LLM 配置时由 growth_coach 生成（evidence_refs 接地护栏），未配置时由 `domain/growth/prompting.py` 规则兜底；输出"你不是…而是…"风格可改动作；已打通 `growth_plan.linked_friction_synthesis_ids`
+8. `preflight_checklist` / `recommended_training_inputs`：面向下一次发送前自检和训练输入建议
 
 补充约束：
 
