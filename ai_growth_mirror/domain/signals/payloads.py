@@ -86,6 +86,7 @@ def parse_prompt_lens_payload(raw: dict) -> PromptLensScores:
     return PromptLensScores(
         source=str(raw.get("source", "llm") or "llm"),
         coverage=str(raw.get("coverage", "full") or "full"),
+        evaluation_status=str(raw.get("evaluation_status", "llm_evaluated") or "llm_evaluated"),
         evaluated_user_messages=int(raw.get("evaluated_user_messages", 0) or 0),
         context_provision=int(dimension_scores.get("context_provision", 50) or 50),
         request_specificity=int(dimension_scores.get("request_specificity", 50) or 50),

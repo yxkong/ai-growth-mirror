@@ -105,6 +105,10 @@ class GrowthProfile:
     pq_llm_session_count: int = 0
     pq_heuristic_session_count: int = 0
     pq_light_session_count: int = 0
+    pq_llm_evaluated_count: int = 0
+    pq_insufficient_count: int = 0
+    pq_llm_failed_count: int = 0
+    pq_llm_unavailable_count: int = 0
     pq_avg_dimensions: dict[str, float] = field(default_factory=dict)
     pq_avg_efficiency_score: float = 0.0
     pq_deficit_counts: dict[str, int] = field(default_factory=dict)

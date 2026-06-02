@@ -109,6 +109,20 @@ def _aggregate_prompt_quality(stats: GrowthProfile, session_reads: list[SessionR
         1 for read in prompt_lens_reads if getattr(read.prompt_lens, "coverage", "") == "light"
     )
 
+    status_of = lambda read: getattr(read.prompt_lens, "evaluation_status", "")
+    stats.pq_llm_evaluated_count = sum(
+        1 for read in prompt_lens_reads if status_of(read) == "llm_evaluated"
+    )
+    stats.pq_insufficient_count = sum(
+        1 for read in prompt_lens_reads if status_of(read) == "insufficient_input"
+    )
+    stats.pq_llm_failed_count = sum(
+        1 for read in prompt_lens_reads if status_of(read) == "llm_failed"
+    )
+    stats.pq_llm_unavailable_count = sum(
+        1 for read in prompt_lens_reads if status_of(read) == "llm_unavailable"
+    )
+
     stats.pq_avg_dimensions = {
         dimension: round(
             sum(getattr(read.prompt_lens, dimension) for read in prompt_lens_reads)

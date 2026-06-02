@@ -395,17 +395,25 @@ def _attach_prompt_quality(
     from ..extractors.heuristic import build_prompt_quality_proxy
     from ..extractors.prompt_quality import extract_prompt_lens, should_extract_prompt_lens
 
-    prompt_lens = None
-    if should_extract_prompt_lens(meta):
-        prompt_lens = extract_prompt_lens(
+    attempted = should_extract_prompt_lens(meta)
+    prompt_lens = (
+        extract_prompt_lens(
             meta,
             llm,
             outcome=session_read.delivery_outcome,
             had_course_correction=False,
             language=language,
         )
+        if attempted
+        else None
+    )
     if prompt_lens is None:
-        prompt_lens = build_prompt_quality_proxy(meta, language=language)
+        status = "llm_failed" if attempted else "insufficient_input"
+        prompt_lens = build_prompt_quality_proxy(
+            meta,
+            language=language,
+            evaluation_status=status,
+        )
     session_read.prompt_lens = prompt_lens
 
 

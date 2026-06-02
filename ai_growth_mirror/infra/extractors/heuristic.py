@@ -103,7 +103,11 @@ def build_heuristic_session_read_for_session(
     primary_success = _primary_success(session, workflow_style)
     blockers = _blockers(session, language)
     accelerators = _accelerators(session, workflow_style, language)
-    prompt_quality = _prompt_quality(session, language)
+    prompt_quality = build_prompt_quality_proxy(
+        session,
+        language=language,
+        evaluation_status="llm_unavailable",
+    )
     creation_mode, creation_depth = _creation_mode(session)
     project_name = _Path(session.project_path).name if session.project_path else ""
 
@@ -342,6 +346,8 @@ def _accelerators(
 def _prompt_quality(
     session: SessionRecord,
     language: str,
+    *,
+    evaluation_status: str = "insufficient_input",
 ) -> PromptLensScores | None:
     pq = _heuristic_i18n(language).get("pq_texts", {})
 
@@ -464,6 +470,7 @@ def _prompt_quality(
     return PromptLensScores(
         source="heuristic",
         coverage="full" if session.user_message_count >= 5 else "light",
+        evaluation_status=evaluation_status,
         evaluated_user_messages=session.user_message_count,
         context_provision=context,
         request_specificity=specificity,
@@ -480,14 +487,16 @@ def build_prompt_quality_proxy(
     session: SessionRecord,
     *,
     language: str,
+    evaluation_status: str = "insufficient_input",
 ) -> PromptLensScores:
     """Build a lightweight prompt-quality proxy from stable local signals."""
-    result = _prompt_quality(session, language)
+    result = _prompt_quality(session, language, evaluation_status=evaluation_status)
     if result is not None:
         return result
     return PromptLensScores(
         source="heuristic",
         coverage="light",
+        evaluation_status=evaluation_status,
         evaluated_user_messages=session.user_message_count,
     )
 
