@@ -151,11 +151,11 @@ Infrastructure (infra/)   ← 实现 readers / i18n / LLM / cache / snapshots
 - `infra/snapshots.py`
   - 只负责 snapshot archive 读取、近 30 天历史加载、legacy fallback、compare 数据写盘
 - `application/growth_trajectory.py`
-  - 负责把 trend + latest-vs-previous 组装成统一 view model 与 sidecar 子结构
+  - 负责把 `window_points + daily_points + trend_summary + latest-vs-previous` 组装成统一 view model 与 sidecar 子结构
 - `application/prompt_coach.py`
-  - 负责把 PQ / finding / takeaway / 模板 / checklist / 7-day drill 组装成训练器视图
+  - 负责把 PQ / finding / takeaway / prompt_style / closure_guidance / 模板 / checklist 组装成诊断视图
 - `application/growth_plan.py`
-  - 负责消费 `growth_trajectory + prompt_coach`，生成带 evidence/linkage 的训练冲刺
+  - 负责消费 `growth_trajectory + prompt_coach`，生成唯一完整训练计划展示区
 - `application/summary_payload.py`
   - 负责把 `growth_trajectory / prompt_coach / growth_plan` 输出成稳定 sidecar schema
 - `assets/templates/*.j2`
@@ -164,7 +164,7 @@ Infrastructure (infra/)   ← 实现 readers / i18n / LLM / cache / snapshots
 新增能力的红线：
 
 - 主报告 `generate` 首次运行仍然只归档 snapshot，不展示成长轨迹区块
-- 主报告第二次及以后默认展示“本期 vs 上一期”，并在数据满足时叠加近 30 天趋势
+- 主报告第二次及以后默认展示“近 30 天趋势 + 本期 vs 上一期辅助诊断”
 - `compare` 继续只处理任意两期 snapshot，不读取 30 天窗口，不干扰主报告自动对比逻辑
 
 ---
@@ -234,7 +234,7 @@ ai_growth_mirror/
 │   ├── report_view.py             # PersonalReportView + build_personal_report_view 真源
 │   ├── html_render.py             # render_personal_report_html / render_share_card_html（纯 Jinja）
 │   ├── growth_trajectory.py       # 30 天趋势 + latest-vs-previous 视图组装
-│   ├── prompt_coach.py            # Prompt 成长教练训练器组装
+│   ├── prompt_coach.py            # Prompt 成长教练诊断器组装
 │   ├── growth_plan.py             # GrowthPlanView + build_growth_plan 真源
 │   ├── summary_payload.py         # build_personal_summary_payload 真源
 │   └── label_catalogs.py          # ReportLabelCatalogs + load_report_label_catalogs
@@ -284,15 +284,15 @@ application/orchestrator.generate_report_artifacts()
             ↑ assets/templates/   html_render Jinja 渲染
 ```
 
-### 4.1 成长轨迹对比对齐规则
+### 4.1 成长轨迹对齐规则
 
 - `application/personal_report_service.py` 在写入本期 snapshot 之前，先读取 `ai-growth-mirror-archive/index.json`
 - 若 archive 中没有历史条目：`growth_trajectory.available = false`，本期报告不显示该区块
-- 若 archive 中已有历史条目：本期报告只对齐**当前生成前最近一份** snapshot，形成“本期 vs 上期”
+- 若 archive 中已有历史条目：本期报告默认展示近 30 天窗口趋势，并在同区块底部补“本期 vs 上期”辅助诊断
 - 任意两期的手工对比不走主报告自动区块，而走 `cli.py compare` → `infra/snapshots.py::compare_snapshots`
-- **纯逻辑边界**：`domain/snapshots/*` 只定义 snapshot source / comparison DTO 与 delta 计算；`infra/snapshots.py` 只负责 archive 读写与 compare 装载；`application/growth_trajectory.py` 负责把 domain comparison 组装成 view model；`application/html_render.py` 只做模板渲染，不读文件、不做业务计算
+- **纯逻辑边界**：`domain/snapshots/*` 只定义 snapshot source / comparison DTO 与 delta 计算；`infra/snapshots.py` 只负责 archive 读写与 compare 装载；`application/growth_trajectory.py` 负责把 `window_points / daily_points / trend_summary / latest_vs_previous` 组装成 view model；`application/html_render.py` 只做模板渲染，不读文件、不做业务计算
 - **快照输入真源**：compare 组装优先读取 snapshot 下的 `summary.json`、`report.json`、`normalized-summary.json`，只在字段缺失时回退 `profile.json`
-- **sidecar 对齐**：主报告 `.json` sidecar、`*.summary.json`、archive `report.json` 和 compare 产物 `comparisons/*.json` 都必须包含结构化 `growth_trajectory`
+- **sidecar 对齐**：主报告 `.json` sidecar、`*.summary.json`、archive `report.json` 和 compare 产物 `comparisons/*.json` 都必须包含结构化 `growth_trajectory`；主报告使用 `window_points / daily_points / trend_summary / latest_vs_previous`
 
 ### 4.2 Prompt Quality 主链约束
 

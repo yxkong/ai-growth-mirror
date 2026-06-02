@@ -53,6 +53,8 @@ class GrowthPriorityView:
     linked_prompt_deficit_ids: list[str] = field(default_factory=list)
     linked_template_ids: list[str] = field(default_factory=list)
     linked_rewrite_card_ids: list[str] = field(default_factory=list)
+    linked_growth_trend_refs: list[str] = field(default_factory=list)
+    linked_closure_guidance_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -160,10 +162,12 @@ def _build_priority_view(
     linked_deficits = _linked_deficits(key, prompt_coach)
     linked_templates = _linked_templates(key, prompt_coach)
     linked_rewrites = _linked_rewrites(key, prompt_coach)
+    linked_growth_trends = _linked_growth_trends(key, growth_trajectory)
+    linked_closure_ids = _linked_closure_guidance_ids(key, prompt_coach)
     evidence_refs = _priority_evidence_refs(key, prompt_coach, growth_trajectory)
-    why = _priority_why(view.why, key, linked_deficits, evidence_refs)
+    why = _priority_why(view.why, key, linked_deficits, evidence_refs, prompt_coach)
     practice_prompt = _priority_prompt(view.practice_prompt, linked_rewrites, linked_templates, prompt_coach)
-    week_1_actions, week_2_actions = _priority_actions(view, linked_deficits, key)
+    week_1_actions, week_2_actions = _priority_actions(view, linked_deficits, key, prompt_coach)
     return GrowthPriorityView(
         key=view.key,
         title=_priority_title(view.title, key, linked_deficits),
@@ -178,6 +182,8 @@ def _build_priority_view(
         linked_prompt_deficit_ids=[item.id for item in linked_deficits],
         linked_template_ids=[item.id for item in linked_templates],
         linked_rewrite_card_ids=[item.id for item in linked_rewrites],
+        linked_growth_trend_refs=linked_growth_trends,
+        linked_closure_guidance_ids=linked_closure_ids,
     )
 
 
@@ -244,6 +250,40 @@ def _linked_rewrites(key: str, prompt_coach: "PromptCoachView | None"):
     return prompt_coach.rewrite_cards[:1]
 
 
+def _linked_growth_trends(key: str, growth_trajectory: "GrowthTrajectoryView | None") -> list[str]:
+    refs: list[str] = []
+    if growth_trajectory is None:
+        return refs
+    trend = growth_trajectory.trend
+    if trend is not None and trend.summary_code:
+        refs.append(f"trend:summary:{trend.summary_code}")
+    latest = growth_trajectory.data.get("latest_vs_previous", {}) if isinstance(growth_trajectory.data, dict) else {}
+    regression = latest.get("largest_regression", {}) if isinstance(latest, dict) else {}
+    regression_key = str(regression.get("key", "")).strip()
+    if regression_key:
+        refs.append(f"latest_regression:{regression_key}")
+    for axis_key in _trend_axis_keys(growth_trajectory):
+        refs.append(f"trend:axis:{axis_key}")
+    if key.startswith("prompt:"):
+        prompt_key = key.split(":", 1)[1]
+        refs.append(f"trend:prompt:{prompt_key}")
+    elif key:
+        refs.append(f"trend:focus:{key}")
+    deduped: list[str] = []
+    for item in refs:
+        if item not in deduped:
+            deduped.append(item)
+    return deduped[:4]
+
+
+def _linked_closure_guidance_ids(key: str, prompt_coach: "PromptCoachView | None") -> list[str]:
+    if prompt_coach is None or prompt_coach.closure_guidance is None:
+        return []
+    if key in {"delivery_closure", "adaptive_recovery"} or key.startswith("prompt:"):
+        return [prompt_coach.closure_guidance.id]
+    return []
+
+
 def _priority_evidence_refs(
     key: str,
     prompt_coach: "PromptCoachView | None",
@@ -268,12 +308,17 @@ def _priority_why(
     key: str,
     linked_deficits,
     evidence_refs: list[str],
+    prompt_coach: "PromptCoachView | None",
 ) -> str:
     if base_why:
         return base_why
     if linked_deficits:
         lead = linked_deficits[0]
         return f"这个训练直接来自你本期的「{lead.label}」问题。先把提需求方式修正，能最快减少 AI 跑偏和返工。"
+    if prompt_coach and prompt_coach.prompt_style and key.startswith("prompt:"):
+        return f"这项训练会接住你当前的「{prompt_coach.prompt_style.label}」提需求方式，帮助你把方法资产和本次任务变量接稳。"
+    if prompt_coach and prompt_coach.closure_guidance and key == "delivery_closure":
+        return prompt_coach.closure_guidance.coaching_message
     if evidence_refs:
         return f"这项训练优先级靠前，因为最近的轨迹和本期变化都把问题指向了「{key}」。"
     return f"这项训练用于稳住「{key}」这条能力，避免下一阶段继续波动。"
@@ -285,6 +330,10 @@ def _priority_prompt(
     linked_templates,
     prompt_coach: "PromptCoachView | None",
 ) -> str:
+    if prompt_coach and prompt_coach.prompt_style and prompt_coach.prompt_style.suggested_next_prompt and (
+        prompt_coach.prompt_style.type in {"indexed_prompt", "mixed_prompt"}
+    ):
+        return prompt_coach.prompt_style.suggested_next_prompt
     for item in linked_rewrites:
         if item.better_prompt:
             return item.better_prompt
@@ -300,6 +349,7 @@ def _priority_actions(
     view: GrowthPriorityView,
     linked_deficits,
     key: str,
+    prompt_coach: "PromptCoachView | None",
 ) -> tuple[list[str], list[str]]:
     week_1 = list(view.week_1_actions)
     week_2 = list(view.week_2_actions)
@@ -307,8 +357,9 @@ def _priority_actions(
         week_1 = week_1 or [f"这周每次发给 AI 前，先检查「{linked_deficits[0].label}」相关缺口。"]
         week_2 = week_2 or [f"下周开始要求 AI 先复述边界，再执行与「{linked_deficits[0].label}」相关的任务。"]
     elif key == "delivery_closure":
-        week_1 = week_1 or ["这周每次完成实现后，都补一个最小验证动作。"]
-        week_2 = week_2 or ["下周开始让 AI 先复述验收标准，再进入实现。"]
+        missing = prompt_coach.closure_guidance.missing_closure_methods if prompt_coach and prompt_coach.closure_guidance else []
+        week_1 = week_1 or [f"这周每次结束前，都补 1 个收口动作：{missing[0] if missing else '验收清单'}。"]
+        week_2 = week_2 or ["下周开始让 AI 先复述收口方式，再进入执行。"]
     return week_1, week_2
 
 

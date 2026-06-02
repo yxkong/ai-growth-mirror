@@ -132,19 +132,30 @@ class GrowthTrajectorySeriesView:
     color: str
     polyline: str
     points: list[dict[str, object]] = field(default_factory=list)
+    y_ticks: list[dict[str, object]] = field(default_factory=list)
     latest_delta: float = 0.0
     latest_value: float = 0.0
     previous_value: float = 0.0
+    latest_label: str = ""
+    delta_label: str = ""
+    trend_label: str = ""
+    start_label: str = ""
+    end_label: str = ""
+    source_note: str = ""
+    insufficient_note: str = ""
 
 
 @dataclass
 class GrowthTrajectoryTrendView:
     available: bool
     window_days: int
+    window_label: str
+    summary_code: str
     summary_label: str
     summary_text: str
     confidence_note: str
     data_sufficiency: str
+    empty_state: str = ""
     points: list[GrowthTrajectoryPointView] = field(default_factory=list)
     score_series: Optional[GrowthTrajectorySeriesView] = None
     axis_series: list[GrowthTrajectorySeriesView] = field(default_factory=list)
@@ -417,7 +428,7 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
             sample_count=point.sample_count,
             confidence=point.confidence,
         )
-        for point in trajectory_window.display_points
+        for point in trajectory_window.daily_points
     ]
     summary_label = trend_i18n.get("labels", {}).get(trajectory_window.trend_summary.label, trajectory_window.trend_summary.label)
     summary_text = trend_i18n.get("explanations", {}).get(
@@ -431,25 +442,30 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
     return GrowthTrajectoryTrendView(
         available=len(points) >= 2,
         window_days=trajectory_window.window_days,
+        window_label=trend_i18n.get("window_label", "近 {days} 天").format(days=trajectory_window.window_days),
+        summary_code=trajectory_window.trend_summary.label,
         summary_label=summary_label,
         summary_text=summary_text,
         confidence_note=confidence_note,
         data_sufficiency=trajectory_window.trend_summary.data_sufficiency,
+        empty_state=trend_i18n.get("empty_state", ""),
         points=points,
         score_series=_series_view(
             key="mirror_score",
             label=trend_i18n.get("score_label", "Mirror Score"),
             color="var(--accent)",
-            values=[point.mirror_score for point in trajectory_window.display_points],
-            points=trajectory_window.display_points,
+            values=[point.mirror_score for point in trajectory_window.daily_points],
+            points=trajectory_window.daily_points,
+            value_mode="score",
         ),
         axis_series=[
             _series_view(
                 key=axis_key,
                 label=catalogs.view_model.get("capability_meta", {}).get(axis_key, {}).get("label", axis_key),
                 color=color,
-                values=[point.axes.get(axis_key, 0.0) for point in trajectory_window.display_points],
-                points=trajectory_window.display_points,
+                values=[point.axes.get(axis_key, 0.0) for point in trajectory_window.daily_points],
+                points=trajectory_window.daily_points,
+                value_mode="axis",
             )
             for axis_key, color in (
                 ("intent_clarity", "#ec4899"),
@@ -464,8 +480,9 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
                 key=dim_key,
                 label=catalogs.view_model.get("pq_dim_labels", {}).get(dim_key, dim_key),
                 color=color,
-                values=[point.prompt_quality.get(dim_key, 0.0) for point in trajectory_window.display_points],
-                points=trajectory_window.display_points,
+                values=[point.prompt_quality.get(dim_key, 0.0) for point in trajectory_window.daily_points],
+                points=trajectory_window.daily_points,
+                value_mode="prompt_quality",
             )
             for dim_key, color in (
                 ("context_provision", "#7c3aed"),
@@ -480,8 +497,9 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
                 key=friction_key,
                 label=trend_i18n.get("friction_labels", {}).get(friction_key, friction_key),
                 color=color,
-                values=[point.friction.get(friction_key, 0) for point in trajectory_window.display_points],
-                points=trajectory_window.display_points,
+                values=[point.friction.get(friction_key, 0) for point in trajectory_window.daily_points],
+                points=trajectory_window.daily_points,
+                value_mode="friction",
             )
             for friction_key, color in (
                 ("vague_request", "#ef4444"),
@@ -501,16 +519,20 @@ def _series_view(
     color: str,
     values: list[float],
     points: list,
+    value_mode: str,
 ) -> GrowthTrajectorySeriesView:
+    svg_points, y_ticks = _chart_points(values)
     plotted_points = [
         {
             "snapshot_id": point.snapshot_id,
             "date": point.date,
             "value": round(float(value), 1),
+            "x": svg_points[index]["x"] if index < len(svg_points) else 0.0,
+            "y": svg_points[index]["y"] if index < len(svg_points) else 0.0,
         }
-        for point, value in zip(points, values)
+        for index, (point, value) in enumerate(zip(points, values))
     ]
-    polyline = _polyline(values)
+    polyline = " ".join(f"{item['x']},{item['y']}" for item in svg_points)
     previous_value = float(values[-2]) if len(values) >= 2 else 0.0
     latest_value = float(values[-1]) if values else 0.0
     return GrowthTrajectorySeriesView(
@@ -519,17 +541,24 @@ def _series_view(
         color=color,
         polyline=polyline,
         points=plotted_points,
+        y_ticks=y_ticks,
         latest_delta=round(latest_value - previous_value, 1) if len(values) >= 2 else 0.0,
         latest_value=round(latest_value, 1),
         previous_value=round(previous_value, 1),
+        latest_label=_latest_label(latest_value, value_mode),
+        delta_label=_delta_label(round(latest_value - previous_value, 1) if len(values) >= 2 else 0.0, value_mode),
+        trend_label=_trend_badge(values, value_mode),
+        start_label=_short_date(points[0].date) if points else "",
+        end_label=_short_date(points[-1].date) if points else "",
+        insufficient_note="数据点不足" if len(values) < 3 else "",
     )
 
 
 def _trajectory_window_to_dict(trajectory_window) -> dict[str, object]:
     return {
         "window_days": trajectory_window.window_days,
-        "points": [asdict(point) for point in trajectory_window.points],
-        "display_points": [asdict(point) for point in trajectory_window.display_points],
+        "window_points": [asdict(point) for point in trajectory_window.window_points],
+        "daily_points": [asdict(point) for point in trajectory_window.daily_points],
         "trend_summary": asdict(trajectory_window.trend_summary),
         "latest_vs_previous": asdict(trajectory_window.latest_vs_previous) if trajectory_window.latest_vs_previous else {},
     }
@@ -869,20 +898,81 @@ def _prompt_deficit_label(key: str, catalogs: ReportLabelCatalogs) -> str:
     return labels.get(key.replace("-", "_"), key)
 
 
-def _polyline(values: list[float]) -> str:
+def _chart_points(values: list[float]) -> tuple[list[dict[str, float]], list[dict[str, float]]]:
     if not values:
-        return ""
+        return [], []
     width = 240.0
-    height = 72.0
+    height = 84.0
+    padding = 8.0
     max_value = max(values)
     min_value = min(values)
     span = max(max_value - min_value, 1.0)
-    coords: list[str] = []
+    padded_min = min_value - max(span * 0.15, 2.0)
+    padded_max = max_value + max(span * 0.15, 2.0)
+    padded_span = max(padded_max - padded_min, 1.0)
+    coords: list[dict[str, float]] = []
     for index, value in enumerate(values):
-        x = 0.0 if len(values) == 1 else width * index / (len(values) - 1)
-        y = height - ((float(value) - min_value) / span) * height
-        coords.append(f"{x:.1f},{y:.1f}")
-    return " ".join(coords)
+        x = padding if len(values) == 1 else padding + (width - padding * 2) * index / (len(values) - 1)
+        y = height - padding - ((float(value) - padded_min) / padded_span) * (height - padding * 2)
+        coords.append({"x": round(x, 1), "y": round(y, 1)})
+    y_ticks = [
+        {"value": round(padded_max, 1), "y": round(padding, 1)},
+        {"value": round((padded_max + padded_min) / 2, 1), "y": round(height / 2, 1)},
+        {"value": round(padded_min, 1), "y": round(height - padding, 1)},
+    ]
+    return coords, y_ticks
+
+
+def _latest_label(value: float, value_mode: str) -> str:
+    if value_mode == "friction":
+        return _friction_band(value)
+    if value_mode == "score":
+        return f"{value:.0f}"
+    return f"{value:.1f}"
+
+
+def _delta_label(delta: float, value_mode: str) -> str:
+    if value_mode == "friction":
+        if delta >= 1:
+            return "较上期增加"
+        if delta <= -1:
+            return "较上期减少"
+        return "较上期持平"
+    return _signed(delta)
+
+
+def _trend_badge(values: list[float], value_mode: str) -> str:
+    if len(values) < 3:
+        return "数据不足"
+    delta = values[-1] - values[0]
+    recent = values[-1] - values[-2]
+    if value_mode == "friction":
+        if recent <= -1 and delta <= -1:
+            return "下降"
+        if recent >= 1 and delta >= 1:
+            return "上升"
+        return "波动"
+    if recent <= -3 and delta > 0:
+        return "回撤"
+    if delta >= 4:
+        return "上升"
+    if delta <= -4:
+        return "回撤"
+    return "持平"
+
+
+def _friction_band(value: float) -> str:
+    if value >= 6:
+        return "高频"
+    if value >= 3:
+        return "中频"
+    if value > 0:
+        return "低频"
+    return "很少"
+
+
+def _short_date(value: str) -> str:
+    return value[5:] if len(value) >= 10 else value
 
 
 def _signed(value: float, *, decimals: int = 1) -> str:

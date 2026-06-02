@@ -6,16 +6,23 @@ from typing import TYPE_CHECKING
 
 from ..domain.growth.coaching import CoachingContent
 from ..domain.growth.model import GrowthProfile
+from ..domain.growth.prompting import (
+    assess_closure_guidance,
+    assess_prompt_style,
+    build_recommended_training_inputs,
+)
+from ..domain.session.model import SessionRecord
 from ..domain.signals.model import PromptLensTakeaway, SessionRead
 from .label_catalogs import ReportLabelCatalogs
 
 if TYPE_CHECKING:
     from .report_view import (
         PromptCoachChecklistItemView,
+        PromptCoachClosureGuidanceView,
         PromptCoachDeficitView,
         PromptCoachDimensionView,
+        PromptCoachPromptStyleView,
         PromptCoachRewriteCardView,
-        PromptCoachSevenDayView,
         PromptCoachSourceSummaryView,
         PromptCoachTakeawayView,
         PromptCoachTemplateView,
@@ -54,6 +61,7 @@ DIMENSION_SCENE_MAP = {
 def build_prompt_coach_view(
     *,
     stats: GrowthProfile,
+    sessions: list[SessionRecord],
     session_reads: list[SessionRead],
     session_read_mode: str,
     catalogs: ReportLabelCatalogs,
@@ -61,10 +69,11 @@ def build_prompt_coach_view(
 ) -> "PromptCoachView":
     from .report_view import (
         PromptCoachChecklistItemView,
+        PromptCoachClosureGuidanceView,
         PromptCoachDeficitView,
         PromptCoachDimensionView,
+        PromptCoachPromptStyleView,
         PromptCoachRewriteCardView,
-        PromptCoachSevenDayView,
         PromptCoachSourceSummaryView,
         PromptCoachTakeawayView,
         PromptCoachTemplateView,
@@ -90,28 +99,57 @@ def build_prompt_coach_view(
         for key, score in sorted((stats.pq_avg_dimensions or {}).items(), key=lambda item: item[1])
     ]
     top_deficit_keys = _rank_top_deficits(stats)
+    prompt_style_signal, trigger_maturity = assess_prompt_style(sessions, session_reads)
+    closure_signal = assess_closure_guidance(sessions, session_reads)
+    universal_template = _build_universal_template(catalogs)
     top_deficits = [
         PromptCoachDeficitView(
             id=f"deficit:{key.replace('-', '_')}",
             category=key,
             label=_deficit_label(key, catalogs),
-            description=trainer_i18n.get("deficits", {}).get(key, {}).get("description", ""),
-            impact=trainer_i18n.get("deficits", {}).get(key, {}).get("impact", ""),
+            description=_deficit_copy(key, prompt_style_signal, catalogs).get("description", ""),
+            impact=_deficit_copy(key, prompt_style_signal, catalogs).get("impact", ""),
             confidence=_deficit_confidence(stats, key),
             evidence_refs=_evidence_refs_for_deficit(key, session_reads, stats),
             source=_deficit_source(stats, key),
         )
         for key in top_deficit_keys
     ]
-    rewrite_cards = _build_rewrite_cards(stats, coaching, catalogs)
-    universal_template = _build_universal_template(catalogs)
+    rewrite_cards = _build_rewrite_cards(
+        stats,
+        coaching,
+        prompt_style_signal,
+        universal_template.template,
+        catalogs,
+    )
     scenario_templates = _build_scenario_templates(catalogs)
     checklist = _build_preflight_checklist(top_deficits, catalogs)
-    seven_day_training_plan = _build_seven_day_plan(
-        top_deficits=top_deficits,
-        rewrite_cards=rewrite_cards,
-        universal_template=universal_template,
-        catalogs=catalogs,
+    prompt_style = PromptCoachPromptStyleView(
+        type=prompt_style_signal.prompt_style,
+        label=trainer_i18n.get("prompt_style_labels", {}).get(prompt_style_signal.prompt_style, prompt_style_signal.prompt_style),
+        evidence=_prompt_style_evidence(prompt_style_signal, stats, catalogs),
+        coaching_message=_prompt_style_message(prompt_style_signal, catalogs),
+        suggested_next_prompt=_suggested_next_prompt(prompt_style_signal, universal_template.template, catalogs),
+        trigger_maturity=_trigger_maturity_lines(trigger_maturity, catalogs),
+    )
+    closure_guidance = PromptCoachClosureGuidanceView(
+        id=f"closure:{closure_signal.task_type}",
+        task_type=closure_signal.task_type,
+        label=trainer_i18n.get("task_type_labels", {}).get(closure_signal.task_type, closure_signal.task_type),
+        expected_closure_methods=[
+            trainer_i18n.get("closure_methods", {}).get(item, item)
+            for item in closure_signal.expected_closure_methods
+        ],
+        missing_closure_methods=[
+            trainer_i18n.get("closure_methods", {}).get(item, item)
+            for item in closure_signal.missing_closure_methods
+        ],
+        coaching_message=_closure_message(closure_signal, catalogs),
+    )
+    recommended_training_inputs = build_recommended_training_inputs(
+        prompt_style_signal,
+        closure_signal,
+        top_deficit_keys,
     )
     source_note = _source_note(stats, session_read_mode, catalogs)
     weak_dimensions = [item.label for item in dimension_scores[:2]]
@@ -151,7 +189,9 @@ def build_prompt_coach_view(
         universal_template=universal_template,
         scenario_templates=scenario_templates,
         preflight_checklist=checklist,
-        seven_day_training_plan=seven_day_training_plan,
+        prompt_style=prompt_style,
+        closure_guidance=closure_guidance,
+        recommended_training_inputs=_recommended_training_inputs(recommended_training_inputs, catalogs),
         light_state_note=light_state_note,
     )
 
@@ -229,12 +269,15 @@ def _evidence_refs_for_deficit(
 def _build_rewrite_cards(
     stats: GrowthProfile,
     coaching: CoachingContent | None,
+    prompt_style_signal,
+    universal_template: str,
     catalogs: ReportLabelCatalogs,
 ) -> list["PromptCoachRewriteCardView"]:
     from .report_view import PromptCoachRewriteCardView
 
     trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
     actions_i18n = trainer_i18n.get("rewrite_fallbacks", {})
+    source_notes = trainer_i18n.get("rewrite_source_notes", {})
     cards: list[PromptCoachRewriteCardView] = []
     seen: set[str] = set()
     samples = list(getattr(stats, "pq_top_takeaways", []) or [])
@@ -259,7 +302,23 @@ def _build_rewrite_cards(
         scene = DIMENSION_SCENE_MAP.get(category, "requirements_design")
         original = item.original or ""
         problem = trainer_i18n.get("rewrite_problem_map", {}).get(category, trainer_i18n.get("rewrite_problem_default", ""))
+        why = item.why or trainer_i18n.get("rewrite_why_default", "")
+        better_prompt = item.better_prompt
         confidence = "high" if original else "medium"
+        source_note = source_notes.get("verbatim", "verbatim")
+        if _should_reframe_indexed_takeaway(prompt_style_signal, category, original):
+            override = _indexed_rewrite_copy(prompt_style_signal, category, catalogs)
+            problem = override.get("problem", problem)
+            why = override.get("why", why)
+            better_prompt = override.get("better_prompt") or better_prompt or _suggested_next_prompt(prompt_style_signal, universal_template, catalogs)
+            if _looks_like_rule_anchor_text(original):
+                original = ""
+                confidence = "medium"
+                source_note = source_notes.get("indexed_summary", "indexed_summary")
+            else:
+                source_note = source_notes.get("summary_only", "summary_only")
+        elif not original:
+            source_note = source_notes.get("summary_only", "summary_only")
         signature = (category, original, item.better_prompt)
         if signature in seen:
             continue
@@ -270,18 +329,37 @@ def _build_rewrite_cards(
                 scene=scene,
                 original=original,
                 problem=problem,
-                better_prompt=item.better_prompt,
-                why=item.why or trainer_i18n.get("rewrite_why_default", ""),
+                better_prompt=better_prompt,
+                why=why,
                 category=category,
                 confidence=confidence,
                 evidence_refs=[_trim_text(original or item.message_ref or item.label, 140)] if (original or item.message_ref or item.label) else [],
-                source_note="verbatim" if original else "summary_only",
+                source_note=source_note,
             )
         )
         if len(cards) >= 4:
             break
     if cards:
         return cards[:4]
+
+    if prompt_style_signal.prompt_style in {"indexed_prompt", "mixed_prompt"}:
+        override = _indexed_rewrite_copy(prompt_style_signal, "context_provision", catalogs)
+        cards.append(
+            PromptCoachRewriteCardView(
+                id="rewrite:indexed:1",
+                scene=prompt_style_signal.trigger_terms[0] if prompt_style_signal.trigger_terms else "requirements_design",
+                original="",
+                problem=override.get("problem", ""),
+                better_prompt=override.get("better_prompt") or _suggested_next_prompt(prompt_style_signal, universal_template, catalogs),
+                why=override.get("why", ""),
+                category="context_provision",
+                confidence="medium",
+                evidence_refs=[],
+                source_note=source_notes.get("indexed_summary", "indexed_summary"),
+            )
+        )
+        if prompt_style_signal.task_variables_present:
+            return cards[:1]
 
     for index, (category, payload) in enumerate(actions_i18n.items(), start=1):
         cards.append(
@@ -295,7 +373,7 @@ def _build_rewrite_cards(
                 category=category,
                 confidence="low",
                 evidence_refs=[],
-                source_note="light_template",
+                source_note=source_notes.get("light_template", "light_template"),
             )
         )
         if len(cards) >= 2:
@@ -365,37 +443,6 @@ def _build_preflight_checklist(
             )
         )
     return items[:6]
-
-
-def _build_seven_day_plan(
-    *,
-    top_deficits: list["PromptCoachDeficitView"],
-    rewrite_cards: list["PromptCoachRewriteCardView"],
-    universal_template: "PromptCoachTemplateView",
-    catalogs: ReportLabelCatalogs,
-) -> list["PromptCoachSevenDayView"]:
-    from .report_view import PromptCoachSevenDayView
-
-    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
-    daily_templates = trainer_i18n.get("seven_day_plan", [])
-    primary_deficit = top_deficits[0] if top_deficits else None
-    primary_card = rewrite_cards[0] if rewrite_cards else None
-    rows: list[PromptCoachSevenDayView] = []
-    for idx, row in enumerate(daily_templates, start=1):
-        practice_prompt = primary_card.better_prompt if primary_card and idx in (3, 5, 7) else universal_template.template
-        rows.append(
-            PromptCoachSevenDayView(
-                day=int(row.get("day", idx)),
-                theme=str(row.get("theme", "")).format(
-                    deficit=primary_deficit.label if primary_deficit else "",
-                ),
-                action=str(row.get("action", "")).format(
-                    deficit=primary_deficit.label if primary_deficit else "",
-                ),
-                practice_prompt=practice_prompt,
-            )
-        )
-    return rows
 
 
 def _legacy_takeaways(
@@ -519,6 +566,203 @@ def _source_note(
     if session_read_mode == "heuristic" and not stats.pq_llm_session_count:
         return f"{base} {detail}".strip()
     return f"{base} {detail}".strip()
+
+
+def _prompt_style_evidence(signal, stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> list[str]:
+    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
+    rows: list[str] = []
+    if signal.trigger_terms:
+        rows.append(
+            trainer_i18n.get("prompt_style_evidence", {}).get("trigger_terms", "触发词：{terms}").format(
+                terms=" / ".join(signal.trigger_terms)
+            )
+        )
+    if signal.rule_refs:
+        rows.append(
+            trainer_i18n.get("prompt_style_evidence", {}).get("rule_refs", "规则引用：{refs}").format(
+                refs=" / ".join(signal.rule_refs)
+            )
+        )
+    if signal.skill_refs:
+        rows.append(
+            trainer_i18n.get("prompt_style_evidence", {}).get("skill_refs", "技能路由：{refs}").format(
+                refs=" / ".join(signal.skill_refs)
+            )
+        )
+    if signal.slash_refs:
+        rows.append(
+            trainer_i18n.get("prompt_style_evidence", {}).get("slash_refs", "命令入口：{refs}").format(
+                refs=" / ".join(signal.slash_refs)
+            )
+        )
+    if signal.framework_refs:
+        rows.append(
+            trainer_i18n.get("prompt_style_evidence", {}).get("framework_refs", "框架工作流：{refs}").format(
+                refs=" / ".join(signal.framework_refs)
+            )
+        )
+    if getattr(stats, "agent_asset", None) is not None and stats.agent_asset.has_data:
+        rows.append(
+            trainer_i18n.get("prompt_style_evidence", {}).get(
+                "asset_anchor",
+                "本地方法资产：已检测到规则 / skill / prompt 资产，可作为索引入口锚点。",
+            ).format(
+                skills=stats.agent_asset.skill_files_count,
+                rules=stats.agent_asset.rule_files_count,
+                prompts=stats.agent_asset.prompt_files_count,
+            )
+        )
+    variable_key = "task_variables_yes" if signal.task_variables_present else "task_variables_no"
+    rows.append(
+        trainer_i18n.get("prompt_style_evidence", {}).get(variable_key, "")
+    )
+    return [item for item in rows if item]
+
+
+def _prompt_style_message(signal, catalogs: ReportLabelCatalogs) -> str:
+    messages = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("prompt_style_messages", {})
+    return messages.get(signal.prompt_style, "")
+
+
+def _suggested_next_prompt(signal, universal_template: str, catalogs: ReportLabelCatalogs) -> str:
+    templates = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("prompt_style_next_prompt", {})
+    prompt = templates.get(signal.prompt_style, "")
+    if prompt:
+        return prompt
+    return universal_template
+
+
+def _trigger_maturity_lines(signal, catalogs: ReportLabelCatalogs) -> list[str]:
+    maturity_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("trigger_maturity", {})
+    rows = [
+        maturity_i18n.get("stability", "").format(
+            value=maturity_i18n.get("stability_values", {}).get(signal.stability, signal.stability)
+        ),
+        maturity_i18n.get("rule_support", "").format(
+            value=maturity_i18n.get("rule_support_values", {}).get(signal.rule_support, signal.rule_support)
+        ),
+        maturity_i18n.get("retrievability", "").format(
+            value=maturity_i18n.get("retrievability_values", {}).get(signal.retrievability, signal.retrievability)
+        ),
+        maturity_i18n.get("variable_completion", "").format(
+            value=maturity_i18n.get("variable_completion_values", {}).get(signal.variable_completion, signal.variable_completion)
+        ),
+        maturity_i18n.get("assetization", "").format(
+            value=maturity_i18n.get("assetization_values", {}).get(signal.assetization, signal.assetization)
+        ),
+    ]
+    return [item for item in rows if item]
+
+
+def _closure_message(signal, catalogs: ReportLabelCatalogs) -> str:
+    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
+    task_label = trainer_i18n.get("task_type_labels", {}).get(signal.task_type, signal.task_type)
+    expected = " / ".join(
+        trainer_i18n.get("closure_methods", {}).get(item, item)
+        for item in signal.expected_closure_methods
+    )
+    missing = " / ".join(
+        trainer_i18n.get("closure_methods", {}).get(item, item)
+        for item in signal.missing_closure_methods
+    )
+    key = "closure_message_with_gap" if signal.missing_closure_methods else "closure_message_complete"
+    return trainer_i18n.get(key, "").format(
+        task_type=task_label,
+        expected=expected,
+        missing=missing,
+    )
+
+
+def _recommended_training_inputs(codes: list[str], catalogs: ReportLabelCatalogs) -> list[str]:
+    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
+    closure_labels = trainer_i18n.get("closure_methods", {})
+    templates = trainer_i18n.get("recommended_training_inputs", {})
+    rows: list[str] = []
+    for code in codes:
+        if code.startswith("style:"):
+            key = code.split(":", 1)[1]
+            text = templates.get(code) or templates.get(f"style:{key}", "")
+        elif code.startswith("deficit:"):
+            key = code.split(":", 1)[1]
+            text = templates.get(code) or templates.get(f"deficit:{key}", "")
+        elif code.startswith("closure:"):
+            key = code.split(":", 1)[1]
+            text = (templates.get("closure") or "").format(method=closure_labels.get(key, key))
+        else:
+            text = ""
+        if text:
+            rows.append(text)
+    return rows[:4]
+
+
+def _deficit_copy(
+    key: str,
+    prompt_style_signal,
+    catalogs: ReportLabelCatalogs,
+) -> dict[str, str]:
+    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
+    defaults = trainer_i18n.get("deficits", {}).get(key, {})
+    if prompt_style_signal.prompt_style in {"indexed_prompt", "mixed_prompt"} and prompt_style_signal.has_rule_anchor:
+        override = trainer_i18n.get("indexed_deficit_overrides", {}).get(key, {})
+        if override:
+            return {
+                "description": override.get("description", defaults.get("description", "")),
+                "impact": override.get("impact", defaults.get("impact", "")),
+            }
+    return {
+        "description": defaults.get("description", ""),
+        "impact": defaults.get("impact", ""),
+    }
+
+
+def _indexed_rewrite_copy(
+    prompt_style_signal,
+    category: str,
+    catalogs: ReportLabelCatalogs,
+) -> dict[str, str]:
+    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
+    prompt = _suggested_next_prompt(prompt_style_signal, "", catalogs)
+    style_key = (
+        prompt_style_signal.prompt_style
+        if prompt_style_signal.prompt_style in {"indexed_prompt", "mixed_prompt"}
+        else "indexed_prompt"
+    )
+    scoped = trainer_i18n.get("indexed_rewrite_overrides", {}).get(style_key, {})
+    return {
+        "problem": scoped.get("problem_map", {}).get(category, scoped.get("problem", "")),
+        "why": scoped.get("why", trainer_i18n.get("rewrite_why_default", "")),
+        "better_prompt": scoped.get("better_prompt", prompt) or prompt,
+    }
+
+
+def _should_reframe_indexed_takeaway(prompt_style_signal, category: str, original: str) -> bool:
+    if prompt_style_signal.prompt_style not in {"indexed_prompt", "mixed_prompt"}:
+        return False
+    if not prompt_style_signal.has_rule_anchor:
+        return False
+    return _looks_like_rule_anchor_text(original) or category in {"context_provision", "request_specificity"}
+
+
+def _looks_like_rule_anchor_text(text: str) -> bool:
+    lower = (text or "").lower()
+    if not lower:
+        return False
+    anchor_hits = sum(
+        1
+        for token in (
+            "agents.md",
+            "claude.md",
+            "project_rules.md",
+            "cursor rules",
+            ".cursor/rules",
+            "instructions",
+            "<instructions>",
+            "workflow",
+            "skill",
+        )
+        if token in lower
+    )
+    return anchor_hits >= 2 or lower.startswith("# agents.md instructions") or "<instructions>" in lower
 
 
 def _trim_text(value: str, limit: int) -> str:

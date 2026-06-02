@@ -45,12 +45,12 @@ def build_snapshot_trajectory_window(
         if (_parse_created_at(source.created_at) or datetime.min) >= cutoff
     ]
     points = [_build_point(source) for source in in_window]
-    display_points = _collapse_same_day(points)
-    trend_summary = _build_trend_summary(display_points)
+    daily_points = _collapse_same_day(points)
+    trend_summary = _build_trend_summary(daily_points)
     latest_vs_previous = None
-    if len(display_points) >= 2:
-        previous_id = display_points[-2].snapshot_id
-        current_id = display_points[-1].snapshot_id
+    if len(daily_points) >= 2:
+        previous_id = daily_points[-2].snapshot_id
+        current_id = daily_points[-1].snapshot_id
         source_by_id = {source.snapshot_id: source for source in in_window}
         previous_source = source_by_id.get(previous_id)
         current_source = source_by_id.get(current_id)
@@ -58,8 +58,8 @@ def build_snapshot_trajectory_window(
             latest_vs_previous = _build_latest_vs_previous(previous_source, current_source)
     return SnapshotTrajectoryWindow(
         window_days=window_days,
-        points=points,
-        display_points=display_points,
+        window_points=points,
+        daily_points=daily_points,
         trend_summary=trend_summary,
         latest_vs_previous=latest_vs_previous,
     )
@@ -120,6 +120,7 @@ def _build_trend_summary(points: list[TrajectoryPoint]) -> TrajectorySummary:
             explanation="insufficient_points",
             confidence="low",
             data_sufficiency=f"points={len(points)}",
+            recent_signal="insufficient",
         )
 
     scores = [point.mirror_score for point in points]
@@ -128,28 +129,44 @@ def _build_trend_summary(points: list[TrajectoryPoint]) -> TrajectorySummary:
     negatives = sum(1 for value in deltas if value < 0)
     positives = sum(1 for value in deltas if value > 0)
     score_range = max(scores) - min(scores)
+    recent_delta = deltas[-1] if deltas else 0
+    recent_high_gap = (max(scores[:-1]) - scores[-1]) if len(scores) >= 2 else 0
     confidence = _series_confidence(points)
 
     if abs(delta) <= 4 and score_range <= 6:
         label = "stable"
         explanation = "stable_band"
+        recent_signal = "flat"
+    elif delta >= 6 and recent_delta <= -4 and recent_high_gap >= 4:
+        label = "overall_up_recent_pullback"
+        explanation = "overall_up_recent_pullback"
+        recent_signal = "recent_pullback"
     elif delta >= 6 and negatives == 0:
         label = "sustained_up"
         explanation = "steady_improvement"
+        recent_signal = "up"
     elif delta >= 6:
         label = "volatile_up"
         explanation = "improving_with_swings"
+        recent_signal = "up"
+    elif recent_delta <= -4 and score_range >= 8:
+        label = "phased_pullback"
+        explanation = "phased_pullback"
+        recent_signal = "recent_pullback"
     elif delta <= -6:
         label = "volatile_down"
         explanation = "declining_with_swings" if positives else "steady_decline"
+        recent_signal = "down"
     else:
         label = "stable"
         explanation = "mixed_but_flat"
+        recent_signal = "flat"
     return TrajectorySummary(
         label=label,
         explanation=explanation,
         confidence=confidence,
         data_sufficiency=f"points={len(points)}",
+        recent_signal=recent_signal,
     )
 
 

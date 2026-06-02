@@ -7,12 +7,19 @@ from .report_view import PersonalReportView
 
 def _growth_trajectory_payload(view: PersonalReportView) -> dict[str, object]:
     if not view.growth_trajectory:
-        return {"available": False, "window_days": 30, "points": [], "trend_summary": {}, "latest_vs_previous": {}}
+        return {
+            "available": False,
+            "window_days": 30,
+            "window_points": [],
+            "daily_points": [],
+            "trend_summary": {},
+            "latest_vs_previous": {},
+        }
     payload = dict(view.growth_trajectory.data or {})
     payload["available"] = bool(view.growth_trajectory.available)
     payload.setdefault("window_days", 30)
-    payload.setdefault("points", [])
-    payload.setdefault("display_points", [])
+    payload.setdefault("window_points", [])
+    payload.setdefault("daily_points", [])
     payload.setdefault("trend_summary", {})
     payload.setdefault("latest_vs_previous", {})
     return payload
@@ -102,15 +109,25 @@ def _prompt_coach_payload(view: PersonalReportView) -> dict[str, object]:
             }
             for item in coach.preflight_checklist
         ],
-        "seven_day_training_plan": [
-            {
-                "day": item.day,
-                "theme": item.theme,
-                "action": item.action,
-                "practice_prompt": item.practice_prompt,
-            }
-            for item in coach.seven_day_training_plan
-        ],
+        "prompt_style": {
+            "type": coach.prompt_style.type,
+            "evidence": list(coach.prompt_style.evidence),
+            "coaching_message": coach.prompt_style.coaching_message,
+            "suggested_next_prompt": coach.prompt_style.suggested_next_prompt,
+            "trigger_maturity": list(coach.prompt_style.trigger_maturity),
+        }
+        if coach.prompt_style
+        else {},
+        "closure_guidance": {
+            "id": coach.closure_guidance.id,
+            "task_type": coach.closure_guidance.task_type,
+            "expected_closure_methods": list(coach.closure_guidance.expected_closure_methods),
+            "missing_closure_methods": list(coach.closure_guidance.missing_closure_methods),
+            "coaching_message": coach.closure_guidance.coaching_message,
+        }
+        if coach.closure_guidance
+        else {},
+        "recommended_training_inputs": list(coach.recommended_training_inputs),
     }
 
 
@@ -133,6 +150,8 @@ def _growth_plan_payload(view: PersonalReportView) -> dict[str, object]:
                 "linked_prompt_deficit_ids": list(item.linked_prompt_deficit_ids),
                 "linked_template_ids": list(item.linked_template_ids),
                 "linked_rewrite_card_ids": list(item.linked_rewrite_card_ids),
+                "linked_growth_trend_refs": list(item.linked_growth_trend_refs),
+                "linked_closure_guidance_ids": list(item.linked_closure_guidance_ids),
             }
             for item in view.growth_plan.priorities
         ],

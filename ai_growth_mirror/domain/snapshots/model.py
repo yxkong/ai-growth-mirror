@@ -97,6 +97,7 @@ class TrajectorySummary:
     explanation: str = ""
     confidence: str = "low"
     data_sufficiency: str = ""
+    recent_signal: str = ""
 
 
 @dataclass
@@ -140,8 +141,8 @@ class LatestVsPreviousSummary:
 @dataclass
 class SnapshotTrajectoryWindow:
     window_days: int = 30
-    points: list[TrajectoryPoint] = field(default_factory=list)
-    display_points: list[TrajectoryPoint] = field(default_factory=list)
+    window_points: list[TrajectoryPoint] = field(default_factory=list)
+    daily_points: list[TrajectoryPoint] = field(default_factory=list)
     trend_summary: TrajectorySummary = field(default_factory=TrajectorySummary)
     latest_vs_previous: LatestVsPreviousSummary | None = None
 

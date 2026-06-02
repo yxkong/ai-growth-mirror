@@ -400,17 +400,23 @@ growth_trajectory:
       method_gap: "Method accumulation has not kept up with this capability."
   trend:
     score_label: "Collaboration index"
+    window_label: "Last {days} days"
+    empty_state: "Generate a few more reports and a steadier trend will appear here."
     labels:
       data_insufficient: "Data insufficient"
       stable: "Mostly flat"
       sustained_up: "Sustained up"
       volatile_up: "Volatile up"
+      overall_up_recent_pullback: "Up overall, recently pulled back"
+      phased_pullback: "Phase pullback"
       volatile_down: "Volatile down"
     explanations:
       insufficient_points: "There are not enough points in the last 30 days yet, so show the signals but avoid forcing a trend claim."
       stable_band: "The last 30 days are relatively stable overall, so you are mainly holding current habits."
       steady_improvement: "The last 30 days show a steady lift, which suggests your method is becoming more repeatable."
       improving_with_swings: "There is noise, but the overall line is still improving."
+      overall_up_recent_pullback: "The 30-day window is still up overall, but the latest point pulled back. Check whether it came from task difficulty, sample size, or weaker framing and closure."
+      phased_pullback: "Recent points show a short pullback. Confirm whether this is task-mix noise or a real drop in closure and prompt stability."
       declining_with_swings: "Recent regression is visible, and the priority is to stop the decline."
       steady_decline: "The last 30 days show a more consistent decline, which means the current method is not holding yet."
       mixed_but_flat: "There are swings, but zoomed out the trend is still broadly flat."
@@ -573,6 +579,81 @@ prompt_coach:
     light_state_note: "The session sample is still small, so the main value here is reusable structure."
     heuristic_state_note: "This read includes heuristic proxy sources, so treat it as training guidance rather than a hard evaluation."
     strength_habit: "Your most stable prompt habit right now is {label}."
+    prompt_style_labels:
+      explicit_requirement_prompt: "Explicit requirement prompt"
+      indexed_prompt: "Indexed prompt"
+      mixed_prompt: "Mixed prompt"
+      under_specified_prompt: "Under-specified prompt"
+    prompt_style_evidence:
+      trigger_terms: "Trigger terms: {terms}"
+      rule_refs: "Rule references: {refs}"
+      skill_refs: "Skill routing: {refs}"
+      slash_refs: "Command entrypoints: {refs}"
+      framework_refs: "Framework workflow: {refs}"
+      asset_anchor: "Local method assets detected: rules / skills / prompts can act as indexed anchors."
+      task_variables_yes: "Task variables: the object, materials, or target result were added."
+      task_variables_no: "Task variables: still worth adding the object, materials, target result, and closure method."
+    prompt_style_messages:
+      explicit_requirement_prompt: "You are mostly writing explicit standalone requirements. Keep that strength, and continue front-loading acceptance and closure."
+      indexed_prompt: "You are using an indexed prompting style: a short trigger that wakes up existing rules, skills, or workflows. This is not the same as missing context. The next move is not to always write more, but to add the task-specific object, materials, target result, and closure method."
+      mixed_prompt: "You are already combining a trigger with task-specific variables. That is usually more stable than a long generic prompt, and it should not be treated as simple context lack. Now tighten the object, materials, target result, and closure."
+      under_specified_prompt: "This is a truly under-specified input: neither a stable trigger nor a complete requirement is present. Start by adding background, target, constraints, acceptance, and output format."
+    prompt_style_next_prompt:
+      explicit_requirement_prompt: "Background: ...\nCurrent problem: ...\nTarget result: ...\nConstraints: ...\nAcceptance: ...\nOutput format: ..."
+      indexed_prompt: "Use trigger: <trigger>\nObject: ...\nInput materials: ...\nTarget result: ...\nClosure method: ...\nOutput format: ..."
+      mixed_prompt: "Follow <trigger>.\nObject: ...\nCurrent problem: ...\nTarget result: ...\nConstraints: ...\nClosure method: ...\nOutput format: ..."
+      under_specified_prompt: "Background: ...\nCurrent problem: ...\nTarget result: ...\nConstraints: ...\nAcceptance: ...\nOutput format: ..."
+    trigger_maturity:
+      stability: "Trigger stability: {value}"
+      rule_support: "Rule support: {value}"
+      retrievability: "AI retrievability: {value}"
+      variable_completion: "Task variables: {value}"
+      assetization: "Template / skill / command readiness: {value}"
+      stability_values:
+        stable: "stable"
+        emerging: "emerging"
+        light: "weak"
+      rule_support_values:
+        supported: "anchored by rules"
+        light: "no strong anchor yet"
+      retrievability_values:
+        clear: "AI can reliably find it"
+        likely: "likely retrievable"
+        unclear: "not stable yet"
+      variable_completion_values:
+        complete: "task variables added"
+        missing: "still missing variables"
+      assetization_values:
+        strong: "good asset candidate"
+        emerging: "worth refining"
+        light: "too early to freeze"
+    task_type_labels:
+      code_change: "Code change"
+      config_or_prompt_change: "Prompt / rules / config change"
+      design_or_requirements: "Design / requirements task"
+      writing_or_content: "Writing / content task"
+      exploration_or_analysis: "Exploration / analysis task"
+    closure_methods:
+      test: "test"
+      smoke: "smoke replay"
+      checklist: "acceptance checklist"
+      example_replay: "example replay"
+      schema_validation: "schema validation"
+      fact_alignment: "fact alignment"
+      manual_review: "manual review"
+      user_acceptance: "user acceptance"
+      golden_case: "golden case"
+      before_after: "before / after"
+    closure_message_with_gap: "{task_type} does not always need traditional tests, but it does need a closure method. This period is better served by adding: {missing}. Preferred closure methods: {expected}."
+    closure_message_complete: "{task_type} already has a baseline closure pattern. Keep using: {expected}."
+    recommended_training_inputs:
+      style:indexed_prompt: "Keep the trigger, but add the object, input materials, target result, and closure method each time."
+      style:mixed_prompt: "Keep the trigger, and tighten the task-specific variables into a directly executable input."
+      style:explicit_requirement_prompt: "Keep the explicit requirement structure, and continue front-loading acceptance and output format."
+      style:under_specified_prompt: "Start by turning the opening into a complete first-turn input with background, target, constraints, acceptance, and output format."
+      deficit:missing-context: "Pick one real task and move the background and key materials into the first message."
+      deficit:missing-acceptance-criteria: "Pick one real task and add one line that defines what counts as passing."
+      closure: "Add at least one closure move next time: {method}."
     deficits:
       missing-context:
         description: "Background, symptom, or key files are not fully present in the first message."
@@ -595,6 +676,16 @@ prompt_coach:
       assumption-not-surfaced:
         description: "Important assumptions remain implicit instead of being stated."
         impact: "The AI fills them in on its own, which makes the output unstable."
+    indexed_deficit_overrides:
+      missing-context:
+        description: "This is not a missing-anchor case; the indexed entrypoint exists, but the task-specific object, materials, or target result are still missing."
+        impact: "The AI can find the workflow, but may still follow a default path instead of this task's exact variables."
+      vague-request:
+        description: "The trigger already provides a workflow entrypoint, but the task-specific success signal or closure method is still loose."
+        impact: "The AI can follow the default workflow, yet the first output may still miss this task's target shape."
+      missing-acceptance-criteria:
+        description: "The indexed entrypoint exists, but the passing definition for this specific task was not added."
+        impact: "The AI may finish a generic pass first, while the delivery boundary still needs to be clarified later."
     rewrite_problem_map:
       context_provision: "The original request is missing critical context, so the AI has to guess."
       request_specificity: "The original request is too broad and does not define the action path."
@@ -603,6 +694,26 @@ prompt_coach:
       correction_quality: "The original correction does not define a clear boundary reset."
     rewrite_problem_default: "The original wording is not stable enough and leaves too much room for guessing."
     rewrite_why_default: "The better version front-loads context, goal, and boundary, so the AI can move correctly in the first turn."
+    rewrite_source_notes:
+      verbatim: "verbatim"
+      summary_only: "summary-backed"
+      light_template: "light template"
+      indexed_summary: "indexed entry summary"
+    indexed_rewrite_overrides:
+      indexed_prompt:
+        problem: "This input is better understood as an indexed entrypoint, not a pure context gap. What is still missing is the task-specific object, materials, target result, and closure."
+        why: "Keeping the trigger preserves the existing rules / skill / workflow asset. Adding task-specific variables helps the AI close on this task instead of a default flow."
+        better_prompt: "Use trigger: <trigger>\nObject: ...\nInput materials: ...\nTarget result: ...\nClosure method: ...\nOutput format: ..."
+        problem_map:
+          context_provision: "The indexed anchor already exists; the gap is not generic background, but the missing task-specific object, materials, and target result."
+          request_specificity: "The trigger already defines the workflow entrypoint, but the task-specific action order and done definition still need to be added."
+      mixed_prompt:
+        problem: "You already have a trigger plus some current-task variables. The next move is to tighten closure and success criteria, not to rewrite everything as a long prompt."
+        why: "Keeping the trigger preserves the method asset; adding object, boundary, and closure makes the first-turn output fit this task more closely."
+        better_prompt: "Follow <trigger>.\nObject: ...\nInput materials: ...\nTarget result: ...\nConstraints: ...\nClosure method: ...\nOutput format: ..."
+        problem_map:
+          context_provision: "The indexed entry already provides workflow background; what still needs to be added is the task-specific variables and input materials."
+          request_specificity: "Some task variables are already present. The next move is to define action order, done criteria, and closure more tightly."
     rewrite_fallbacks:
       context_provision:
         scene: "requirements_design"

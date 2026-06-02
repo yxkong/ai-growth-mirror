@@ -287,11 +287,23 @@ class PromptCoachChecklistItemView:
 
 
 @dataclass
-class PromptCoachSevenDayView:
-    day: int
-    theme: str
-    action: str
-    practice_prompt: str
+class PromptCoachPromptStyleView:
+    type: str
+    label: str
+    evidence: list[str] = field(default_factory=list)
+    coaching_message: str = ""
+    suggested_next_prompt: str = ""
+    trigger_maturity: list[str] = field(default_factory=list)
+
+
+@dataclass
+class PromptCoachClosureGuidanceView:
+    id: str
+    task_type: str
+    label: str
+    expected_closure_methods: list[str] = field(default_factory=list)
+    missing_closure_methods: list[str] = field(default_factory=list)
+    coaching_message: str = ""
 
 
 @dataclass
@@ -313,7 +325,9 @@ class PromptCoachView:
     universal_template: Optional[PromptCoachTemplateView] = None
     scenario_templates: list[PromptCoachTemplateView] = field(default_factory=list)
     preflight_checklist: list[PromptCoachChecklistItemView] = field(default_factory=list)
-    seven_day_training_plan: list[PromptCoachSevenDayView] = field(default_factory=list)
+    prompt_style: Optional[PromptCoachPromptStyleView] = None
+    closure_guidance: Optional[PromptCoachClosureGuidanceView] = None
+    recommended_training_inputs: list[str] = field(default_factory=list)
     light_state_note: str = ""
 
 
@@ -578,6 +592,7 @@ def build_personal_report_view(
     exemplars = _build_exemplars(sessions, session_reads, redact, catalogs)
     prompt_coach = build_prompt_coach_view(
         stats=stats,
+        sessions=sessions,
         session_reads=session_reads,
         session_read_mode=session_read_mode,
         catalogs=catalogs,
@@ -887,21 +902,23 @@ def _build_report_sections(
         ReportSectionLinkView("section-growth-signals", labels.get("section_growth_signals", "Growth signal overview")),
         ReportSectionLinkView("section-level-evidence", labels.get("section_level_evidence", "Stage assessment")),
         ReportSectionLinkView("section-level-guide", labels.get("section_level_guide", "Collaboration level guide")),
-        ReportSectionLinkView("section-prompt-coach", labels.get("section_prompt_coach", "Prompt growth coach")),
-        ReportSectionLinkView("section-friction", labels.get("section_friction", "Friction map")),
-        ReportSectionLinkView("section-exemplars", labels.get("section_exemplars", "Methods worth keeping")),
-        ReportSectionLinkView("section-growth-plan", labels.get("section_growth_plan", "Next practice sprint")),
-        ReportSectionLinkView("section-focus", labels.get("section_work_focus", "What you are using AI for")),
-        ReportSectionLinkView("section-rhythm", labels.get("section_rhythm", "Collaboration rhythm")),
-        ReportSectionLinkView("section-wins", labels.get("section_wins", "Highlights this period")),
     ]
-    if has_agent_asset:
-        sections.append(
-            ReportSectionLinkView("section-agent-asset", labels.get("section_agent_asset", "Agent asset footprint"))
-        )
     if has_growth_delta:
         sections.append(
             ReportSectionLinkView("section-growth-delta", labels.get("section_growth_delta", "Growth trajectory"))
+        )
+    sections.extend([
+        ReportSectionLinkView("section-prompt-coach", labels.get("section_prompt_coach", "Prompt growth coach")),
+        ReportSectionLinkView("section-growth-plan", labels.get("section_growth_plan", "Next practice sprint")),
+        ReportSectionLinkView("section-friction", labels.get("section_friction", "Friction map")),
+        ReportSectionLinkView("section-exemplars", labels.get("section_exemplars", "Methods worth keeping")),
+        ReportSectionLinkView("section-focus", labels.get("section_work_focus", "What you are using AI for")),
+        ReportSectionLinkView("section-rhythm", labels.get("section_rhythm", "Collaboration rhythm")),
+        ReportSectionLinkView("section-wins", labels.get("section_wins", "Highlights this period")),
+    ])
+    if has_agent_asset:
+        sections.append(
+            ReportSectionLinkView("section-agent-asset", labels.get("section_agent_asset", "Agent asset footprint"))
         )
     sections.append(
         ReportSectionLinkView("section-style-lens", labels.get("section_style_lens", "Collaboration style lens"), nav_visible=False, kind="appendix")

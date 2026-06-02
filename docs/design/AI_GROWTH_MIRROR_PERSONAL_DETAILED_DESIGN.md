@@ -56,10 +56,10 @@ score_target: 9.9
 条件 / 附录区块：
 
 - **AI 资产足迹**（`#section-agent-asset`，需 hub / asset 配置）
-- **成长轨迹对比**（`#section-growth-delta`，需当前生成前已存在历史 snapshot；通常第 2 次 generate 起出现）
+- **成长轨迹**（`#section-growth-delta`，需当前生成前已存在历史 snapshot；通常第 2 次 generate 起出现）
   - 顶部先展示 **近 30 天趋势结论**，趋势指标至少覆盖 `mirror_score`、`growth_level`、五轴、Prompt Quality 五维、行动型摩擦五类
-  - 同一天多次 generate 时，页面默认只展示当天最后一次 snapshot；sidecar JSON 必须保留完整点位
-  - 当 `display_points < 3` 时只展示已有点位和“数据不足”说明，不强行做长期趋势判断
+  - 同一天多次 generate 时，页面默认只展示当天最后一次 snapshot；sidecar JSON 必须保留 `window_points` 全量点位和 `daily_points` 展示点位
+  - 当 `daily_points < 3` 时只展示已有点位和“数据不足”说明，不强行做长期趋势判断
   - 若存在上一期 snapshot，则同区块下半部分继续展示 **本期 vs 上一期变化诊断**
   - 诊断区顶部必须包含 5 张 summary cards：当前阶段、协作指数变化、最大进步轴、当前短板轴、置信度/样本量说明
   - 诊断区中部至少包含五轴对比、成长变化瀑布、Prompt Quality 来源说明、摩擦与恢复变化、方法资产沉淀
@@ -71,7 +71,7 @@ score_target: 9.9
 - 主报告 Hero 只负责“你现在在哪、为什么这么判断、接下来练什么”，不重复分享卡内容。
 - 分享页只保留对外可发的一句话、3 条关键信息与阶段/分数，不出现“适合分享的一页摘要”这类内部产物式文案。
 - 主报告必须提供完整快速导航，导航顺序与页面锚点顺序一致。
-- “成长轨迹对比”固定表示“本期 vs 当前生成前最近一份 snapshot”，不是任意两期自由拼接。
+- 成长轨迹主视角固定是“近 30 天窗口趋势”；“本期 vs 当前生成前最近一份 snapshot”只作为同区块底部的辅助诊断。
 - 无历史 snapshot 时，主报告不展示空图表；第一次 generate 只归档 snapshot，不显示该区块。
 - 对比区块里的 Prompt Quality、usage、样本量都必须显式说明置信边界，禁止把 heuristic 或低样本包装成确定结论。
 
@@ -199,13 +199,21 @@ score_target: 9.9
 
 ## 5.4.2 Prompt 成长教练升级边界
 
-`Prompt 成长教练` 已从“解释分数”升级为 **AI 提需求训练器**，固定输出以下五层：
+`Prompt 成长教练` 已从“解释分数”升级为 **AI 提需求诊断器**，固定输出以下几层：
 
 1. `top_deficits`：本期最主要的提需求短板，至少包含问题定义、影响、来源边界、置信度、证据摘要
 2. `rewrite_cards`：2-4 张“原始提法 vs 更好提法”训练卡
 3. `universal_template`：通用提需求模板，必须覆盖背景、当前问题、目标结果、约束、参考、验收、输出格式
 4. `scenario_templates`：至少覆盖代码 Review、需求设计、Bug 排查、架构改造、文案优化、图表分析
-5. `preflight_checklist` / `seven_day_training_plan`：面向下一次发送前自检和短周期练习
+5. `prompt_style`：识别 `explicit_requirement_prompt / indexed_prompt / mixed_prompt / under_specified_prompt`
+6. `closure_guidance`：按任务类型给出正确收口方式，而不是默认要求测试
+7. `preflight_checklist` / `recommended_training_inputs`：面向下一次发送前自检和训练输入建议
+
+补充约束：
+
+- `indexed_prompt` 是正向方法资产信号，不得直接等价成 `missing-context`
+- Prompt 成长教练不再独立展示完整 `seven_day_training_plan`
+- 完整的 `Week 1 / Week 2 / practice_prompt / success_signal / stop_doing` 训练计划统一归口到 `下一阶段训练冲刺`
 
 硬约束：
 
@@ -225,7 +233,7 @@ score_target: 9.9
 - Prompt 维度或 deficit 明显偏弱时，优先输出 `prompt:*` 类型训练任务
 - `intent_clarity + missing-context / vague-request` 合并成“需求表达训练”
 - `delivery_closure + missing-acceptance-criteria` 合并成“验收标准训练”
-- 每个训练任务都必须附带 `evidence_refs` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids`
+- 每个训练任务都必须附带 `evidence_refs` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids / linked_growth_trend_refs / linked_closure_guidance_ids`
 
 ## 5.4.1 usage 模块
 
