@@ -34,6 +34,17 @@ class CoachingTakeaway:
 
 
 @dataclass
+class FrictionSynthesisItem:
+    id: str = ""
+    label: str = ""
+    explanation: str = ""
+    next_action: str = ""
+    confidence: int = 0
+    evidence_refs: list[str] = field(default_factory=list)
+    generated_by: str = "llm"
+
+
+@dataclass
 class CoachingContent:
     """Personalized coaching content generated from structured evidence."""
 
@@ -42,6 +53,7 @@ class CoachingContent:
     prompt_coach_headline: str = ""
     prompt_coach_evidence: str = ""
     prompt_coach_takeaways: list[CoachingTakeaway] = field(default_factory=list)
+    friction_synthesis: list[FrictionSynthesisItem] = field(default_factory=list)
     share_lines: list[str] = field(default_factory=list)
     source: str = "llm"
 
@@ -87,12 +99,30 @@ def parse_coaching_payload(raw: dict) -> CoachingContent:
         for item in prompt_coach.get("takeaways", [])[:3]
     ]
 
+    friction_synthesis = [
+        FrictionSynthesisItem(
+            id=f"friction:llm:{index}",
+            label=item.get("label", ""),
+            explanation=item.get("explanation", ""),
+            next_action=item.get("next_action", ""),
+            confidence=int(item.get("confidence", 0) or 0),
+            evidence_refs=[
+                ref
+                for ref in item.get("evidence_refs", [])
+                if isinstance(ref, str) and ref.strip()
+            ],
+            generated_by="llm",
+        )
+        for index, item in enumerate(prompt_coach.get("friction_synthesis", [])[:2])
+    ]
+
     return CoachingContent(
         growth_headline=growth_plan.get("headline", ""),
         priorities=priorities,
         prompt_coach_headline=prompt_coach.get("headline", ""),
         prompt_coach_evidence=prompt_coach.get("evidence_summary", ""),
         prompt_coach_takeaways=takeaways,
+        friction_synthesis=friction_synthesis,
         share_lines=raw.get("share_lines", [])[:3],
         source="llm",
     )

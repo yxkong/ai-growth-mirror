@@ -55,6 +55,7 @@ class GrowthPriorityView:
     linked_rewrite_card_ids: list[str] = field(default_factory=list)
     linked_growth_trend_refs: list[str] = field(default_factory=list)
     linked_closure_guidance_ids: list[str] = field(default_factory=list)
+    linked_friction_synthesis_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -131,6 +132,7 @@ def build_growth_plan(
         )
         for key in selected_keys
     ]
+    _link_friction_synthesis_ids(priorities, prompt_coach)
 
     headline = i18n.get("headline", "")
     next_focus = priorities[0].title if priorities else i18n.get("next_focus_fallback", "")
@@ -185,6 +187,38 @@ def _build_priority_view(
         linked_growth_trend_refs=linked_growth_trends,
         linked_closure_guidance_ids=linked_closure_ids,
     )
+
+
+def _deficit_keys_from_refs(refs: list[str]) -> set[str]:
+    keys: set[str] = set()
+    for ref in refs:
+        if ref.startswith("deficit:"):
+            keys.add(ref.split(":", 1)[1].replace("_", "-"))
+    return keys
+
+
+def _deficit_keys_from_ids(ids: list[str]) -> set[str]:
+    return _deficit_keys_from_refs(ids)
+
+
+def _link_friction_synthesis_ids(
+    priorities: list[GrowthPriorityView],
+    prompt_coach: "PromptCoachView | None",
+) -> None:
+    if not priorities or prompt_coach is None or not prompt_coach.friction_synthesis:
+        return
+    friction_items = prompt_coach.friction_synthesis
+    first_friction_id = friction_items[0].id
+    for index, priority in enumerate(priorities):
+        priority_keys = _deficit_keys_from_ids(priority.linked_prompt_deficit_ids)
+        linked: list[str] = []
+        for item in friction_items:
+            if priority_keys & _deficit_keys_from_refs(item.evidence_refs):
+                linked.append(item.id)
+        if linked:
+            priority.linked_friction_synthesis_ids = linked[:2]
+        elif index == 0:
+            priority.linked_friction_synthesis_ids = [first_friction_id]
 
 
 def _weakest_prompt_dimension(prompt_coach: "PromptCoachView | None") -> str:

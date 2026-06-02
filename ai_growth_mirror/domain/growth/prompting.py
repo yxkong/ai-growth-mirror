@@ -24,6 +24,16 @@ TASK_TYPE_CLOSURE_MAP: dict[str, tuple[str, ...]] = {
     "exploration_or_analysis": ("fact_alignment", "manual_review", "user_acceptance"),
 }
 
+OPEN_ENDED_TASK_TYPES = frozenset({
+    "design_or_requirements",
+    "exploration_or_analysis",
+    "writing_or_content",
+})
+ENGINEERED_TASK_TYPES = frozenset({
+    "code_change",
+    "config_or_prompt_change",
+})
+
 _INDEX_TERMS = (
     "agents.md",
     "claude.md",
@@ -181,9 +191,18 @@ class TriggerMaturitySignal:
 @dataclass
 class ClosureGuidanceSignal:
     task_type: str = "exploration_or_analysis"
+    mode: str = "engineered"
     expected_closure_methods: list[str] = field(default_factory=list)
     missing_closure_methods: list[str] = field(default_factory=list)
     evidence: list[str] = field(default_factory=list)
+
+
+@dataclass
+class FrictionSynthesisIntent:
+    id: str
+    pattern_key: str
+    evidence_refs: list[str] = field(default_factory=list)
+    confidence: int = 60
 
 
 def assess_prompt_style(
@@ -254,8 +273,10 @@ def assess_closure_guidance(
     missing = [item for item in expected if item not in observed]
     if dominant_task_type in {"design_or_requirements", "writing_or_content", "exploration_or_analysis"}:
         missing = [item for item in missing if item != "test"]
+    mode = "open_ended" if dominant_task_type in OPEN_ENDED_TASK_TYPES else "engineered"
     return ClosureGuidanceSignal(
         task_type=dominant_task_type,
+        mode=mode,
         expected_closure_methods=expected,
         missing_closure_methods=missing[:3],
         evidence=evidence[:4],
@@ -304,6 +325,58 @@ def infer_task_type(
     ranked = sorted(scores.items(), key=lambda item: (item[1], item[0]), reverse=True)
     task_type = ranked[0][0] if ranked and ranked[0][1] > 0 else "exploration_or_analysis"
     return task_type, _dedupe_preserve(evidence)
+
+
+def build_friction_synthesis_intents(
+    sessions: list[SessionRecord],
+    session_reads: list[SessionRead],
+    prompt_style_signal: PromptStyleSignal,
+    closure_signal: ClosureGuidanceSignal,
+    top_deficit_keys: list[str],
+    stats: object,
+) -> list[FrictionSynthesisIntent]:
+    """Rank friction synthesis patterns; at most two intents with evidence refs."""
+    del sessions, session_reads, stats  # reserved for future session-level evidence
+    intents: list[FrictionSynthesisIntent] = []
+
+    def _append(pattern_key: str, evidence_refs: list[str]) -> None:
+        if len(intents) >= 2:
+            return
+        refs = _dedupe_preserve([ref for ref in evidence_refs if ref])[:4]
+        if not refs:
+            return
+        hit_count = len(refs)
+        confidence = min(90, max(60, 60 + 10 * (hit_count - 1)))
+        intents.append(
+            FrictionSynthesisIntent(
+                id=f"friction:{pattern_key}",
+                pattern_key=pattern_key,
+                evidence_refs=refs,
+                confidence=confidence,
+            )
+        )
+
+    if prompt_style_signal.prompt_style == "indexed_prompt":
+        matching = [key for key in ("missing-context", "vague-request") if key in top_deficit_keys]
+        if matching:
+            _append("indexed_but_unfront", [f"deficit:{key}" for key in matching])
+
+    if closure_signal.missing_closure_methods:
+        refs = [f"closure:{method}" for method in closure_signal.missing_closure_methods[:2]]
+        refs.extend(closure_signal.evidence[:2])
+        _append("closure_mismatch", refs)
+
+    if prompt_style_signal.prompt_style == "under_specified_prompt":
+        refs = [f"deficit:{top_deficit_keys[0]}"] if top_deficit_keys else ["style:under_specified_prompt"]
+        _append("under_specified", refs)
+
+    if "missing-acceptance-criteria" in top_deficit_keys:
+        _append("acceptance_gap", ["deficit:missing-acceptance-criteria"])
+
+    if top_deficit_keys:
+        _append("general_focus", [f"deficit:{top_deficit_keys[0]}"])
+
+    return intents
 
 
 def build_recommended_training_inputs(

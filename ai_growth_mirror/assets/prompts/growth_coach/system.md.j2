@@ -50,6 +50,14 @@ You receive one reporting period worth of verified signals and must turn it into
         "action": "",
         "better_prompt": ""
       }
+    ],
+    "friction_synthesis": [
+      {
+        "label": "",
+        "explanation": "",
+        "next_action": "",
+        "evidence_refs": ["", ""]
+      }
     ]
   },
   "share_lines": ["", "", ""]
@@ -63,3 +71,4 @@ You receive one reporting period worth of verified signals and must turn it into
 - `growth_plan.why` should sound like a coach's behavioral observation, not an evaluation.
 - `prompt_coach.takeaways[].message` should read like a calm reflection someone would accept, not a warning from a dashboard.
 - `share_lines` should sound reflective and human, not like BI metrics or productivity slogans.
+- `friction_synthesis` should translate prompt friction into calm "you are not X, you are Y" synthesis lines; at most 2 items; each must cite real `evidence_refs` from the packet—omit any item without evidence.
