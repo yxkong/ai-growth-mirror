@@ -72,6 +72,7 @@
       border-radius: inherit;
     }
     .small { color: var(--muted); font-size: 14px; }
+    .muted { color: var(--muted); }
     .list { margin: 0; padding-left: 18px; }
     .chip {
       display: inline-block;
@@ -167,29 +168,81 @@
       </div>
     </section>
 
-    <section class="section">
+    {% if page.trajectory.prompt_quality %}
+    <section class="section" style="margin-top:16px">
+      <h2>{{ labels.get('label_prompt_quality', 'Prompt Quality') }}</h2>
+      <p>{{ page.trajectory.prompt_quality.headline }}</p>
+      <p class="small">{{ page.trajectory.prompt_quality.summary }}</p>
+      {% if page.trajectory.prompt_quality.improved %}
+      <p class="small"><strong>{{ labels.get('label_pq_improved','改善项') }}</strong></p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        {% for item in page.trajectory.prompt_quality.improved %}<span class="chip">{{ item }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      {% if page.trajectory.prompt_quality.worsened %}
+      <p class="small" style="margin-top:8px"><strong>{{ labels.get('label_pq_worsened','下降项') }}</strong></p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        {% for item in page.trajectory.prompt_quality.worsened %}<span class="chip">{{ item }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      <p class="small muted" style="margin-top:8px">{{ page.trajectory.prompt_quality.source_note }}</p>
+    </section>
+    {% endif %}
+
+    {% set real_rewrites = page.report.prompt_coach.rewrite_cards | selectattr('original') | list %}
+    {% if real_rewrites %}
+    <section class="section" style="margin-top:16px">
+      <h2>{{ labels.get('label_rewrite_examples','改写示例') }}</h2>
       <div class="grid-2">
+        {% for card in real_rewrites[:4] %}
         <div class="card">
-          <h3>{{ labels.label_prompt_quality }}</h3>
-          <p>{{ page.trajectory.prompt_quality.headline }}</p>
-          <p class="small">{{ page.trajectory.prompt_quality.summary }}</p>
-          <p class="small">{{ page.trajectory.prompt_quality.source_note }}</p>
-          <p class="small">{{ page.trajectory.prompt_quality.confidence_note }}</p>
+          <h3>{{ labels.get('label_scene','场景') }} · {{ card.scene }}</h3>
+          {% if card.original %}
+          <p class="small muted"><strong>{{ labels.get('label_before','原始') }}：</strong>{{ card.original }}</p>
+          {% endif %}
+          <p class="small"><strong>{{ labels.get('label_after','改写') }}：</strong>{{ card.better_prompt }}</p>
+          {% if card.why %}<p class="small muted">{{ card.why }}</p>{% endif %}
         </div>
-        <div class="card">
-          <h3>{{ labels.label_method_assets }}</h3>
-          <p>{{ page.trajectory.method_assets.summary }}</p>
-          <p class="small">{{ page.trajectory.method_assets.detail }}</p>
-          {% for metric in page.trajectory.method_assets.metrics %}
-          <div class="metric">
-            <div class="metric-head">
-              <strong>{{ metric.label }}</strong>
-              <span>{{ metric.delta }}</span>
-            </div>
-            <p class="small">{{ labels.label_previous }} {{ metric.previous }} · {{ labels.label_current }} {{ metric.current }}</p>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if page.report.prompt_coach.friction_synthesis %}
+    <section class="section" style="margin-top:16px">
+      <h2>{{ labels.get('label_friction_synthesis','摩擦综合判断') }}</h2>
+      {% for item in page.report.prompt_coach.friction_synthesis %}
+      <div class="card" style="margin-top:12px">
+        <strong>{{ item.label }}</strong>
+        <p class="small">{{ item.explanation }}</p>
+        {% if item.next_action %}<div class="note" style="margin-top:8px">{{ item.next_action }}</div>{% endif %}
+        <p class="small muted">{{ labels.get('label_generated_by','生成方式') }}：{{ item.generated_by }}</p>
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if page.report.prompt_coach.universal_template %}
+    <section class="section" style="margin-top:16px">
+      <h2>{{ labels.get('label_universal_template','通用提需求模板') }}</h2>
+      <pre class="small" style="white-space:pre-wrap;background:var(--panel);padding:12px;border-radius:10px">{{ page.report.prompt_coach.universal_template.template }}</pre>
+    </section>
+    {% endif %}
+
+    <section class="section">
+      <div class="card">
+        <h3>{{ labels.label_method_assets }}</h3>
+        <p>{{ page.trajectory.method_assets.summary }}</p>
+        <p class="small">{{ page.trajectory.method_assets.detail }}</p>
+        {% for metric in page.trajectory.method_assets.metrics %}
+        <div class="metric">
+          <div class="metric-head">
+            <strong>{{ metric.label }}</strong>
+            <span>{{ metric.delta }}</span>
           </div>
-          {% endfor %}
+          <p class="small">{{ labels.label_previous }} {{ metric.previous }} · {{ labels.label_current }} {{ metric.current }}</p>
         </div>
+        {% endfor %}
       </div>
     </section>
 

@@ -101,11 +101,19 @@ def compare_snapshots(
 ) -> Path:
     left_source = load_snapshot_source(archive_root / SNAPSHOTS_DIRNAME / left_snapshot_id)
     right_source = load_snapshot_source(archive_root / SNAPSHOTS_DIRNAME / right_snapshot_id)
+    right_snapshot_dir = archive_root / SNAPSHOTS_DIRNAME / right_snapshot_id
+    right_normalized = _read_json(right_snapshot_dir / "normalized-summary.json", default={})
+    current_prompt_coach = (
+        right_normalized.get("prompt_coach", {})
+        if isinstance(right_normalized, dict)
+        else {}
+    )
     catalogs = load_report_label_catalogs(language)
     page = build_snapshot_compare_page_view(
         left_source=left_source,
         right_source=right_source,
         catalogs=catalogs,
+        current_prompt_coach_payload=current_prompt_coach,
     )
     comparisons_root = archive_root / COMPARISONS_DIRNAME
     comparisons_root.mkdir(parents=True, exist_ok=True)
@@ -149,10 +157,16 @@ def build_snapshot_comparison(
         normalized_summary=right_normalized_summary or {},
     )
     catalogs = load_report_label_catalogs(language)
+    current_prompt_coach = (
+        right_normalized_summary.get("prompt_coach", {})
+        if isinstance(right_normalized_summary, dict)
+        else {}
+    )
     page = build_snapshot_compare_page_view(
         left_source=left_source,
         right_source=right_source,
         catalogs=catalogs,
+        current_prompt_coach_payload=current_prompt_coach,
     )
     return page.data
 

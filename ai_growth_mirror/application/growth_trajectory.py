@@ -182,6 +182,11 @@ class GrowthTrajectoryView:
 
 
 @dataclass
+class SnapshotCompareReportView:
+    prompt_coach: "PromptCoachView"
+
+
+@dataclass
 class SnapshotComparisonPageView:
     title: str
     subtitle: str
@@ -194,6 +199,7 @@ class SnapshotComparisonPageView:
     left_headline: str
     right_headline: str
     trajectory: GrowthTrajectoryView
+    report: SnapshotCompareReportView
     data: dict[str, object] = field(default_factory=dict)
 
 
@@ -313,12 +319,16 @@ def build_snapshot_compare_page_view(
     left_source: SnapshotSource,
     right_source: SnapshotSource,
     catalogs: ReportLabelCatalogs,
+    current_prompt_coach_payload: dict | None = None,
 ) -> SnapshotComparisonPageView:
+    from .report_view import build_prompt_coach_view_from_payload
+
     comparison = compare_snapshot_sources(left_source, right_source)
     trajectory = _build_latest_vs_previous_view_from_comparison(comparison, catalogs)
     trajectory.trend = None
     trajectory.data = _latest_vs_previous_dict(comparison)
     gt_i18n = catalogs.view_model.get("growth_trajectory", {})
+    prompt_coach = build_prompt_coach_view_from_payload(current_prompt_coach_payload)
     return SnapshotComparisonPageView(
         title=catalogs.template_labels.get("snapshot_page_title", "Growth comparison"),
         subtitle=gt_i18n.get("page_subtitle", ""),
@@ -331,6 +341,7 @@ def build_snapshot_compare_page_view(
         left_headline=left_source.headline,
         right_headline=right_source.headline,
         trajectory=trajectory,
+        report=SnapshotCompareReportView(prompt_coach=prompt_coach),
         data=trajectory.data,
     )
 
@@ -632,6 +643,28 @@ def _latest_vs_previous_dict(comparison) -> dict[str, object]:
     }
 
 
+def _snapshot_prompt_quality_source_note(pq: SnapshotPromptQuality, catalogs: ReportLabelCatalogs) -> str:
+    pc_i18n = catalogs.view_model.get("prompt_coach", {})
+    breakdown = pc_i18n.get("source_breakdown", {})
+    total = pq.evaluated_sessions
+    if total <= 0:
+        return pc_i18n.get("trainer", {}).get("source_note_light", "")
+    if pq.llm_sessions and pq.heuristic_sessions:
+        template = breakdown.get("mixed", "")
+    elif pq.llm_sessions:
+        template = breakdown.get("llm_only", "")
+    else:
+        template = breakdown.get("heuristic_only", "")
+    if not template:
+        return ""
+    return template.format(
+        total=total,
+        llm=pq.llm_sessions,
+        heuristic=pq.heuristic_sessions,
+        light=pq.light_sessions,
+    )
+
+
 def _build_prompt_quality_view(comparison, catalogs: ReportLabelCatalogs) -> GrowthTrajectoryPromptQualityView:
     gt_i18n = catalogs.view_model.get("growth_trajectory", {})
     pq_i18n = gt_i18n.get("prompt_quality", {})
@@ -643,13 +676,17 @@ def _build_prompt_quality_view(comparison, catalogs: ReportLabelCatalogs) -> Gro
             source_note="",
             confidence_note="",
         )
-    source_note = pq_i18n.get("source_note", "").format(
-        prev_llm=comparison.prompt_quality.previous_llm_sessions,
-        curr_llm=comparison.prompt_quality.current_llm_sessions,
-        prev_heuristic=comparison.prompt_quality.previous_heuristic_sessions,
-        curr_heuristic=comparison.prompt_quality.current_heuristic_sessions,
-        prev_light=comparison.prompt_quality.previous_light_sessions,
-        curr_light=comparison.prompt_quality.current_light_sessions,
+    prev_note = _snapshot_prompt_quality_source_note(comparison.previous.prompt_quality, catalogs)
+    curr_note = _snapshot_prompt_quality_source_note(comparison.current.prompt_quality, catalogs)
+    compare_template = pq_i18n.get(
+        "source_note_compare",
+        "{prev_label}：{previous} {curr_label}：{current}",
+    )
+    source_note = compare_template.format(
+        previous=prev_note,
+        current=curr_note,
+        prev_label=catalogs.template_labels.get("label_previous", "Previous"),
+        curr_label=catalogs.template_labels.get("label_current", "Current"),
     )
     summary_key = {
         "up": "improved",
