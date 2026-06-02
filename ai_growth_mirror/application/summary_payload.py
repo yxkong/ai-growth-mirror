@@ -40,6 +40,11 @@ def _prompt_coach_payload(view: PersonalReportView) -> dict[str, object]:
             "heuristic_session_count": coach.source_summary.heuristic_session_count,
             "light_session_count": coach.source_summary.light_session_count,
             "evaluated_user_messages": coach.source_summary.evaluated_user_messages,
+            "run_mode": coach.source_summary.run_mode,
+            "llm_evaluated_count": coach.source_summary.llm_evaluated_count,
+            "insufficient_count": coach.source_summary.insufficient_count,
+            "llm_failed_count": coach.source_summary.llm_failed_count,
+            "llm_unavailable_count": coach.source_summary.llm_unavailable_count,
         },
         "weak_dimensions": list(coach.weak_dimensions),
         "deficits": list(coach.deficits),
@@ -128,6 +133,18 @@ def _prompt_coach_payload(view: PersonalReportView) -> dict[str, object]:
         if coach.closure_guidance
         else {},
         "recommended_training_inputs": list(coach.recommended_training_inputs),
+        "friction_synthesis": [
+            {
+                "id": item.id,
+                "label": item.label,
+                "explanation": item.explanation,
+                "next_action": item.next_action,
+                "confidence": item.confidence,
+                "evidence_refs": list(item.evidence_refs),
+                "generated_by": item.generated_by,
+            }
+            for item in coach.friction_synthesis
+        ],
     }
 
 
@@ -152,6 +169,7 @@ def _growth_plan_payload(view: PersonalReportView) -> dict[str, object]:
                 "linked_rewrite_card_ids": list(item.linked_rewrite_card_ids),
                 "linked_growth_trend_refs": list(item.linked_growth_trend_refs),
                 "linked_closure_guidance_ids": list(item.linked_closure_guidance_ids),
+                "linked_friction_synthesis_ids": list(item.linked_friction_synthesis_ids),
             }
             for item in view.growth_plan.priorities
         ],

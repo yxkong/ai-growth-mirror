@@ -2,7 +2,8 @@
 from pathlib import Path
 
 from ai_growth_mirror.domain.session.model import SessionRecord
-from ai_growth_mirror.domain.signals.model import PromptLensTakeaway, PromptLensScores, SessionRead
+from ai_growth_mirror.domain.signals.model import PromptLensFinding, PromptLensTakeaway, PromptLensScores, SessionRead
+from ai_growth_mirror.application.prompt_coach import build_prompt_coach_view
 from ai_growth_mirror.infra.readers.cursor import CursorAdapter
 from ai_growth_mirror.domain.growth.scorer import aggregate
 from ai_growth_mirror.domain.growth.model import GrowthProfile
@@ -75,6 +76,7 @@ def _make_facets(session_id: str, *, score_bias: int = 0) -> SessionRead:
         prompt_lens=PromptLensScores(
             source="llm",
             coverage="full",
+            evaluation_status="llm_evaluated",
             evaluated_user_messages=6,
             context_provision=55 + score_bias,
             request_specificity=52 + score_bias,
@@ -172,6 +174,29 @@ def test_build_personal_report_view_contains_core_sections():
     assert "LLM" in view.prompt_coach.source_note
     assert len({item.kind for item in view.prompt_coach.takeaways}) >= 2
     assert all(item.message != item.action for item in view.prompt_coach.takeaways if item.message and item.action)
+
+
+def test_short_session_prompt_lens_gets_insufficient_input_status():
+    from ai_growth_mirror.infra.extractors.heuristic import build_prompt_quality_proxy
+
+    session = _make_session("s1", "D:/repo/a")
+    session.user_message_count = 3
+
+    proxy = build_prompt_quality_proxy(
+        session,
+        language="zh",
+        evaluation_status="insufficient_input",
+    )
+    assert proxy.evaluation_status == "insufficient_input"
+    assert proxy.coverage == "light"
+
+    facet = SessionRead(
+        session_id="s1",
+        tool_name="codex",
+        prompt_lens=proxy,
+    )
+    stats = aggregate([session], [facet], tool_name="codex")
+    assert stats.pq_insufficient_count >= 1
 
 
 def test_collaboration_rhythm_falls_back_to_session_start_when_message_timestamps_missing():
@@ -496,6 +521,50 @@ def test_prompt_coach_classifies_under_specified_prompt():
 
     assert view.prompt_coach.prompt_style is not None
     assert view.prompt_coach.prompt_style.type == "under_specified_prompt"
+
+
+def test_prompt_coach_friction_synthesis_rule_path_without_llm():
+    sessions = [
+        _make_session("s1", "D:/repo/a", first_prompt="帮我看下这个"),
+        _make_session("s2", "D:/repo/b", first_prompt="帮我处理一下"),
+    ]
+    for session in sessions:
+        session.prompt_has_constraint = False
+        session.prompt_has_code_context = False
+
+    facets = []
+    for session_id in ("s1", "s2"):
+        facet = _make_facets(session_id)
+        facet.prompt_lens.findings = [
+            PromptLensFinding(
+                type="deficit",
+                category="vague-request",
+                description="request too vague",
+                impact="high",
+            ),
+            PromptLensFinding(
+                type="deficit",
+                category="missing-context",
+                description="missing context",
+                impact="medium",
+            ),
+        ]
+        facets.append(facet)
+
+    stats = aggregate(sessions, facets, tool_name="codex")
+    view = build_prompt_coach_view(
+        stats=stats,
+        sessions=sessions,
+        session_reads=facets,
+        session_read_mode="heuristic_only",
+        catalogs=load_report_label_catalogs("zh"),
+        coaching=None,
+    )
+
+    assert view.friction_synthesis
+    assert view.friction_synthesis[0].generated_by == "rule"
+    assert view.friction_synthesis[0].evidence_refs
+    assert view.friction_synthesis[0].label
 
 
 def test_closure_guidance_uses_task_type_instead_of_forcing_tests_on_design():
@@ -939,6 +1008,28 @@ def test_render_personal_report_html_compacts_prompt_coach_surface():
     assert "LLM" in html or "heuristic" in html
     assert "下次可以这样问" in html
     assert "AI Growth Mirror logo" in html
+
+
+def test_report_sections_keep_five_primary_chain():
+    sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/a")]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+    visible_ids = [item.id for item in view.sections if item.nav_visible]
+    assert visible_ids == [
+        "section-growth-signals",
+        "section-level-evidence",
+        "section-prompt-coach",
+        "section-growth-plan",
+    ]
+    assert "section-level-guide" not in visible_ids
 
 
 def test_generate_personal_report_redact_hides_project_names(tmp_path: Path):

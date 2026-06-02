@@ -9,6 +9,7 @@ from ..domain.growth.model import GrowthProfile
 from ..domain.growth.prompting import (
     assess_closure_guidance,
     assess_prompt_style,
+    build_friction_synthesis_intents,
     build_recommended_training_inputs,
 )
 from ..domain.session.model import SessionRecord
@@ -72,6 +73,7 @@ def build_prompt_coach_view(
         PromptCoachClosureGuidanceView,
         PromptCoachDeficitView,
         PromptCoachDimensionView,
+        PromptCoachFrictionSynthesisView,
         PromptCoachPromptStyleView,
         PromptCoachRewriteCardView,
         PromptCoachSourceSummaryView,
@@ -93,6 +95,11 @@ def build_prompt_coach_view(
         heuristic_session_count=stats.pq_heuristic_session_count,
         light_session_count=stats.pq_light_session_count,
         evaluated_user_messages=evaluated_messages,
+        run_mode="llm" if session_read_mode == "llm" else "heuristic_only",
+        llm_evaluated_count=stats.pq_llm_evaluated_count,
+        insufficient_count=stats.pq_insufficient_count,
+        llm_failed_count=stats.pq_llm_failed_count,
+        llm_unavailable_count=stats.pq_llm_unavailable_count,
     )
     dimension_scores = [
         PromptCoachDimensionView(label=dim_labels.get(key, key), score=round(float(score), 1))
@@ -135,6 +142,7 @@ def build_prompt_coach_view(
     closure_guidance = PromptCoachClosureGuidanceView(
         id=f"closure:{closure_signal.task_type}",
         task_type=closure_signal.task_type,
+        mode=closure_signal.mode,
         label=trainer_i18n.get("task_type_labels", {}).get(closure_signal.task_type, closure_signal.task_type),
         expected_closure_methods=[
             trainer_i18n.get("closure_methods", {}).get(item, item)
@@ -171,6 +179,20 @@ def build_prompt_coach_view(
     elif stats.pq_llm_session_count <= 0:
         light_state_note = trainer_i18n.get("heuristic_state_note", "")
 
+    friction_intents = build_friction_synthesis_intents(
+        sessions,
+        session_reads,
+        prompt_style_signal,
+        closure_signal,
+        top_deficit_keys,
+        stats,
+    )
+    friction_synthesis = _build_friction_synthesis_views(
+        coaching=coaching,
+        intents=friction_intents,
+        pc_i18n=pc_i18n,
+    )
+
     return PromptCoachView(
         available=True,
         headline=headline,
@@ -192,8 +214,57 @@ def build_prompt_coach_view(
         prompt_style=prompt_style,
         closure_guidance=closure_guidance,
         recommended_training_inputs=_recommended_training_inputs(recommended_training_inputs, catalogs),
+        friction_synthesis=friction_synthesis,
         light_state_note=light_state_note,
     )
+
+
+def _build_friction_synthesis_views(
+    *,
+    coaching: CoachingContent | None,
+    intents: list,
+    pc_i18n: dict,
+) -> list["PromptCoachFrictionSynthesisView"]:
+    from .report_view import PromptCoachFrictionSynthesisView
+
+    friction_i18n = pc_i18n.get("friction_synthesis", {})
+    if coaching and coaching.friction_synthesis:
+        llm_rows: list[PromptCoachFrictionSynthesisView] = []
+        for item in coaching.friction_synthesis:
+            refs = [ref for ref in item.evidence_refs if ref]
+            if not refs:
+                continue
+            llm_rows.append(
+                PromptCoachFrictionSynthesisView(
+                    id=item.id or f"friction:llm:{len(llm_rows)}",
+                    label=item.label,
+                    explanation=item.explanation,
+                    next_action=item.next_action,
+                    confidence=item.confidence or 70,
+                    evidence_refs=refs,
+                    generated_by="llm",
+                )
+            )
+        if llm_rows:
+            return llm_rows[:2]
+
+    rule_rows: list[PromptCoachFrictionSynthesisView] = []
+    for intent in intents:
+        copy = friction_i18n.get(intent.pattern_key, {})
+        if not copy:
+            continue
+        rule_rows.append(
+            PromptCoachFrictionSynthesisView(
+                id=intent.id,
+                label=copy.get("label", ""),
+                explanation=copy.get("explanation", ""),
+                next_action=copy.get("next_action", ""),
+                confidence=intent.confidence,
+                evidence_refs=list(intent.evidence_refs),
+                generated_by="rule",
+            )
+        )
+    return rule_rows[:2]
 
 
 def _rank_top_deficits(stats: GrowthProfile) -> list[str]:
@@ -539,33 +610,22 @@ def _source_note(
 ) -> str:
     pc_i18n = catalogs.view_model.get("prompt_coach", {})
     trainer_i18n = pc_i18n.get("trainer", {})
-    if stats.pq_llm_session_count and stats.pq_heuristic_session_count:
-        base = trainer_i18n.get("source_note_mixed", "")
-    elif stats.pq_llm_session_count:
-        base = trainer_i18n.get("source_note_llm", "")
-    elif stats.pq_sessions_evaluated:
-        base = trainer_i18n.get("source_note_heuristic", "")
-    else:
-        base = trainer_i18n.get("source_note_light", "")
-    breakdown = pc_i18n.get("source_breakdown", {})
-    template = (
-        breakdown.get("mixed")
-        if stats.pq_llm_session_count and stats.pq_heuristic_session_count
-        else breakdown.get("llm_only")
-        if stats.pq_llm_session_count
-        else breakdown.get("heuristic_only")
+    if stats.pq_sessions_evaluated <= 0:
+        return trainer_i18n.get("source_note_light", "")
+
+    source_truth = pc_i18n.get("source_truth", {})
+    parts = [source_truth.get("prefix", "").format(total=stats.pq_sessions_evaluated)]
+    status_counts = (
+        ("llm_evaluated", stats.pq_llm_evaluated_count),
+        ("insufficient", stats.pq_insufficient_count),
+        ("llm_failed", stats.pq_llm_failed_count),
+        ("llm_unavailable", stats.pq_llm_unavailable_count),
     )
-    if not template:
-        return base
-    detail = template.format(
-        total=stats.pq_sessions_evaluated,
-        llm=stats.pq_llm_session_count,
-        heuristic=stats.pq_heuristic_session_count,
-        light=stats.pq_light_session_count,
-    )
-    if session_read_mode == "heuristic" and not stats.pq_llm_session_count:
-        return f"{base} {detail}".strip()
-    return f"{base} {detail}".strip()
+    for key, count in status_counts:
+        if count > 0:
+            parts.append(source_truth.get(key, "").format(n=count))
+    parts.append(source_truth.get("suffix", ""))
+    return "".join(part for part in parts if part)
 
 
 def _prompt_style_evidence(signal, stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> list[str]:

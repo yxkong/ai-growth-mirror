@@ -9,6 +9,7 @@
 **/bak
 dist/
 private/
+**/.tmp_**
 
 # 本地测试 / 运行时复制的项目数据（非源码）
 /source/

@@ -345,6 +345,7 @@ growth_trajectory:
     stable: "Prompt Quality 基本持平，说明输入习惯尚未出现新的跃迁。"
     insufficient: "Prompt Quality 样本不足，本次只保留来源说明，不给过度确定判断。"
     source_note: "上期 LLM {prev_llm} / heuristic {prev_heuristic} / light {prev_light}；本期 LLM {curr_llm} / heuristic {curr_heuristic} / light {curr_light}"
+    source_note_compare: "{prev_label}：{previous} {curr_label}：{current}"
     confidence_high: "Prompt Quality 主要来自 LLM 语义评估，可直接参考。"
     confidence_medium: "Prompt Quality 同时包含 LLM 与 heuristic 代理回填，需要保留边界说明。"
     confidence_low: "Prompt Quality 样本过少或主要依赖 heuristic，结论只供训练参考。"
@@ -432,6 +433,13 @@ growth_trajectory:
       unclear_correction: "纠偏不清"
 
 prompt_coach:
+  label_pq_improved: "改善项"
+  label_pq_worsened: "下降项"
+  label_rewrite_examples: "改写示例"
+  label_friction_synthesis: "摩擦综合判断"
+  label_generated_by: "生成方式"
+  label_universal_template: "通用提需求模板"
+  label_pq_source_detail: "Prompt Quality 来源明细"
   strength_card:
     label_prefix: "继续保留：{label}"
     evidence: "这一维度是你当前最稳定的 Prompt 长板，说明它已经开始形成习惯。"
@@ -526,6 +534,27 @@ prompt_coach:
     kind_reinforce: "继续保留"
     improve: "下次先照着下面这个结构发第一条消息。"
     reinforce: "把这个有效结构迁移到另一个任务类型里。"
+  friction_synthesis:
+    indexed_but_unfront:
+      label: "你不是缺规则，而是没把任务说在前面"
+      explanation: "你已经会用 AGENTS.md / skill / workflow 当索引入口，但本轮仍缺背景或具体对象，AI 往往要先猜再行动。"
+      next_action: "下次在索引词后立刻补上：对象、现象、约束、验收，让入口和任务变量同屏出现。"
+    closure_mismatch:
+      label: "你不是推进太慢，而是没收口标准"
+      explanation: "任务类型需要明确的完成定义，但本期常见会话里还缺对应的收口动作，容易停在“差不多”。"
+      next_action: "结束前补 1 个最小可验证动作（清单、对比、回放或验收），并写清什么算完成。"
+    under_specified:
+      label: "你不是不会问，而是问得太轻"
+      explanation: "首轮更像愿望式提问，缺少现象、对象和边界，AI 更容易给方向而不是直接产出。"
+      next_action: "把请求改写成：背景 → 目标 → 约束 → 验收，四段至少各写一句。"
+    acceptance_gap:
+      label: "你不是要求太高，而是没写清“怎样算过”"
+      explanation: "任务启动了，但完成标准模糊，AI 容易过早判断可以收口。"
+      next_action: "每次补 1 条最小可验证的验收：测试、对比样例、清单勾选或人工确认点。"
+    general_focus:
+      label: "你不是方向错了，而是摩擦点还没说透"
+      explanation: "本期最稳定的提需求短板还在重复出现，说明同类信息仍常被留到后续轮次。"
+      next_action: "下次同类任务前，先把这条短板对应的信息写进第一条消息。"
   heuristic_dim_labels:
     constraint: "约束完备度"
     context: "上下文质量"
@@ -566,6 +595,13 @@ prompt_coach:
     mixed: "本期共覆盖 {total} 个会话，其中 LLM 语义评估 {llm} 个、代理回填 {heuristic} 个、轻量覆盖 {light} 个。"
     llm_only: "本期共覆盖 {total} 个会话，全部来自 LLM 语义评估。"
     heuristic_only: "本期共覆盖 {total} 个会话，当前全部由代理信号回填，其中轻量覆盖 {light} 个。"
+  source_truth:
+    prefix: "本期 {total} 个会话纳入 Prompt 评估："
+    llm_evaluated: "{n} 个完成 LLM 语义判断；"
+    insufficient: "{n} 个因会话过短改用轻量代理；"
+    llm_failed: "{n} 个 LLM 评估失败已回退代理；"
+    llm_unavailable: "{n} 个未配 LLM 使用本地代理；"
+    suffix: "代理结果仅作弱提示，不参与强结论。"
   trainer:
     headline_from_deficit: "你下次最该先修的是「{label}」，它最容易把 AI 带偏。"
     headline_from_dimension: "你下次最该先补的是「{label}」这条 Prompt 维度。"
@@ -633,6 +669,9 @@ prompt_coach:
       design_or_requirements: "需求 / 设计类任务"
       writing_or_content: "写作 / 内容任务"
       exploration_or_analysis: "探索 / 分析任务"
+    closure_mode:
+      open_ended: "开放型任务：用边界澄清/方案对比/下一步建议收口，不强制测试"
+      engineered: "工程型任务：需明确完成定义与验证方式（smoke/test/replay/golden case）"
     closure_methods:
       test: "测试"
       smoke: "冒烟回放"

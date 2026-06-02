@@ -242,6 +242,11 @@ class PromptCoachSourceSummaryView:
     heuristic_session_count: int = 0
     light_session_count: int = 0
     evaluated_user_messages: int = 0
+    run_mode: str = "llm"
+    llm_evaluated_count: int = 0
+    insufficient_count: int = 0
+    llm_failed_count: int = 0
+    llm_unavailable_count: int = 0
 
 
 @dataclass
@@ -301,9 +306,21 @@ class PromptCoachClosureGuidanceView:
     id: str
     task_type: str
     label: str
+    mode: str = "engineered"
     expected_closure_methods: list[str] = field(default_factory=list)
     missing_closure_methods: list[str] = field(default_factory=list)
     coaching_message: str = ""
+
+
+@dataclass
+class PromptCoachFrictionSynthesisView:
+    id: str
+    label: str
+    explanation: str
+    next_action: str
+    confidence: int = 0
+    evidence_refs: list[str] = field(default_factory=list)
+    generated_by: str = "rule"
 
 
 @dataclass
@@ -328,6 +345,7 @@ class PromptCoachView:
     prompt_style: Optional[PromptCoachPromptStyleView] = None
     closure_guidance: Optional[PromptCoachClosureGuidanceView] = None
     recommended_training_inputs: list[str] = field(default_factory=list)
+    friction_synthesis: list[PromptCoachFrictionSynthesisView] = field(default_factory=list)
     light_state_note: str = ""
 
 
@@ -898,32 +916,34 @@ def _build_report_sections(
     has_agent_asset: bool,
     has_growth_delta: bool,
 ) -> list[ReportSectionLinkView]:
-    sections = [
+    primary_sections = [
         ReportSectionLinkView("section-growth-signals", labels.get("section_growth_signals", "Growth signal overview")),
         ReportSectionLinkView("section-level-evidence", labels.get("section_level_evidence", "Stage assessment")),
-        ReportSectionLinkView("section-level-guide", labels.get("section_level_guide", "Collaboration level guide")),
     ]
     if has_growth_delta:
-        sections.append(
+        primary_sections.append(
             ReportSectionLinkView("section-growth-delta", labels.get("section_growth_delta", "Growth trajectory"))
         )
-    sections.extend([
+    primary_sections.extend([
         ReportSectionLinkView("section-prompt-coach", labels.get("section_prompt_coach", "Prompt growth coach")),
         ReportSectionLinkView("section-growth-plan", labels.get("section_growth_plan", "Next practice sprint")),
-        ReportSectionLinkView("section-friction", labels.get("section_friction", "Friction map")),
-        ReportSectionLinkView("section-exemplars", labels.get("section_exemplars", "Methods worth keeping")),
-        ReportSectionLinkView("section-focus", labels.get("section_work_focus", "What you are using AI for")),
-        ReportSectionLinkView("section-rhythm", labels.get("section_rhythm", "Collaboration rhythm")),
-        ReportSectionLinkView("section-wins", labels.get("section_wins", "Highlights this period")),
     ])
+    appendix_sections = [
+        ReportSectionLinkView("section-level-guide", labels.get("section_level_guide", "Collaboration level guide"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-friction", labels.get("section_friction", "Friction map"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-exemplars", labels.get("section_exemplars", "Methods worth keeping"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-focus", labels.get("section_work_focus", "What you are using AI for"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-rhythm", labels.get("section_rhythm", "Collaboration rhythm"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-wins", labels.get("section_wins", "Highlights this period"), nav_visible=False, kind="appendix"),
+    ]
     if has_agent_asset:
-        sections.append(
-            ReportSectionLinkView("section-agent-asset", labels.get("section_agent_asset", "Agent asset footprint"))
+        appendix_sections.append(
+            ReportSectionLinkView("section-agent-asset", labels.get("section_agent_asset", "Agent asset footprint"), nav_visible=False, kind="appendix")
         )
-    sections.append(
+    appendix_sections.append(
         ReportSectionLinkView("section-style-lens", labels.get("section_style_lens", "Collaboration style lens"), nav_visible=False, kind="appendix")
     )
-    return sections
+    return primary_sections + appendix_sections
 
 
 def _build_heuristic_prompt_coach(
@@ -2110,3 +2130,86 @@ def _build_heuristic_exemplar_summary(
         parts.append(summary_i18n.get("commits", "").format(git_commits=meta.git_commits))
     separator = summary_i18n.get("separator", "; ")
     return separator.join(parts)
+
+
+def empty_prompt_coach_view() -> PromptCoachView:
+    return PromptCoachView(
+        available=False,
+        headline="",
+        strongest_label="",
+        weakest_label="",
+        evidence_summary="",
+        strength_habit="",
+    )
+
+
+def build_prompt_coach_view_from_payload(payload: dict | None) -> PromptCoachView:
+    if not isinstance(payload, dict) or not payload:
+        return empty_prompt_coach_view()
+    source_summary_payload = payload.get("source_summary") or {}
+    source_summary = PromptCoachSourceSummaryView(
+        llm_session_count=int(source_summary_payload.get("llm_session_count", 0) or 0),
+        heuristic_session_count=int(source_summary_payload.get("heuristic_session_count", 0) or 0),
+        light_session_count=int(source_summary_payload.get("light_session_count", 0) or 0),
+        evaluated_user_messages=int(source_summary_payload.get("evaluated_user_messages", 0) or 0),
+        run_mode=str(source_summary_payload.get("run_mode", "llm") or "llm"),
+        llm_evaluated_count=int(source_summary_payload.get("llm_evaluated_count", 0) or 0),
+        insufficient_count=int(source_summary_payload.get("insufficient_count", 0) or 0),
+        llm_failed_count=int(source_summary_payload.get("llm_failed_count", 0) or 0),
+        llm_unavailable_count=int(source_summary_payload.get("llm_unavailable_count", 0) or 0),
+    )
+    rewrite_cards = [
+        PromptCoachRewriteCardView(
+            id=str(item.get("id", "")),
+            scene=str(item.get("scene", "")),
+            original=str(item.get("original", "")),
+            problem=str(item.get("problem", "")),
+            better_prompt=str(item.get("better_prompt", "")),
+            why=str(item.get("why", "")),
+            category=str(item.get("category", "")),
+            confidence=str(item.get("confidence", "")),
+            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
+            source_note=str(item.get("source_note", "")),
+        )
+        for item in payload.get("rewrite_cards", [])
+        if isinstance(item, dict)
+    ]
+    universal_payload = payload.get("universal_template") or {}
+    universal_template = None
+    if isinstance(universal_payload, dict) and universal_payload:
+        universal_template = PromptCoachTemplateView(
+            id=str(universal_payload.get("id", "")),
+            title=str(universal_payload.get("title", "")),
+            scene=str(universal_payload.get("scene", "")),
+            common_gap=str(universal_payload.get("common_gap", "")),
+            template=str(universal_payload.get("body") or universal_payload.get("template", "")),
+        )
+    friction_synthesis = [
+        PromptCoachFrictionSynthesisView(
+            id=str(item.get("id", "")),
+            label=str(item.get("label", "")),
+            explanation=str(item.get("explanation", "")),
+            next_action=str(item.get("next_action", "")),
+            confidence=int(item.get("confidence", 0) or 0),
+            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
+            generated_by=str(item.get("generated_by", "rule") or "rule"),
+        )
+        for item in payload.get("friction_synthesis", [])
+        if isinstance(item, dict)
+    ]
+    return PromptCoachView(
+        available=bool(payload.get("headline") or rewrite_cards or friction_synthesis or universal_template),
+        headline=str(payload.get("headline", "")),
+        strongest_label=str(payload.get("strongest_label", "")),
+        weakest_label=str(payload.get("weakest_label", "")),
+        evidence_summary=str(payload.get("evidence_summary", "")),
+        strength_habit=str(payload.get("strength_habit", "")),
+        source_note=str(payload.get("source_note", "")),
+        light_state_note=str(payload.get("light_state_note", "")),
+        source_summary=source_summary,
+        weak_dimensions=[str(item) for item in payload.get("weak_dimensions", []) if item],
+        deficits=[str(item) for item in payload.get("deficits", []) if item],
+        rewrite_cards=rewrite_cards,
+        universal_template=universal_template,
+        friction_synthesis=friction_synthesis,
+    )
