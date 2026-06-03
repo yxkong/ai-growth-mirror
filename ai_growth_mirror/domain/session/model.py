@@ -119,11 +119,19 @@ class SessionRecord:
     # They reveal "deliberate workflow choices" that aren't visible in tool
     # calls and feed both attribution (user-driven patterns) and PQ scoring.
     slash_commands: list[str] = field(default_factory=list)  # canonical command names, in order
+    # Higher-level collaboration features observed in the raw session.
+    # Examples: explicit plan mode, skill invocation, subagent dispatch,
+    # MCP usage, multi-model switching.
+    advanced_features: list[str] = field(default_factory=list)
     # Compact events: /compact is user-initiated; auto-compact is triggered
     # automatically when context is about to overflow. Distinguishing them
     # tells "session pressure" from "user steering".
     compact_count: int = 0
     auto_compact_count: int = 0
+
+    # Quality gate for report inclusion. Filled by extraction/orchestration
+    # helpers, not directly by raw adapters.
+    quality_tag: str = "medium"
 
     # Authorship & orchestration signals. Detected from Edit/Write tool calls
     # to specific file paths, NOT from any specific tool brand (so manual editor

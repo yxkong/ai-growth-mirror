@@ -59,6 +59,7 @@ class PromptLensScores:
     """Session-level prompt lens assessment."""
     source: str = "heuristic"        # llm | heuristic
     coverage: str = "full"           # full | light
+    evaluation_status: str = "insufficient_input"  # llm_evaluated | insufficient_input | llm_failed | llm_unavailable | not_applicable
     evaluated_user_messages: int = 0
     # 5 dimensions, each 0-100.
     context_provision: int = 50

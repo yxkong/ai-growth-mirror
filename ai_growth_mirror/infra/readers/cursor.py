@@ -201,6 +201,7 @@ class CursorAdapter(BaseSessionAdapter):
         current_chain = 0
         pending_write = False
         shell_commands: list[str] = []
+        advanced_features: set[str] = set()
 
         try:
             stat = jsonl_path.stat()
@@ -260,6 +261,12 @@ class CursorAdapter(BaseSessionAdapter):
                             # Having skill library signals authorship intent
                             if unique_skills_from_attach:
                                 skill_files_authored.add("__attached_skills__")
+                                advanced_features.add("skill_invocation")
+                        lower_user_text = user_text.lower()
+                        if "plan mode is active" in lower_user_text:
+                            advanced_features.add("plan_mode")
+                        if "ask mode is active" in lower_user_text:
+                            advanced_features.add("ask_mode")
                     if current_chain:
                         chain_lengths.append(current_chain)
                         current_chain = 0
@@ -301,12 +308,16 @@ class CursorAdapter(BaseSessionAdapter):
                     if normalized in SUBAGENT_TOOL_NAMES or "task" in normalized:
                         uses_subagent = True
                         subagent_invocation_count += 1
+                        advanced_features.add("subagent_dispatch")
                     if "mcp" in normalized:
                         uses_mcp = True
+                        advanced_features.add("mcp_usage")
                     if "web_search" in normalized or normalized == "websearch":
                         uses_web_search = True
                     if "web_fetch" in normalized or "fetch" in normalized:
                         uses_web_fetch = True
+                    if normalized in {"todowrite", "todo_write"}:
+                        advanced_features.add("plan_mode")
                     if normalized in WRITE_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.WRITE:
                         pending_write = True
                     if normalized in EXEC_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.BASH:
@@ -354,6 +365,7 @@ class CursorAdapter(BaseSessionAdapter):
             has_test_commands=has_test_commands,
             skill_invocation_count=skill_invocation_count,
             unique_skills_used=sorted(unique_skills_from_attach | unique_skills),
+            advanced_features=sorted(advanced_features),
             subagent_invocation_count=subagent_invocation_count,
             skill_files_authored=len(skill_files_authored),
             hook_config_modified=hook_config_modified,
@@ -415,6 +427,7 @@ class CursorAdapter(BaseSessionAdapter):
             uses_mcp=False,
             uses_web_search=False,
             uses_web_fetch=False,
+            advanced_features=[],
         )
         return session
 

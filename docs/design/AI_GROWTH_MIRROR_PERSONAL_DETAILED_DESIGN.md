@@ -2,7 +2,7 @@
 title: AI Growth Mirror Personal Detailed Design
 domain: growth_mirror
 status: canonical
-updated_at: 2026-05-29
+updated_at: 2026-06-03
 score_target: 9.9
 ---
 
@@ -56,7 +56,14 @@ score_target: 9.9
 条件 / 附录区块：
 
 - **AI 资产足迹**（`#section-agent-asset`，需 hub / asset 配置）
-- **成长轨迹对比**（`#section-growth-delta`，需当前生成前已存在历史 snapshot；通常第 2 次 generate 起出现）
+- **成长轨迹**（`#section-growth-delta`，需当前生成前已存在历史 snapshot；通常第 2 次 generate 起出现）
+  - 顶部先展示 **近 30 天趋势结论**，趋势指标至少覆盖 `mirror_score`、`growth_level`、五轴、Prompt Quality 五维、行动型摩擦五类
+  - 同一天多次 generate 时，页面默认只展示当天最后一次 snapshot；sidecar JSON 必须保留 `window_points` 全量点位和 `daily_points` 展示点位
+  - 当 `daily_points < 3` 时只展示已有点位和“数据不足”说明，不强行做长期趋势判断
+  - 若存在上一期 snapshot，则同区块下半部分继续展示 **本期 vs 上一期变化诊断**
+  - 诊断区顶部必须包含 5 张 summary cards：当前阶段、协作指数变化、最大进步轴、当前短板轴、置信度/样本量说明
+  - 诊断区中部至少包含五轴对比、成长变化瀑布、Prompt Quality 来源说明、摩擦与恢复变化、方法资产沉淀
+  - 诊断区底部必须有关键证据卡片与下一阶段优先训练建议，所有结论都要能回到 sidecar JSON 的结构化字段
 - **协作风格透镜**（`#section-style-lens`，附录，不在主导航）
 
 约束：
@@ -64,7 +71,9 @@ score_target: 9.9
 - 主报告 Hero 只负责“你现在在哪、为什么这么判断、接下来练什么”，不重复分享卡内容。
 - 分享页只保留对外可发的一句话、3 条关键信息与阶段/分数，不出现“适合分享的一页摘要”这类内部产物式文案。
 - 主报告必须提供完整快速导航，导航顺序与页面锚点顺序一致。
-- “成长轨迹对比”固定表示“本期 vs 当前生成前最近一份 snapshot”，不是任意两期自由拼接。
+- 成长轨迹主视角固定是“近 30 天窗口趋势”；“本期 vs 当前生成前最近一份 snapshot”只作为同区块底部的辅助诊断。
+- 无历史 snapshot 时，主报告不展示空图表；第一次 generate 只归档 snapshot，不显示该区块。
+- 对比区块里的 Prompt Quality、usage、样本量都必须显式说明置信边界，禁止把 heuristic 或低样本包装成确定结论。
 
 ## 4. 文案策略
 
@@ -157,6 +166,37 @@ score_target: 9.9
 
 禁止把这三类信息混成同一种表达，尤其不能把阶段性短板直接说成性格缺陷。
 
+## 5.3.1 Agentic 系统成熟度
+
+`growth_level` 不再只表达“会不会使用 AI”，而是表达用户是否能稳定调动一套 Agentic operating system：真实使用、工具编排、上下文工程、验证闭环、偏航恢复与方法资产回流。
+
+一级能力：
+
+- `Intent Framing`：目标、边界、约束、验收是否前置。
+- `Workflow Orchestration`：是否能组织 plan / spec / tdd / delivery workflow 等多阶段推进。
+- `Tool & Skill Leverage`：是否在真实会话中使用 skill、slash command、MCP、subagent、多模型或其他高杠杆工具。
+- `Context Engineering`：是否把文件、规则、文档、错误日志和历史上下文带入任务。
+- `Execution Depth`：是否进入真实实现链路和复杂边界。
+- `Verification Closure`：是否把结果带到 test / build / smoke / replay / golden case / commit 等可验证状态。
+- `Adaptive Recovery`：偏航、报错或阻塞后是否能基于新证据恢复推进。
+- `Method Assetization`：是否把有效方法沉淀为 skill / rule / prompt / script / checklist / ADR，并在后续任务中回流使用。
+
+证据优先级：
+
+- `Observed Usage` 最高：真实会话里出现 skill / slash / workflow / tool / verification 调用。
+- `Local Method Framework Match` 很高：`report.local_method_frameworks` 显式配置或 `asset_roots` 从本地 hub 提取出的私有方法名，在真实会话的 skill / slash 使用中被精确命中。
+- `Repeated Pattern` 次高：同一方法、skill、workflow 指纹跨多个会话重复出现。
+- `Authored Asset` 中等：创建或修改 skill / rule / prompt / script / governance asset。
+- `Inventory Context` 最低：asset_root / hub 里存在文件，只能作为背景和低权重上下文。
+
+产品约束：
+
+- 用户目录结构不可被硬编码成通用能力标准。有人放在 `share/projects`，有人放在 `./skills`，有人只通过 slash command 或 MCP 使用能力；报告应优先看真实使用和复用，不以目录分类概全。
+- `local_method_frameworks` 是可配置、可从本地 hub 提取、最终进入聚合的真源：配置项与扫描结果先合并为候选清单，再与会话中的 `unique_skills_used` / `slash_commands` 做规范化精确匹配。未被真实任务命中的候选只展示为资产上下文，不参与等级主证据。
+- skill / rule / prompt 文件数量不能单独把用户推到 L4 / L5；只有当这些资产在真实任务里被使用、复用、编排或验证闭环支撑时，才进入等级主证据。
+- `level_evidence` 必须展示 `Agentic 系统成熟度`，并同时呈现使用率、workflow 指纹、公开框架命中、本地方法命中、重复复用、资产创作和高杠杆功能使用。库存证据只能作为低权重背景，不能冒充用户当期状态。
+- 数据不足时显示“未观察到”或留白，不用静态模板或资产库存替用户编造能力画像。
+
 ## 5.4 Prompt 模块
 
 底层字段：
@@ -165,9 +205,9 @@ score_target: 9.9
 - `pq_deficit_counts`
 - `pq_top_takeaways`
 - `pq_sessions_evaluated`
-- `pq_llm_session_count`
-- `pq_heuristic_session_count`
-- `pq_light_session_count`
+- `pq_llm_session_count`（兼容保留）/ `pq_heuristic_session_count`（兼容保留）/ `pq_light_session_count`（兼容保留）
+- `pq_llm_evaluated_count` / `pq_insufficient_count` / `pq_llm_failed_count` / `pq_llm_unavailable_count`（按 `evaluation_status` 统计，P1 新增）
+- `PromptLensScores.evaluation_status`：`llm_evaluated | insufficient_input | llm_failed | llm_unavailable | not_applicable`
 
 前台区块：
 
@@ -178,6 +218,7 @@ score_target: 9.9
 - 不是解释模型机制
 - 而是给用户一眼看懂的“下一步怎么提得更好”
 - 优先使用 `pq_top_takeaways`、真实 prompt 片段和改写示例，而不是只给抽象建议
+- 能从真实证据生成就生成；不能生成就留白或不展示，禁止用静态模板兜底冒充“你当前就是这样”
 - `Prompt 成长教练` 必须覆盖**全程 PQ 主链**，不能再因为短会话或 LLM 不可用而静默断档
 - `heuristic` 只允许作为代理来源展示，不能被描述成另一套独立的“Prompt Quality 评估产品”
 - prompt 包输入文案对外统一使用 `evidence packet` / `period summary packet` 等中性口径，不再依赖产品自述式前缀
@@ -185,8 +226,50 @@ score_target: 9.9
 
 来源说明约束：
 
-- 报告里必须显式告诉用户：本期有多少会话来自 `LLM 语义评估`，多少来自 `代理回填`
-- `session_read_mode=heuristic` 的含义是“当前来源模式”，不是“另一种 Prompt 质量定义”
+- 报告里必须显式告诉用户：本期有多少会话完成 LLM 语义判断（`llm_evaluated`）、多少因会话过短回退代理（`insufficient_input`）、多少 LLM 失败（`llm_failed`）、多少整体未配 LLM（`llm_unavailable`）
+- `session_read_mode=heuristic` 的含义是"当前来源模式"，不是"另一种 Prompt 质量定义"
+- 主报告按非零子句拼装人话；禁止展示 `LLM n / heuristic n / light n` 并列数字
+
+## 5.4.2 Prompt 成长教练升级边界
+
+`Prompt 成长教练` 已从“解释分数”升级为 **AI 提需求诊断器**，固定输出以下几层：
+
+1. `top_deficits`：本期最主要的提需求短板，至少包含问题定义、影响、来源边界、置信度、证据摘要
+2. `rewrite_cards`：2-4 张“原始提法 vs 更好提法”训练卡
+3. `prompt_style`：识别 `explicit_requirement_prompt / indexed_prompt / mixed_prompt / under_specified_prompt`
+4. `suggested_next_prompt`：只允许来自真实 `rewrite_cards` / LLM coaching / grounded takeaway 的改写结果；没有真实个性化改写时，必须为空，不得套静态模板
+5. `closure_guidance`：按任务类型给出正确收口方式，而不是默认要求测试；携带 `mode`（`open_ended | engineered` 派生，不升 schema）；`open_ended` 适用于探索/设计/分析/文案，`engineered` 适用于代码/配置/SQL/结构化生成
+6. `friction_synthesis`：标签综合判断层，LLM 配置时由 growth_coach 生成（evidence_refs 接地护栏），未配置时由 `domain/growth/prompting.py` 规则兜底；输出"你不是…而是…"风格可改动作；已打通 `growth_plan.linked_friction_synthesis_ids`
+7. `preflight_checklist` / `recommended_training_inputs`：面向下一次发送前自检和训练输入建议
+8. `universal_template` / `scenario_templates`：只能作为独立参考资产存在，不能在个性化内容缺失时顶替 `rewrite_cards` 或 `suggested_next_prompt` 出现在 personal report / compare / growth plan 主链里
+
+补充约束：
+
+- `indexed_prompt` 是正向方法资产信号，不得直接等价成 `missing-context`
+- 静态模板可以作为知识资产维护，但不得包装成“这是你这次最该怎么问”的个性化结论
+- Prompt 成长教练不再独立展示完整 `seven_day_training_plan`
+- 完整的 `Week 1 / Week 2 / practice_prompt / success_signal / stop_doing` 训练计划统一归口到 `下一阶段训练冲刺`
+
+硬约束：
+
+- 只有在真实 `PromptLensTakeaway.original` 存在时，才允许展示用户原始提法
+- 只有存在真实 `better_prompt` / grounding 证据时，才允许展示“下次可以这样问”或改写示例；否则留白
+- 只有 heuristic 数据时，必须明确标记为代理来源
+- 短会话不足时，不隐藏模块；改为展示来源说明、自检清单，以及明确的数据不足边界
+
+## 5.4.3 下一阶段训练冲刺联动规则
+
+`下一阶段训练冲刺` 必须消费两类上游结果：
+
+- `growth_trajectory`：近 30 天持续低迷轴、本期最新退步轴、本期最新证据
+- `prompt_coach`：top deficits、rewrite cards、通用/场景模板
+
+联动规则：
+
+- Prompt 维度或 deficit 明显偏弱时，优先输出 `prompt:*` 类型训练任务
+- `intent_clarity + missing-context / vague-request` 合并成“需求表达训练”
+- `delivery_closure + missing-acceptance-criteria` 合并成“验收标准训练”
+- 每个训练任务都必须附带 `evidence_refs` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids / linked_growth_trend_refs / linked_closure_guidance_ids`
 
 ## 5.4.1 usage 模块
 
@@ -378,4 +461,3 @@ score_target: 9.9
 - 2026-05-27：分享卡改为对外可发的结论卡；主报告补完整导航、减少重复块，Prompt 教练优先展示真实样例与改写示例。
 - 2026-05-27：对齐当前代码——HTML 在 `application/html_render.py`；导航顺序与 README 一致；文档去旧产品面表述。
 - 2026-05-29：公开 Wrapped Hero/用量口径/协作节奏文案与配色语义对齐；文档治理备份后更新本节。
-

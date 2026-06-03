@@ -11,9 +11,25 @@ import pytest
 from ai_growth_mirror.domain.common.contracts import LlmCallRequest
 from ai_growth_mirror.domain.session.model import SessionRecord
 
+# Repo-local scratch root for pytest basetemp, pytest cache, and ad-hoc manual runs.
+PROJECT_TMP_ROOT = Path(__file__).resolve().parents[1] / ".tmp"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _ensure_project_tmp_root() -> None:
+    """Create .tmp/ early so basetemp and manual helpers never touch repo root."""
+    PROJECT_TMP_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+def manual_run_workspace(name: str = "manual") -> Path:
+    """Scratch directory for ``python tests/unit/test_*.py`` ad-hoc runs."""
+    workspace = PROJECT_TMP_ROOT / name
+    workspace.mkdir(parents=True, exist_ok=True)
+    return workspace
+
 
 def run_workspace(tmp_path: Path, name: str = "workspace") -> Path:
-    """Per-test isolated directory under pytest tmp_path (never repo ``source/``)."""
+    """Per-test isolated directory under pytest tmp_path (``.tmp/pytest/`` via basetemp)."""
     workspace = tmp_path / name
     workspace.mkdir(parents=True, exist_ok=True)
     return workspace

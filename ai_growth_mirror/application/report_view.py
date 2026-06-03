@@ -19,10 +19,18 @@ from ..domain.growth.model import (
 from ..domain.growth.capability import compute_capability_scores
 from ..domain.growth.scorer import MIN_SESSION_READS_FOR_MIRROR_SCORE
 from ..domain.growth.coaching import CoachingContent
+from ..domain.snapshots.model import SnapshotSource
 from ..domain.signals.collab import CollaborationStyleResult, compute_collaboration_style
 from ..domain.growth.highlights import Exemplar, pattern_label, surface_highlights
+from ..domain.snapshots.trajectory import build_snapshot_trajectory_window
+from .growth_trajectory import (
+    GrowthTrajectoryView,
+    build_growth_trajectory_view,
+    build_runtime_snapshot_source,
+)
 from .growth_plan import GrowthPlanView, GrowthPriorityView, build_growth_plan
 from .label_catalogs import ReportLabelCatalogs
+from .prompt_coach import build_prompt_coach_view
 
 
 def _view_i18n(catalogs: ReportLabelCatalogs) -> dict:
@@ -72,6 +80,7 @@ def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
                     "",
                 ),
                 confidence=axis.confidence,
+                has_data=getattr(axis, "has_data", True),
             )
         )
     return axes
@@ -203,6 +212,7 @@ class CapabilityDimensionView:
     score: float
     explanation: str
     next_action: str
+    has_data: bool = True
 
 
 @dataclass
@@ -210,6 +220,7 @@ class CapabilitySectionView:
     strongest_label: str
     weakest_label: str
     dimensions: list[CapabilityDimensionView] = field(default_factory=list)
+    advanced_features: list[tuple[str, int]] = field(default_factory=list)
 
 
 @dataclass
@@ -229,6 +240,93 @@ class PromptCoachDimensionView:
 
 
 @dataclass
+class PromptCoachSourceSummaryView:
+    llm_session_count: int = 0
+    heuristic_session_count: int = 0
+    light_session_count: int = 0
+    evaluated_user_messages: int = 0
+    run_mode: str = "llm"
+    llm_evaluated_count: int = 0
+    insufficient_count: int = 0
+    llm_failed_count: int = 0
+    llm_unavailable_count: int = 0
+
+
+@dataclass
+class PromptCoachDeficitView:
+    id: str
+    category: str
+    label: str
+    description: str
+    impact: str
+    confidence: str
+    evidence_refs: list[str] = field(default_factory=list)
+    source: str = ""
+
+
+@dataclass
+class PromptCoachRewriteCardView:
+    id: str
+    scene: str
+    original: str
+    problem: str
+    better_prompt: str
+    why: str
+    category: str
+    confidence: str
+    evidence_refs: list[str] = field(default_factory=list)
+    source_note: str = ""
+
+
+@dataclass
+class PromptCoachTemplateView:
+    id: str
+    title: str
+    scene: str
+    common_gap: str
+    template: str
+
+
+@dataclass
+class PromptCoachChecklistItemView:
+    id: str
+    text: str
+    related_deficit_id: str
+
+
+@dataclass
+class PromptCoachPromptStyleView:
+    type: str
+    label: str
+    evidence: list[str] = field(default_factory=list)
+    coaching_message: str = ""
+    suggested_next_prompt: str = ""
+    trigger_maturity: list[str] = field(default_factory=list)
+
+
+@dataclass
+class PromptCoachClosureGuidanceView:
+    id: str
+    task_type: str
+    label: str
+    mode: str = "engineered"
+    expected_closure_methods: list[str] = field(default_factory=list)
+    missing_closure_methods: list[str] = field(default_factory=list)
+    coaching_message: str = ""
+
+
+@dataclass
+class PromptCoachFrictionSynthesisView:
+    id: str
+    label: str
+    explanation: str
+    next_action: str
+    confidence: int = 0
+    evidence_refs: list[str] = field(default_factory=list)
+    generated_by: str = "rule"
+
+
+@dataclass
 class PromptCoachView:
     available: bool
     headline: str
@@ -241,6 +339,17 @@ class PromptCoachView:
     deficits: list[str] = field(default_factory=list)
     dimension_scores: list[PromptCoachDimensionView] = field(default_factory=list)
     takeaways: list[PromptCoachTakeawayView] = field(default_factory=list)
+    source_summary: PromptCoachSourceSummaryView = field(default_factory=PromptCoachSourceSummaryView)
+    top_deficits: list[PromptCoachDeficitView] = field(default_factory=list)
+    rewrite_cards: list[PromptCoachRewriteCardView] = field(default_factory=list)
+    universal_template: Optional[PromptCoachTemplateView] = None
+    scenario_templates: list[PromptCoachTemplateView] = field(default_factory=list)
+    preflight_checklist: list[PromptCoachChecklistItemView] = field(default_factory=list)
+    prompt_style: Optional[PromptCoachPromptStyleView] = None
+    closure_guidance: Optional[PromptCoachClosureGuidanceView] = None
+    recommended_training_inputs: list[str] = field(default_factory=list)
+    friction_synthesis: list[PromptCoachFrictionSynthesisView] = field(default_factory=list)
+    light_state_note: str = ""
 
 
 @dataclass
@@ -415,21 +524,6 @@ class AgentAssetFootprintView:
 
 
 @dataclass
-class GrowthDeltaView:
-    """本期 vs 上期成长对比，仅当 snapshot archive 有上期数据时才填充。"""
-    available: bool
-    prev_label: str = ""        # e.g. "上期 2026-04-26"
-    score_delta: int = 0        # 正数表示成长
-    level_delta: int = 0        # +1 / 0 / -1
-    prev_score: int = 0
-    curr_score: int = 0
-    prev_level: str = ""
-    curr_level: str = ""
-    improved_dims: list[str] = field(default_factory=list)   # 进步的维度
-    regressed_dims: list[str] = field(default_factory=list)  # 退步的维度
-
-
-@dataclass
 class RadarChartView:
     size: int
     center: int
@@ -461,7 +555,7 @@ class PersonalReportView:
     growth_plan: GrowthPlanView
     generated_at: str
     agent_asset: Optional[AgentAssetFootprintView] = None
-    growth_delta: Optional[GrowthDeltaView] = None
+    growth_trajectory: Optional[GrowthTrajectoryView] = None
     radar_axes: list[RadarAxis] = field(default_factory=list)
     radar_chart: Optional[RadarChartView] = None
     gap_rankings: list[GrowthGap] = field(default_factory=list)
@@ -496,61 +590,6 @@ def build_agent_asset_footprint(
     )
 
 
-def build_growth_delta(
-    stats: GrowthProfile,
-    prev_profile: dict[str, object] | None,
-    prev_created_at: str = "",
-    *,
-    catalogs: ReportLabelCatalogs,
-) -> Optional[GrowthDeltaView]:
-    """Compare current stats against a preloaded previous snapshot profile."""
-    if not prev_profile:
-        return GrowthDeltaView(available=False)
-    prev_summary = prev_profile.get("summary", {})
-    prev_score = prev_summary.get("mirror_score", prev_profile.get("score", 0))
-    prev_level = prev_summary.get("growth_level", prev_profile.get("stage", ""))
-    curr_score = stats.mirror_score
-    curr_level = stats.growth_level
-    score_delta = curr_score - prev_score
-    level_map = {"L1": 1, "L2": 2, "L3": 3, "L4": 4, "L5": 5}
-    level_delta = level_map.get(curr_level, 0) - level_map.get(prev_level, 0)
-    # Compare sub-score dimensions
-    capability = prev_profile.get("capability", {})
-    prev_dimensions = capability.get("dimensions", []) if isinstance(capability, dict) else []
-    prev_sub = {
-        item.get("key", ""): item.get("score", 0)
-        for item in prev_dimensions
-        if isinstance(item, dict)
-    }
-    curr_sub = compute_capability_scores(stats)
-    dim_meta = _view_i18n(catalogs)["capability_meta"]
-    improved, regressed = [], []
-    for dim in curr_sub:
-        entry = dim_meta.get(dim, {})
-        label = entry.get("label", dim)
-        p = prev_sub.get(dim, 0)
-        c = curr_sub.get(dim, 0)
-        if c > p + 0.5:
-            improved.append(label)
-        elif c < p - 0.5:
-            regressed.append(label)
-    prev_label = _view_i18n(catalogs).get("growth_delta", {}).get("prev_label", "Prev {date}").format(
-        date=prev_created_at[:10]
-    )
-    return GrowthDeltaView(
-        available=True,
-        prev_label=prev_label,
-        score_delta=score_delta,
-        level_delta=level_delta,
-        prev_score=prev_score,
-        curr_score=curr_score,
-        prev_level=prev_level,
-        curr_level=curr_level,
-        improved_dims=improved[:3],
-        regressed_dims=regressed[:2],
-    )
-
-
 def build_personal_report_view(
     *,
     sessions: list[SessionRecord],
@@ -562,43 +601,28 @@ def build_personal_report_view(
     since: Optional[datetime] = None,
     until: Optional[datetime] = None,
     asset_stats: Optional[AgentAssetStats] = None,
-    prev_profile: dict[str, object] | None = None,
-    prev_snapshot_created_at: str = "",
+    previous_snapshot: SnapshotSource | None = None,
+    historical_snapshots: list[SnapshotSource] | None = None,
     coaching: CoachingContent | None = None,
     session_read_mode: str = "heuristic",
+    quality_eligible: int = 0,
+    extraction_failed: int = 0,
 ) -> PersonalReportView:
     capability_scores = compute_capability_scores(stats)
-    capability = _build_capability_section(capability_scores, catalogs)
-    if coaching and coaching.priorities:
-        gp_priorities = [
-            GrowthPriorityView(
-                key=p.key,
-                title=p.title,
-                why=p.why,
-                success_signal=p.success_signal,
-                stop_doing=p.stop_doing,
-                week_1_actions=p.week_1_actions,
-                week_2_actions=p.week_2_actions,
-                practice_prompt=p.practice_prompt,
-            )
-            for p in coaching.priorities
-        ]
-        growth_plan = GrowthPlanView(
-            headline=coaching.growth_headline,
-            next_focus=gp_priorities[0].title if gp_priorities else "",
-            priorities=gp_priorities,
-        )
-    else:
-        growth_plan = build_growth_plan(
-            stats=stats,
-            capability_scores=capability_scores,
-            catalogs=catalogs,
-        )
+    capability = _build_capability_section(capability_scores, catalogs, stats=stats)
+    capability.advanced_features = sorted(
+        ((key, int(value)) for key, value in (stats.advanced_feature_counts or {}).items() if value),
+        key=lambda item: (-item[1], item[0]),
+    )
     exemplars = _build_exemplars(sessions, session_reads, redact, catalogs)
-    if coaching and coaching.prompt_coach_takeaways:
-        prompt_coach = _build_prompt_coach_from_coaching(coaching, stats, catalogs)
-    else:
-        prompt_coach = _build_prompt_coach(stats, session_read_mode, catalogs)
+    prompt_coach = build_prompt_coach_view(
+        stats=stats,
+        sessions=sessions,
+        session_reads=session_reads,
+        session_read_mode=session_read_mode,
+        catalogs=catalogs,
+        coaching=coaching,
+    )
     friction = _build_friction(stats, catalogs)
     localized_radar_axes = _localize_radar_axes(stats, catalogs)
     localized_gap_rankings = _localize_gap_rankings(stats, catalogs)
@@ -607,6 +631,13 @@ def build_personal_report_view(
         localized_radar_axes,
         localized_gap_rankings,
         catalogs,
+    )
+    growth_plan = build_growth_plan(
+        stats=stats,
+        capability_scores=capability_scores,
+        catalogs=catalogs,
+        prompt_coach=prompt_coach,
+        growth_trajectory=None,
     )
     summary = _build_summary(
         stats=stats,
@@ -635,17 +666,74 @@ def build_personal_report_view(
         catalogs=catalogs,
     )
     agent_asset = build_agent_asset_footprint(asset_stats, catalogs=catalogs)
-    growth_delta = build_growth_delta(
-        stats,
-        prev_profile,
-        prev_snapshot_created_at,
+    labels = _template_labels(catalogs)
+    history_sources = list(historical_snapshots or [])
+    if previous_snapshot is None and history_sources:
+        previous_snapshot = history_sources[-1]
+    current_snapshot = build_runtime_snapshot_source(
+        stats=stats,
+        session_reads=session_reads,
+        summary=summary,
+        capability=capability,
+        prompt_coach=prompt_coach,
+        growth_plan=growth_plan,
+        agent_asset=agent_asset,
+        exemplars=exemplars,
+        tool_display_name=tool_display_name,
+        date_range=_compute_date_range(sessions, since=since, until=until),
+        created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        quality_eligible=quality_eligible,
+        extraction_failed=extraction_failed,
+    )
+    growth_trajectory = build_growth_trajectory_view(
+        current_source=current_snapshot,
+        previous_source=previous_snapshot,
+        history_sources=history_sources,
         catalogs=catalogs,
     )
-    labels = _template_labels(catalogs)
+    growth_plan = build_growth_plan(
+        stats=stats,
+        capability_scores=capability_scores,
+        catalogs=catalogs,
+        prompt_coach=prompt_coach,
+        growth_trajectory=growth_trajectory,
+    )
+    summary = _build_summary(
+        stats=stats,
+        tool_display_name=tool_display_name,
+        date_range=_compute_date_range(sessions, since=since, until=until),
+        capability=capability,
+        growth_plan=growth_plan,
+        redact=redact,
+        coaching=coaching,
+        session_read_mode=session_read_mode,
+        catalogs=catalogs,
+    )
+    current_snapshot = build_runtime_snapshot_source(
+        stats=stats,
+        session_reads=session_reads,
+        summary=summary,
+        capability=capability,
+        prompt_coach=prompt_coach,
+        growth_plan=growth_plan,
+        agent_asset=agent_asset,
+        exemplars=exemplars,
+        tool_display_name=tool_display_name,
+        date_range=_compute_date_range(sessions, since=since, until=until),
+        created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        quality_eligible=quality_eligible,
+        extraction_failed=extraction_failed,
+    )
+    growth_trajectory = build_growth_trajectory_view(
+        current_source=current_snapshot,
+        previous_source=previous_snapshot,
+        history_sources=history_sources,
+        catalogs=catalogs,
+    )
     sections = _build_report_sections(
         labels,
         has_agent_asset=agent_asset is not None,
-        has_growth_delta=bool(growth_delta and growth_delta.available),
+        has_growth_delta=bool(growth_trajectory and growth_trajectory.available),
     )
     return PersonalReportView(
         report_title=labels.get("report_title", "AI 成长镜"),
@@ -667,7 +755,7 @@ def build_personal_report_view(
         growth_plan=growth_plan,
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
         agent_asset=agent_asset,
-        growth_delta=growth_delta,
+        growth_trajectory=growth_trajectory,
         radar_axes=localized_radar_axes,
         radar_chart=_build_radar_chart(localized_radar_axes),
         gap_rankings=localized_gap_rankings,
@@ -676,21 +764,47 @@ def build_personal_report_view(
     )
 
 
-def _build_capability_section(capability_scores: dict[str, float], catalogs: ReportLabelCatalogs) -> CapabilitySectionView:
+def _build_capability_section(
+    capability_scores: dict[str, float],
+    catalogs: ReportLabelCatalogs,
+    *,
+    stats: Optional[GrowthProfile] = None,
+) -> CapabilitySectionView:
     meta = _view_i18n(catalogs)["capability_meta"]
+    # Mirror the rule used in scorer._build_radar_axes so the capability cards
+    # and the radar always agree on whether a dimension actually has support.
+    pq_evaluated = max(0, getattr(stats, "pq_sessions_evaluated", 0)) if stats else 0
+    has_outcome_signals = False
+    if stats is not None:
+        has_outcome_signals = (
+            stats.workflow_build_substantial_count
+            + stats.workflow_build_moderate_count
+            + (stats.avg_autonomous_chain_length or 0.0)
+        ) > 0 or bool(stats.top_tools)
+    session_count = stats.session_count if stats else 0
     dims: list[CapabilityDimensionView] = []
     for key in _CAPABILITY_ORDER:
         entry = meta.get(key, {"label": key, "explanation": "", "next_action": ""})
         label = entry["label"]
         explanation = entry["explanation"]
         next_action = entry["next_action"]
+        score = capability_scores.get(key, 0.0)
+        if stats is None:
+            has_data = True
+        elif key == "intent_clarity":
+            has_data = pq_evaluated > 0
+        else:
+            has_data = session_count > 0 and (pq_evaluated > 0 or has_outcome_signals)
+        if has_data and score == 0.0 and not has_outcome_signals and pq_evaluated == 0:
+            has_data = False
         dims.append(
             CapabilityDimensionView(
                 key=key,
                 label=label,
-                score=capability_scores.get(key, 0.0),
+                score=score,
                 explanation=explanation,
                 next_action=next_action,
+                has_data=has_data,
             )
         )
     strongest = max(dims, key=lambda item: item.score)
@@ -812,7 +926,7 @@ def _build_summary(
     )
     return PersonalSummaryView(
         title=s_i18n.get("title", ""),
-        subtitle=f"{tool_display_name}{s_i18n.get('subtitle_suffix', '')}",
+        subtitle=tool_display_name,
         headline=headline,
         score_display=score_display,
         source_note=source_note,
@@ -835,30 +949,58 @@ def _build_report_sections(
     has_agent_asset: bool,
     has_growth_delta: bool,
 ) -> list[ReportSectionLinkView]:
-    sections = [
-        ReportSectionLinkView("section-growth-signals", labels.get("section_growth_signals", "Growth signal overview")),
-        ReportSectionLinkView("section-level-evidence", labels.get("section_level_evidence", "Stage assessment")),
-        ReportSectionLinkView("section-level-guide", labels.get("section_level_guide", "Collaboration level guide")),
-        ReportSectionLinkView("section-prompt-coach", labels.get("section_prompt_coach", "Prompt growth coach")),
-        ReportSectionLinkView("section-friction", labels.get("section_friction", "Friction map")),
-        ReportSectionLinkView("section-exemplars", labels.get("section_exemplars", "Methods worth keeping")),
-        ReportSectionLinkView("section-growth-plan", labels.get("section_growth_plan", "Next practice sprint")),
-        ReportSectionLinkView("section-focus", labels.get("section_work_focus", "What you are using AI for")),
-        ReportSectionLinkView("section-rhythm", labels.get("section_rhythm", "Collaboration rhythm")),
-        ReportSectionLinkView("section-wins", labels.get("section_wins", "Highlights this period")),
+    # Order MUST match report.html.j2 DOM order so sidebar nav, scroll-spy,
+    # and click targets stay aligned.
+    primary_sections = [
+        ReportSectionLinkView(
+            "section-summary",
+            labels.get("section_report_title", labels.get("report_title", "AI 成长镜")),
+            nav_visible=False,
+        ),
+        ReportSectionLinkView(
+            "section-growth-signals",
+            labels.get("section_growth_signals", "Growth signal overview"),
+        ),
+        ReportSectionLinkView(
+            "section-level-evidence",
+            labels.get("section_level_evidence", "Stage assessment"),
+        ),
+    ]
+    if has_growth_delta:
+        primary_sections.append(
+            ReportSectionLinkView(
+                "section-growth-delta",
+                labels.get("section_growth_delta", "Growth trajectory"),
+            )
+        )
+    primary_sections.extend(
+        [
+            ReportSectionLinkView(
+                "section-prompt-coach",
+                labels.get("section_prompt_coach", "Prompt growth coach"),
+            ),
+            ReportSectionLinkView(
+                "section-growth-plan",
+                labels.get("section_growth_plan", "Next practice sprint"),
+            ),
+        ]
+    )
+    appendix_sections = [
+        ReportSectionLinkView("section-level-guide", labels.get("section_level_guide", "Collaboration level guide"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-friction", labels.get("section_friction", "Friction map"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-exemplars", labels.get("section_exemplars", "Methods worth keeping"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-focus", labels.get("section_work_focus", "What you are using AI for"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-rhythm", labels.get("section_rhythm", "Collaboration rhythm"), nav_visible=False, kind="appendix"),
+        ReportSectionLinkView("section-wins", labels.get("section_wins", "Highlights this period"), nav_visible=False, kind="appendix"),
     ]
     if has_agent_asset:
-        sections.append(
-            ReportSectionLinkView("section-agent-asset", labels.get("section_agent_asset", "Agent asset footprint"))
+        appendix_sections.append(
+            ReportSectionLinkView("section-agent-asset", labels.get("section_agent_asset", "Agent asset footprint"), nav_visible=False, kind="appendix")
         )
-    if has_growth_delta:
-        sections.append(
-            ReportSectionLinkView("section-growth-delta", labels.get("section_growth_delta", "Growth trajectory"))
-        )
-    sections.append(
+    appendix_sections.append(
         ReportSectionLinkView("section-style-lens", labels.get("section_style_lens", "Collaboration style lens"), nav_visible=False, kind="appendix")
     )
-    return sections
+    return primary_sections + appendix_sections
 
 
 def _build_heuristic_prompt_coach(
@@ -1573,6 +1715,12 @@ def _build_level_axis_metrics(
     mcp_rate = round((getattr(stats, "mcp_session_rate", 0.0) or 0.0) * 100)
     subagent_count = getattr(stats, "subagent_session_count", 0)
     tool_build_rate = round((getattr(stats, "tool_build_rate", 0.0) or 0.0) * 100)
+    skill_usage_rate = round((getattr(stats, "skill_usage_session_rate", 0.0) or 0.0) * 100)
+    public_framework_rate = round((getattr(stats, "public_framework_session_rate", 0.0) or 0.0) * 100)
+    local_method_rate = round((getattr(stats, "local_method_framework_session_rate", 0.0) or 0.0) * 100)
+    workflow_fingerprint_rate = round((getattr(stats, "workflow_fingerprint_session_rate", 0.0) or 0.0) * 100)
+    asset_authoring_rate = round((getattr(stats, "asset_authoring_session_rate", 0.0) or 0.0) * 100)
+    agentic_system_score = round(getattr(stats, "agentic_system_score", 0.0) or 0.0)
     authored_assets = (
         getattr(stats, "skill_authored_count", 0)
         + getattr(stats, "hook_modified_session_count", 0)
@@ -1620,6 +1768,16 @@ def _build_level_axis_metrics(
             tool_build_rate=tool_build_rate,
             authored_assets=authored_assets,
         ),
+        "agentic_system": current_value_templates.get("agentic_system", "").format(
+            score=agentic_system_score,
+            skill_usage_rate=skill_usage_rate,
+            public_framework_rate=public_framework_rate,
+            local_method_rate=local_method_rate,
+            workflow_fingerprint_rate=workflow_fingerprint_rate,
+            workflow_reuse_depth=getattr(stats, "workflow_reuse_depth", 0),
+            asset_authoring_rate=asset_authoring_rate,
+            advanced_feature_rate=round((getattr(stats, "advanced_feature_ratio", 0.0) or 0.0) * 100),
+        ),
     }
     raw_signals = dict(current_values)
     ordered_keys = tuple(_CAPABILITY_ORDER)
@@ -1638,6 +1796,20 @@ def _build_level_axis_metrics(
                 passed=passed,
                 explanation=f"{explanations.get(key, '')} {level_hint}".strip(),
                 raw_signal=raw_signals[key],
+                catalogs=catalogs,
+            )
+        )
+    system_profile = target_profile.get("agentic_system", {})
+    if system_profile:
+        required_score = float(thresholds.get("agentic_system", 0))
+        metrics.append(
+            _level_metric(
+                label=metrics_i18n.get("labels", {}).get("agentic_system", "Agentic system"),
+                current=current_values["agentic_system"],
+                target=system_profile.get("target", ""),
+                passed=(getattr(stats, "agentic_system_score", 0.0) or 0.0) >= required_score,
+                explanation=f"{explanations.get('agentic_system', '')} {system_profile.get('hint', '')}".strip(),
+                raw_signal=raw_signals["agentic_system"],
                 catalogs=catalogs,
             )
         )
@@ -2045,3 +2217,86 @@ def _build_heuristic_exemplar_summary(
         parts.append(summary_i18n.get("commits", "").format(git_commits=meta.git_commits))
     separator = summary_i18n.get("separator", "; ")
     return separator.join(parts)
+
+
+def empty_prompt_coach_view() -> PromptCoachView:
+    return PromptCoachView(
+        available=False,
+        headline="",
+        strongest_label="",
+        weakest_label="",
+        evidence_summary="",
+        strength_habit="",
+    )
+
+
+def build_prompt_coach_view_from_payload(payload: dict | None) -> PromptCoachView:
+    if not isinstance(payload, dict) or not payload:
+        return empty_prompt_coach_view()
+    source_summary_payload = payload.get("source_summary") or {}
+    source_summary = PromptCoachSourceSummaryView(
+        llm_session_count=int(source_summary_payload.get("llm_session_count", 0) or 0),
+        heuristic_session_count=int(source_summary_payload.get("heuristic_session_count", 0) or 0),
+        light_session_count=int(source_summary_payload.get("light_session_count", 0) or 0),
+        evaluated_user_messages=int(source_summary_payload.get("evaluated_user_messages", 0) or 0),
+        run_mode=str(source_summary_payload.get("run_mode", "llm") or "llm"),
+        llm_evaluated_count=int(source_summary_payload.get("llm_evaluated_count", 0) or 0),
+        insufficient_count=int(source_summary_payload.get("insufficient_count", 0) or 0),
+        llm_failed_count=int(source_summary_payload.get("llm_failed_count", 0) or 0),
+        llm_unavailable_count=int(source_summary_payload.get("llm_unavailable_count", 0) or 0),
+    )
+    rewrite_cards = [
+        PromptCoachRewriteCardView(
+            id=str(item.get("id", "")),
+            scene=str(item.get("scene", "")),
+            original=str(item.get("original", "")),
+            problem=str(item.get("problem", "")),
+            better_prompt=str(item.get("better_prompt", "")),
+            why=str(item.get("why", "")),
+            category=str(item.get("category", "")),
+            confidence=str(item.get("confidence", "")),
+            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
+            source_note=str(item.get("source_note", "")),
+        )
+        for item in payload.get("rewrite_cards", [])
+        if isinstance(item, dict)
+    ]
+    universal_payload = payload.get("universal_template") or {}
+    universal_template = None
+    if isinstance(universal_payload, dict) and universal_payload:
+        universal_template = PromptCoachTemplateView(
+            id=str(universal_payload.get("id", "")),
+            title=str(universal_payload.get("title", "")),
+            scene=str(universal_payload.get("scene", "")),
+            common_gap=str(universal_payload.get("common_gap", "")),
+            template=str(universal_payload.get("body") or universal_payload.get("template", "")),
+        )
+    friction_synthesis = [
+        PromptCoachFrictionSynthesisView(
+            id=str(item.get("id", "")),
+            label=str(item.get("label", "")),
+            explanation=str(item.get("explanation", "")),
+            next_action=str(item.get("next_action", "")),
+            confidence=int(item.get("confidence", 0) or 0),
+            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
+            generated_by=str(item.get("generated_by", "rule") or "rule"),
+        )
+        for item in payload.get("friction_synthesis", [])
+        if isinstance(item, dict)
+    ]
+    return PromptCoachView(
+        available=bool(payload.get("headline") or rewrite_cards or friction_synthesis or universal_template),
+        headline=str(payload.get("headline", "")),
+        strongest_label=str(payload.get("strongest_label", "")),
+        weakest_label=str(payload.get("weakest_label", "")),
+        evidence_summary=str(payload.get("evidence_summary", "")),
+        strength_habit=str(payload.get("strength_habit", "")),
+        source_note=str(payload.get("source_note", "")),
+        light_state_note=str(payload.get("light_state_note", "")),
+        source_summary=source_summary,
+        weak_dimensions=[str(item) for item in payload.get("weak_dimensions", []) if item],
+        deficits=[str(item) for item in payload.get("deficits", []) if item],
+        rewrite_cards=rewrite_cards,
+        universal_template=universal_template,
+        friction_synthesis=friction_synthesis,
+    )

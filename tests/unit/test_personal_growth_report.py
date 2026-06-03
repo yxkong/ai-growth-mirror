@@ -2,27 +2,35 @@
 from pathlib import Path
 
 from ai_growth_mirror.domain.session.model import SessionRecord
-from ai_growth_mirror.domain.signals.model import SessionRead
+from ai_growth_mirror.domain.signals.model import PromptLensFinding, PromptLensTakeaway, PromptLensScores, SessionRead
+from ai_growth_mirror.application.prompt_coach import build_prompt_coach_view
 from ai_growth_mirror.infra.readers.cursor import CursorAdapter
 from ai_growth_mirror.domain.growth.scorer import aggregate
 from ai_growth_mirror.domain.growth.model import GrowthProfile
 from ai_growth_mirror.application.growth_plan import build_growth_plan
-from ai_growth_mirror.application.personal_report_service import (
-    _load_previous_profile,
-    generate_personal_report,
-)
+from ai_growth_mirror.application.personal_report_service import generate_personal_report
 from ai_growth_mirror.application.summary_payload import build_personal_summary_payload
 from ai_growth_mirror.application.report_view import build_personal_report_view, _build_level_evidence
+from ai_growth_mirror.domain.snapshots.model import SnapshotCoverage, SnapshotMethodAssets, SnapshotPromptQuality, SnapshotSource
+from ai_growth_mirror.domain.snapshots.trajectory import build_snapshot_trajectory_window
 from tests.conftest import load_report_label_catalogs, run_workspace
 from ai_growth_mirror.infra.snapshots import (
     SNAPSHOT_ARCHIVE_DIRNAME,
     build_snapshot_comparison,
     compare_snapshots,
+    load_previous_snapshot_source,
 )
 from ai_growth_mirror.application.html_render import render_personal_report_html, render_share_card_html
 
 
-def _make_session(session_id: str, project: str, *, with_subagent: bool = False) -> SessionRecord:
+def _make_session(
+    session_id: str,
+    project: str,
+    *,
+    with_subagent: bool = False,
+    first_prompt: str | None = None,
+) -> SessionRecord:
+    prompt = first_prompt or "目标：修复接口错误。相关文件：handler.py, test_handler.py。约束：不要改 API 契约。验收：pytest 通过。"
     return SessionRecord(
         session_id=session_id,
         tool_name="codex",
@@ -30,7 +38,7 @@ def _make_session(session_id: str, project: str, *, with_subagent: bool = False)
         start_time="2026-05-20T09:00:00+00:00",
         end_time="2026-05-20T10:00:00+00:00",
         duration_minutes=60,
-        first_prompt="目标：修复接口错误。相关文件：handler.py, test_handler.py。约束：不要改 API 契约。验收：pytest 通过。",
+        first_prompt=prompt,
         user_message_count=6,
         assistant_message_count=8,
         tool_counts={"read": 8, "edit": 2, "bash": 3},
@@ -47,9 +55,9 @@ def _make_session(session_id: str, project: str, *, with_subagent: bool = False)
         autonomous_chain_lengths=[6, 4, 3],
         has_verification_behavior=True,
         has_test_commands=True,
-        prompt_word_count=18,
-        prompt_has_constraint=True,
-        prompt_has_code_context=True,
+        prompt_word_count=len(prompt.split()),
+        prompt_has_constraint=("约束" in prompt or "constraints" in prompt.lower() or "验收" in prompt or "acceptance" in prompt.lower()),
+        prompt_has_code_context=(".py" in prompt or ".ts" in prompt or "文件" in prompt or "file" in prompt.lower()),
     )
 
 
@@ -68,6 +76,7 @@ def _make_facets(session_id: str, *, score_bias: int = 0) -> SessionRead:
         prompt_lens=PromptLensScores(
             source="llm",
             coverage="full",
+            evaluation_status="llm_evaluated",
             evaluated_user_messages=6,
             context_provision=55 + score_bias,
             request_specificity=52 + score_bias,
@@ -80,6 +89,23 @@ def _make_facets(session_id: str, *, score_bias: int = 0) -> SessionRead:
         capability_depth="incidental",
         work_style="plan_driven",
     )
+
+
+def _snapshot_index_entry(snapshot_id: str, created_at: str) -> dict[str, str]:
+    prefix = f"snapshots/{snapshot_id}"
+    return {
+        "snapshot_id": snapshot_id,
+        "created_at": created_at,
+        "tool_display_name": "Codex CLI",
+        "report_title": "test report",
+        "date_range": "2026-05-01 – 2026-05-31",
+        "report_path": f"{prefix}/report.html",
+        "report_json_path": f"{prefix}/report.json",
+        "profile_path": f"{prefix}/profile.json",
+        "summary_path": f"{prefix}/summary.json",
+        "normalized_summary_path": f"{prefix}/normalized-summary.json",
+        "compare_hint": f"ai-growth-mirror compare {snapshot_id} <other_snapshot_id>",
+    }
 
 
 def test_build_growth_plan_returns_two_priorities():
@@ -115,14 +141,17 @@ def test_build_personal_report_view_contains_core_sections():
         catalogs=load_report_label_catalogs("zh"),
     )
     assert view.summary.growth_level
+    assert view.summary.subtitle == "Codex CLI"
     assert view.summary.share_title
     assert len(view.summary.share_lines) == 3
     assert view.sections
     assert any(item.id == "section-growth-plan" for item in view.sections)
+    assert any(item.id == "section-summary" for item in view.sections)
     assert any(item.id == "section-level-evidence" for item in view.sections)
     assert all(item.id != "section-usage" for item in view.sections)
     assert all(item.id != "section-capability" for item in view.sections)
     assert len(view.capability.dimensions) == 5
+    assert view.capability.dimensions[0].has_data is True
     assert view.radar_chart is not None
     assert view.radar_chart.polygon_points
     assert view.radar_axes
@@ -148,6 +177,29 @@ def test_build_personal_report_view_contains_core_sections():
     assert "LLM" in view.prompt_coach.source_note
     assert len({item.kind for item in view.prompt_coach.takeaways}) >= 2
     assert all(item.message != item.action for item in view.prompt_coach.takeaways if item.message and item.action)
+
+
+def test_short_session_prompt_lens_gets_insufficient_input_status():
+    from ai_growth_mirror.infra.extractors.heuristic import build_prompt_quality_proxy
+
+    session = _make_session("s1", "D:/repo/a")
+    session.user_message_count = 3
+
+    proxy = build_prompt_quality_proxy(
+        session,
+        language="zh",
+        evaluation_status="insufficient_input",
+    )
+    assert proxy.evaluation_status == "insufficient_input"
+    assert proxy.coverage == "light"
+
+    facet = SessionRead(
+        session_id="s1",
+        tool_name="codex",
+        prompt_lens=proxy,
+    )
+    stats = aggregate([session], [facet], tool_name="codex")
+    assert stats.pq_insufficient_count >= 1
 
 
 def test_collaboration_rhythm_falls_back_to_session_start_when_message_timestamps_missing():
@@ -201,6 +253,12 @@ def test_generate_personal_report_writes_html_and_sidecar(tmp_path: Path):
     assert "section-style-lens" in html
     assert "AI 成长镜" in html
     assert "本期协作进化报告" in html
+    assert 'href="#section-summary"' in html
+    assert 'sidebar-brand-link' in html
+    assert "github.com/yxkong/ai-growth-mirror" in html
+    assert "5ycode@sina.com" in html
+    assert html.count('href="#section-summary"') >= 1
+    assert "7 天微训练" not in html
     assert out.with_suffix(".json").exists()
     assert out.with_name("personal.summary.json").exists()
     share_html = out.with_name("personal-share.html")
@@ -226,6 +284,35 @@ def test_personal_summary_payload_contains_share_surface_fields():
     assert payload["share_card"]["stage"] == view.summary.growth_level
     assert payload["share_card"]["strongest_habit"] == view.summary.strongest_signal
     assert payload["share_card"]["current_breakthrough"] == view.summary.next_focus
+
+
+def test_personal_summary_payload_exports_closed_loop_fields():
+    sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/b")]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+    payload = build_personal_summary_payload(view)
+
+    assert "growth_trajectory" in payload
+    assert "prompt_coach" in payload
+    assert "growth_plan" in payload
+    assert payload["prompt_coach"]["source_summary"]["llm_session_count"] >= 0
+    assert isinstance(payload["prompt_coach"]["rewrite_cards"], list)
+    assert isinstance(payload["growth_plan"]["priorities"], list)
+    assert "seven_day_training_plan" not in payload["prompt_coach"]
+    assert "prompt_style" in payload["prompt_coach"]
+    assert "closure_guidance" in payload["prompt_coach"]
+    assert "recommended_training_inputs" in payload["prompt_coach"]
+    assert "window_points" in payload["growth_trajectory"]
+    assert "daily_points" in payload["growth_trajectory"]
+    assert "linked_growth_trend_refs" in payload["growth_plan"]["priorities"][0]
+    assert "linked_closure_guidance_ids" in payload["growth_plan"]["priorities"][0]
 
 
 def test_prompt_coach_prefers_real_takeaway_examples():
@@ -257,6 +344,363 @@ def test_prompt_coach_prefers_real_takeaway_examples():
     assert view.prompt_coach.takeaways[0].label == "先把背景交代完整"
     assert "帮我看看这个问题" in view.prompt_coach.takeaways[0].evidence
     assert "相关文件：handler.py" in view.prompt_coach.takeaways[0].better_prompt
+
+
+def test_prompt_coach_mixed_prompt_message_aligns_with_acceptance_gap():
+    session = _make_session(
+        "s1",
+        "D:/repo/a",
+        first_prompt="按照 /delivery-workflow 执行。针对 ai_growth_mirror/application/prompt_coach.py，目标结果：修正当前判断卡文案，避免和首要短板打架。",
+    )
+    session.slash_commands = ["/delivery-workflow"]
+    session.unique_skills_used = ["delivery-workflow"]
+    facet = _make_facets("s1")
+    stats = aggregate([session], [facet], tool_name="codex")
+    stats.pq_deficit_counts = {
+        "missing-acceptance-criteria": 4,
+        "missing-context": 2,
+    }
+
+    coach = build_prompt_coach_view(
+        stats=stats,
+        sessions=[session],
+        session_reads=[facet],
+        session_read_mode="llm",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert coach.prompt_style is not None
+    assert coach.prompt_style.type == "mixed_prompt"
+    assert "完成定义和收口方式" in coach.prompt_style.coaching_message
+    assert "上下文不足" not in coach.prompt_style.coaching_message
+    assert coach.prompt_style.suggested_next_prompt == ""
+    assert coach.rewrite_cards == []
+
+
+def test_prompt_coach_prioritizes_task_variable_evidence_for_mixed_prompt():
+    session = _make_session(
+        "s1",
+        "D:/repo/a",
+        first_prompt="按照 /delivery-workflow 执行。针对 ai_growth_mirror/application/prompt_coach.py 和 tests/unit/test_personal_growth_report.py，目标结果：修正当前判断卡文案。",
+    )
+    session.slash_commands = ["/delivery-workflow"]
+    session.unique_skills_used = ["delivery-workflow"]
+    facet = _make_facets("s1")
+    stats = aggregate([session], [facet], tool_name="codex")
+    stats.pq_deficit_counts = {"missing-acceptance-criteria": 3}
+
+    coach = build_prompt_coach_view(
+        stats=stats,
+        sessions=[session],
+        session_reads=[facet],
+        session_read_mode="llm",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert coach.prompt_style is not None
+    visible_evidence = coach.prompt_style.evidence[:3]
+    assert any("本次任务变量：已补" in item for item in visible_evidence)
+
+
+def test_prompt_coach_does_not_fallback_to_template_without_grounded_rewrite():
+    session = _make_session(
+        "s1",
+        "D:/repo/a",
+        first_prompt="按照 /delivery-workflow 执行。针对 ai_growth_mirror/application/prompt_coach.py，目标结果：修正当前判断卡文案。",
+    )
+    session.slash_commands = ["/delivery-workflow"]
+    session.unique_skills_used = ["delivery-workflow"]
+    facet = _make_facets("s1")
+    stats = aggregate([session], [facet], tool_name="codex")
+    stats.pq_deficit_counts = {"missing-context": 3}
+
+    view = build_personal_report_view(
+        sessions=[session],
+        session_reads=[facet],
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.prompt_style is not None
+    assert view.prompt_coach.prompt_style.suggested_next_prompt == ""
+    assert view.prompt_coach.rewrite_cards == []
+    assert view.prompt_coach.universal_template is None
+    assert view.prompt_coach.scenario_templates == []
+
+
+def test_snapshot_trajectory_window_collapses_same_day_points():
+    def _source(snapshot_id: str, created_at: str, score: int) -> SnapshotSource:
+        return SnapshotSource(
+            snapshot_id=snapshot_id,
+            created_at=created_at,
+            date_range="2026-05",
+            tool_display_name="Codex CLI",
+            growth_level="L3",
+            mirror_score=score,
+            headline="headline",
+            next_focus="focus",
+            strongest_axis_key="intent_clarity",
+            weakest_axis_key="delivery_closure",
+            axis_scores={
+                "intent_clarity": float(score),
+                "execution_driving": float(score - 2),
+                "implementation_depth": float(score - 4),
+                "delivery_closure": float(score - 6),
+                "adaptive_recovery": float(score - 3),
+            },
+            prompt_quality_dimensions={"context_provision": float(score - 10)},
+            actionable_friction_counts={
+                "vague_request": 3,
+                "missing_context": 2,
+                "scope_drift": 1,
+                "missing_acceptance_criteria": 1,
+                "unclear_correction": 0,
+            },
+            prompt_quality=SnapshotPromptQuality(),
+            friction_type_counts={},
+            friction_by_attribution={},
+            method_assets=SnapshotMethodAssets(),
+            coverage=SnapshotCoverage(session_count=4, session_read_count=4, has_usage_data=True),
+            evidence_by_topic={},
+            sample_count=4,
+            point_confidence="medium",
+        )
+
+    window = build_snapshot_trajectory_window(
+        [
+            _source("a", "2026-05-29 10:00:00", 50),
+            _source("b", "2026-05-30 10:00:00", 58),
+            _source("c1", "2026-05-31 09:00:00", 60),
+            _source("c2", "2026-05-31 18:00:00", 68),
+        ]
+    )
+
+    assert len(window.window_points) == 4
+    assert len(window.daily_points) == 3
+    assert window.daily_points[-1].snapshot_id == "c2"
+    assert window.trend_summary.label in {"sustained_up", "volatile_up"}
+
+
+def test_prompt_coach_classifies_indexed_prompt_without_treating_it_as_missing_context():
+    sessions = [
+        _make_session(
+            "s1",
+            "D:/repo/a",
+            first_prompt="requirements_design / AGENTS.md / delivery workflow",
+        ),
+        _make_session(
+            "s2",
+            "D:/repo/a",
+            first_prompt="code_review / rules / skill",
+        ),
+    ]
+    sessions[0].unique_skills_used = ["delivery-workflow", "ai-growth-mirror-dev"]
+    sessions[0].slash_commands = ["/requirements_design"]
+    sessions[1].unique_skills_used = ["code-review-skill"]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.prompt_style is not None
+    assert view.prompt_coach.prompt_style.type == "indexed_prompt"
+    assert "索引式 Prompt" in view.prompt_coach.prompt_style.label
+    assert any("技能路由" in item or "命令入口" in item for item in view.prompt_coach.prompt_style.evidence)
+    payload = build_personal_summary_payload(view)
+    assert "seven_day_training_plan" not in payload["prompt_coach"]
+
+
+def test_prompt_coach_classifies_mixed_prompt():
+    sessions = [
+        _make_session(
+            "s1",
+            "D:/repo/a",
+            first_prompt="按照 requirements_design，基于成长轨迹模块做需求设计，重点考虑 Prompt 教练和训练冲刺联动。",
+        ),
+        _make_session("s2", "D:/repo/a"),
+    ]
+    sessions[0].unique_skills_used = ["delivery-workflow"]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.prompt_style is not None
+    assert view.prompt_coach.prompt_style.type == "mixed_prompt"
+
+
+def test_prompt_coach_reframes_indexed_rule_blob_rewrite_card():
+    session = _make_session(
+        "s1",
+        "D:/repo/a",
+        first_prompt="requirements_design",
+    )
+    session.unique_skills_used = ["delivery-workflow", "ai-growth-mirror-dev"]
+    session.slash_commands = ["/requirements_design"]
+    facet = _make_facets("s1")
+    facet.prompt_lens = PromptLensScores(
+        source="llm",
+        coverage="full",
+        evaluated_user_messages=2,
+        context_provision=58,
+        request_specificity=54,
+        scope_management=60,
+        information_timing=56,
+        correction_quality=62,
+        efficiency_score=58,
+        takeaways=[
+            PromptLensTakeaway(
+                type="improve",
+                category="context_provision",
+                label="indexed-entry",
+                original="# AGENTS.md instructions\nfor D:/repo/a\n<INSTRUCTIONS>\n# Common Agent Rules",
+                better_prompt="背景：...\n目标结果：...",
+                why="补变量后更稳。",
+            )
+        ],
+    )
+    stats = aggregate([session], [facet], tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=[session],
+        session_reads=[facet],
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.prompt_style is not None
+    assert view.prompt_coach.prompt_style.type == "indexed_prompt"
+    assert view.prompt_coach.rewrite_cards
+    card = view.prompt_coach.rewrite_cards[0]
+    assert card.original == ""
+    assert "索引" in card.problem
+    assert "索引入口摘要" in card.source_note
+
+
+def test_prompt_coach_classifies_under_specified_prompt():
+    sessions = [
+        _make_session("s1", "D:/repo/a", first_prompt="帮我看下这个"),
+        _make_session("s2", "D:/repo/b", first_prompt="帮我处理一下"),
+    ]
+    for session in sessions:
+        session.prompt_has_constraint = False
+        session.prompt_has_code_context = False
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.prompt_style is not None
+    assert view.prompt_coach.prompt_style.type == "under_specified_prompt"
+
+
+def test_prompt_coach_friction_synthesis_rule_path_without_llm():
+    sessions = [
+        _make_session("s1", "D:/repo/a", first_prompt="帮我看下这个"),
+        _make_session("s2", "D:/repo/b", first_prompt="帮我处理一下"),
+    ]
+    for session in sessions:
+        session.prompt_has_constraint = False
+        session.prompt_has_code_context = False
+
+    facets = []
+    for session_id in ("s1", "s2"):
+        facet = _make_facets(session_id)
+        facet.prompt_lens.findings = [
+            PromptLensFinding(
+                type="deficit",
+                category="vague-request",
+                description="request too vague",
+                impact="high",
+            ),
+            PromptLensFinding(
+                type="deficit",
+                category="missing-context",
+                description="missing context",
+                impact="medium",
+            ),
+        ]
+        facets.append(facet)
+
+    stats = aggregate(sessions, facets, tool_name="codex")
+    view = build_prompt_coach_view(
+        stats=stats,
+        sessions=sessions,
+        session_reads=facets,
+        session_read_mode="heuristic_only",
+        catalogs=load_report_label_catalogs("zh"),
+        coaching=None,
+    )
+
+    assert view.friction_synthesis
+    assert view.friction_synthesis[0].generated_by == "rule"
+    assert view.friction_synthesis[0].evidence_refs
+    assert view.friction_synthesis[0].label
+
+
+def test_closure_guidance_uses_task_type_instead_of_forcing_tests_on_design():
+    sessions = [
+        _make_session("s1", "D:/repo/a", first_prompt="请基于成长轨迹模块做需求设计，并给出验收清单和边界场景。"),
+        _make_session("s2", "D:/repo/a", first_prompt="请继续完善架构方案和交互说明。"),
+    ]
+    for session in sessions:
+        session.prompt_has_code_context = False
+        session.has_test_commands = False
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.closure_guidance is not None
+    assert view.prompt_coach.closure_guidance.task_type == "design_or_requirements"
+    assert all("测试" not in item for item in view.prompt_coach.closure_guidance.expected_closure_methods)
+
+
+def test_closure_guidance_keeps_test_for_code_change():
+    sessions = [
+        _make_session("s1", "D:/repo/a", first_prompt="修复 handler.py 的 500 问题，并补最小验证。"),
+        _make_session("s2", "D:/repo/a"),
+    ]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.closure_guidance is not None
+    assert view.prompt_coach.closure_guidance.task_type == "code_change"
+    assert any("测试" in item or "冒烟" in item for item in view.prompt_coach.closure_guidance.expected_closure_methods)
 
 def test_exemplars_do_not_repeat_same_category():
     sessions = [
@@ -323,9 +767,9 @@ def test_snapshot_comparison_data_structure():
         right_summary=right_summary,
         language="zh",
     )
-    assert comparison["best_up"]["label"]
-    assert comparison["changed_focus"]["from"] == "交付收口"
-    assert len(comparison["capability_deltas"]) == 5
+    assert comparison["current"]["mirror_score"] >= 0
+    assert comparison["previous"]["next_focus"] == "交付收口"
+    assert len(comparison["axis_deltas"]) == 5
 
 
 def test_generate_personal_report_creates_snapshot_archive(tmp_path: Path):
@@ -360,7 +804,7 @@ def test_generate_personal_report_creates_snapshot_archive(tmp_path: Path):
     assert (snapshot_dir / "normalized-summary.json").exists()
 
 
-def test_load_previous_profile_prefers_most_recent_snapshot(tmp_path: Path):
+def test_load_previous_snapshot_source_prefers_most_recent_snapshot(tmp_path: Path):
     workspace_tmp = run_workspace(tmp_path, "snapshot_prev_latest")
     archive_root = workspace_tmp / SNAPSHOT_ARCHIVE_DIRNAME
     snapshots_root = archive_root / "snapshots"
@@ -371,8 +815,9 @@ def test_load_previous_profile_prefers_most_recent_snapshot(tmp_path: Path):
     for snapshot_id, score in ((old_id, 12), (new_id, 66)):
         snapshot_dir = snapshots_root / snapshot_id
         snapshot_dir.mkdir(parents=True)
-        (snapshot_dir / "profile.json").write_text(
-            json.dumps({"summary": {"mirror_score": score}}),
+        (snapshot_dir / "profile.json").write_text(json.dumps({}), encoding="utf-8")
+        (snapshot_dir / "summary.json").write_text(
+            json.dumps({"snapshot_id": snapshot_id, "created_at": "2026-05-29 12:00:00", "score": score}),
             encoding="utf-8",
         )
 
@@ -380,26 +825,27 @@ def test_load_previous_profile_prefers_most_recent_snapshot(tmp_path: Path):
         "schema_version": "1.0",
         "latest_snapshot_id": new_id,
         "snapshots": [
-            {"snapshot_id": new_id, "created_at": "2026-05-29 12:00:00"},
-            {"snapshot_id": old_id, "created_at": "2026-05-28 23:00:00"},
+            _snapshot_index_entry(new_id, "2026-05-29 12:00:00"),
+            _snapshot_index_entry(old_id, "2026-05-28 23:00:00"),
         ],
     }
     (archive_root / "index.json").write_text(json.dumps(index), encoding="utf-8")
 
-    profile, created_at = _load_previous_profile(archive_root)
-    assert profile is not None
-    assert created_at == "2026-05-29 12:00:00"
-    assert profile["summary"]["mirror_score"] == 66
+    source = load_previous_snapshot_source(archive_root)
+    assert source is not None
+    assert source.created_at == "2026-05-29 12:00:00"
+    assert source.mirror_score == 66
 
 
-def test_load_previous_profile_falls_back_to_legacy_snapshot_archive(tmp_path: Path):
+def test_load_previous_snapshot_source_falls_back_to_legacy_snapshot_archive(tmp_path: Path):
     workspace_tmp = run_workspace(tmp_path, "snapshot_prev_legacy")
     legacy_root = workspace_tmp / "snapshot-archive"
     snapshot_id = "20260526-075444"
     snapshot_dir = legacy_root / "snapshots" / snapshot_id
     snapshot_dir.mkdir(parents=True)
-    (snapshot_dir / "profile.json").write_text(
-        json.dumps({"summary": {"mirror_score": 48}}),
+    (snapshot_dir / "profile.json").write_text(json.dumps({}), encoding="utf-8")
+    (snapshot_dir / "summary.json").write_text(
+        json.dumps({"snapshot_id": snapshot_id, "created_at": "2026-05-26 07:54:44", "score": 48}),
         encoding="utf-8",
     )
     (legacy_root / "index.json").write_text(
@@ -408,17 +854,17 @@ def test_load_previous_profile_falls_back_to_legacy_snapshot_archive(tmp_path: P
                 "schema_version": "1.0",
                 "latest_snapshot_id": snapshot_id,
                 "snapshots": [
-                    {"snapshot_id": snapshot_id, "created_at": "2026-05-26 07:54:44"},
+                    _snapshot_index_entry(snapshot_id, "2026-05-26 07:54:44"),
                 ],
             }
         ),
         encoding="utf-8",
     )
 
-    profile, created_at = _load_previous_profile(workspace_tmp / SNAPSHOT_ARCHIVE_DIRNAME)
-    assert profile is not None
-    assert created_at == "2026-05-26 07:54:44"
-    assert profile["summary"]["mirror_score"] == 48
+    source = load_previous_snapshot_source(workspace_tmp / SNAPSHOT_ARCHIVE_DIRNAME)
+    assert source is not None
+    assert source.created_at == "2026-05-26 07:54:44"
+    assert source.mirror_score == 48
 
 
 def test_level_evidence_uses_level_specific_target_for_l5():
@@ -628,7 +1074,54 @@ def test_render_personal_report_html_escapes_untrusted_content():
     html = render_personal_report_html(view=view, language="zh", redact=False)
     assert xss_payload not in html
     assert "&lt;script&gt;" in html
+
+
+def test_render_personal_report_html_compacts_prompt_coach_surface():
+    sessions = [
+        _make_session("s1", "D:/repo/a", first_prompt="requirements_design / AGENTS.md / delivery workflow"),
+        _make_session("s2", "D:/repo/a", first_prompt="按照 requirements_design，基于成长轨迹模块做需求设计，重点考虑 Prompt 教练和训练冲刺联动。"),
+    ]
+    sessions[0].unique_skills_used = ["delivery-workflow", "ai-growth-mirror-dev"]
+    sessions[0].slash_commands = ["/requirements_design"]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+    html = render_personal_report_html(view=view, language="zh", redact=False)
+    assert "场景化模板" not in html
+    assert "section_score_waterfall" not in html
+    assert "LLM" in html or "heuristic" in html
+    assert "下次可以这样问" not in html
     assert "AI Growth Mirror logo" in html
+
+
+def test_report_sections_keep_five_primary_chain():
+    sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/a")]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+    visible_ids = [item.id for item in view.sections if item.nav_visible]
+    assert visible_ids == [
+        "section-growth-signals",
+        "section-level-evidence",
+        "section-prompt-coach",
+        "section-growth-plan",
+    ]
+    assert any(item.id == "section-summary" and not item.nav_visible for item in view.sections)
+    assert "section-level-guide" not in visible_ids
 
 
 def test_generate_personal_report_redact_hides_project_names(tmp_path: Path):
@@ -738,3 +1231,5 @@ def test_snapshot_compare_html_escapes_untrusted_summary_fields(tmp_path: Path):
     html = out.read_text(encoding="utf-8")
     assert xss_focus not in html
     assert "&lt;img" in html
+    payload = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
+    assert payload["current"]["next_focus"] == xss_focus

@@ -148,6 +148,15 @@ class ReportConfig:
     #       - /path/to/your/agent-hub
     #       - ~/.cursor/skills
     asset_roots: list[Path] = field(default_factory=list)
+    # Optional private/local method framework names. These are merged with names
+    # extracted from asset_roots and only become level evidence when observed in
+    # session skill/slash usage.
+    local_method_frameworks: list[str] = field(default_factory=list)
+    min_quality: str = "medium"
+    # Optional scope filters (same semantics as CLI --repo/--dir/--keyword).
+    scope_repos: list[str] = field(default_factory=list)
+    scope_dirs: list[Path] = field(default_factory=list)
+    scope_keywords: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -203,6 +212,20 @@ def _apply_yaml(cfg: GrowthMirrorConfig, data: dict) -> None:
             cfg.report.prompt_dirs = [Path(item).expanduser() for item in report.get("prompt_dirs", []) if item]
         if report.get("asset_roots"):
             cfg.report.asset_roots = [Path(item).expanduser() for item in report.get("asset_roots", []) if item]
+        if report.get("local_method_frameworks"):
+            cfg.report.local_method_frameworks = [
+                str(item).strip()
+                for item in report.get("local_method_frameworks", [])
+                if str(item).strip()
+            ]
+        if report.get("min_quality"):
+            cfg.report.min_quality = str(report.get("min_quality") or "medium")
+        if report.get("scope_repos"):
+            cfg.report.scope_repos = [str(item).strip() for item in report.get("scope_repos", []) if item]
+        if report.get("scope_dirs"):
+            cfg.report.scope_dirs = [Path(item).expanduser() for item in report.get("scope_dirs", []) if item]
+        if report.get("scope_keywords"):
+            cfg.report.scope_keywords = [str(item).strip() for item in report.get("scope_keywords", []) if item]
     if "tools" in data:
         for tool_name, tool_data in data["tools"].items():
             tool_cfg = ToolConfig()

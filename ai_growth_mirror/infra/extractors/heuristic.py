@@ -20,6 +20,10 @@ from ...domain.signals.model import (
     SessionRead,
 )
 from ..extractors.llm import _should_extract
+from ...domain.session.heuristics import (
+    classify_session_quality,
+    passes_quality_gate as _passes_quality_gate,
+)
 from ...domain.signals.framework import aggregate_family, detect_frameworks
 
 _FRICTION_DESC_KEYS = {
@@ -72,6 +76,7 @@ def build_heuristic_session_reads_batch(
     *,
     language: str = "zh",
     max_sessions: int = 0,
+    min_quality: str = "medium",
 ) -> tuple[list[SessionRead], int]:
     """Build session reads locally from deterministic heuristics.
 
@@ -79,7 +84,7 @@ def build_heuristic_session_reads_batch(
     ``attempted_count`` here equals the number of eligible sessions after the
     same substantive-session gate used by the LLM extractor.
     """
-    eligible = [s for s in sessions if _should_extract(s)]
+    eligible = [s for s in sessions if _should_extract(s) and _passes_quality_gate(s, min_quality)]
     if max_sessions and max_sessions > 0:
         eligible = eligible[:max_sessions]
     return [
@@ -103,7 +108,11 @@ def build_heuristic_session_read_for_session(
     primary_success = _primary_success(session, workflow_style)
     blockers = _blockers(session, language)
     accelerators = _accelerators(session, workflow_style, language)
-    prompt_quality = _prompt_quality(session, language)
+    prompt_quality = build_prompt_quality_proxy(
+        session,
+        language=language,
+        evaluation_status="llm_unavailable",
+    )
     creation_mode, creation_depth = _creation_mode(session)
     project_name = _Path(session.project_path).name if session.project_path else ""
 
@@ -342,6 +351,8 @@ def _accelerators(
 def _prompt_quality(
     session: SessionRecord,
     language: str,
+    *,
+    evaluation_status: str = "insufficient_input",
 ) -> PromptLensScores | None:
     pq = _heuristic_i18n(language).get("pq_texts", {})
 
@@ -425,7 +436,8 @@ def _prompt_quality(
             )
         )
 
-    if session.prompt_word_count < 18:
+    indexed_prompt = bool(session.unique_skills_used or session.slash_commands or session.skill_invocation_count > 0)
+    if session.prompt_word_count < 18 and not indexed_prompt:
         specificity -= 12
         findings.append(
             PromptLensFinding(
@@ -464,6 +476,7 @@ def _prompt_quality(
     return PromptLensScores(
         source="heuristic",
         coverage="full" if session.user_message_count >= 5 else "light",
+        evaluation_status=evaluation_status,
         evaluated_user_messages=session.user_message_count,
         context_provision=context,
         request_specificity=specificity,
@@ -480,14 +493,16 @@ def build_prompt_quality_proxy(
     session: SessionRecord,
     *,
     language: str,
+    evaluation_status: str = "insufficient_input",
 ) -> PromptLensScores:
     """Build a lightweight prompt-quality proxy from stable local signals."""
-    result = _prompt_quality(session, language)
+    result = _prompt_quality(session, language, evaluation_status=evaluation_status)
     if result is not None:
         return result
     return PromptLensScores(
         source="heuristic",
         coverage="light",
+        evaluation_status=evaluation_status,
         evaluated_user_messages=session.user_message_count,
     )
 

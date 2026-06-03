@@ -48,6 +48,7 @@ def test_cli_generate_delegates_to_orchestrator(monkeypatch):
     request = captured["request"]
     assert request.tools == ["codex"]
     assert request.session_read_mode == "heuristic"
+    assert request.min_quality == "medium"
     assert request.write_manifest is True
     assert request.output_path.name == "ai-growth-mirror.html"
     assert "done total=" in result.output

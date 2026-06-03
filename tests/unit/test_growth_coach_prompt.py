@@ -43,6 +43,7 @@ def test_growth_coach_system_prompt_uses_current_priority_contract():
     assert "delegation|verification|breadth|authorship|outcome|workflow" not in rendered
     assert "## Output language" in rendered
     assert "natural-language content" in rendered.lower()
+    assert '"friction_synthesis"' in rendered
 
 
 def test_growth_coach_system_prompt_zh_output_language():

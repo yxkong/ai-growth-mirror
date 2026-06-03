@@ -89,7 +89,7 @@ def test_generate_report_artifacts_personal_heuristic(monkeypatch, tmp_path: Pat
 
     monkeypatch.setattr(service.GrowthMirrorConfig, "load", classmethod(lambda cls, path=None: GrowthMirrorConfig()))
     monkeypatch.setattr(service, "collect_sessions", fake_collect_sessions)
-    monkeypatch.setattr(service, "build_heuristic_session_reads_batch", lambda sessions, language, max_sessions: (facets, len(sessions)))
+    monkeypatch.setattr(service, "build_heuristic_session_reads_batch", lambda sessions, language, max_sessions, min_quality="medium": (facets, len(sessions)))
     monkeypatch.setattr(service, "aggregate", lambda sessions, all_facets, tool_name, agent_asset=None: stats)
     monkeypatch.setattr(service, "generate_personal_report", fake_generate_personal_report)
 

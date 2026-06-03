@@ -736,7 +736,9 @@ if __name__ == "__main__":
     import sys
     from pathlib import Path as _Path
 
-    tmp = _Path(sys.argv[1]) if len(sys.argv) > 1 else _Path.cwd() / "test_output"
+    from tests.conftest import manual_run_workspace
+
+    tmp = _Path(sys.argv[1]) if len(sys.argv) > 1 else manual_run_workspace("test_output")
     tmp.mkdir(exist_ok=True)
 
     tests = [

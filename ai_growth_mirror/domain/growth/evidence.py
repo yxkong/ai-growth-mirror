@@ -95,9 +95,22 @@ def _stats_payload(stats: GrowthProfile, *, redact: bool) -> dict[str, Any]:
         "avg_autonomous_chain_length": stats.avg_autonomous_chain_length,
         "max_autonomous_chain_length": stats.max_autonomous_chain_length,
         "tier_diversity_count": stats.tier_diversity_count,
+        "workflow_structured_session_count": stats.workflow_structured_session_count,
+        "workflow_build_substantial_count": stats.workflow_build_substantial_count,
+        "workflow_build_moderate_count": stats.workflow_build_moderate_count,
+        "ai_authoring_distinct_categories": stats.ai_authoring_distinct_categories,
         "constraint_prompt_rate": stats.constraint_prompt_rate,
         "code_context_rate": stats.code_context_rate,
         "avg_prompt_word_count": stats.avg_prompt_word_count,
+        "unique_skill_count": stats.unique_skill_count,
+        "assetized_session_rate": stats.assetized_session_rate,
+        "skill_usage_session_rate": stats.skill_usage_session_rate,
+        "public_framework_session_rate": stats.public_framework_session_rate,
+        "local_method_framework_session_rate": stats.local_method_framework_session_rate,
+        "workflow_fingerprint_session_rate": stats.workflow_fingerprint_session_rate,
+        "workflow_reuse_depth": stats.workflow_reuse_depth,
+        "asset_authoring_session_rate": stats.asset_authoring_session_rate,
+        "agentic_system_score": stats.agentic_system_score,
         "growth_level": stats.growth_level,
         "mirror_score": stats.mirror_score,
         "pq_sessions_evaluated": stats.pq_sessions_evaluated,
@@ -117,6 +130,17 @@ def _stats_payload(stats: GrowthProfile, *, redact: bool) -> dict[str, Any]:
         "mcp_session_rate": stats.mcp_session_rate,
         "mcp_session_count": stats.mcp_session_count,
         "total_subagent_invocations": stats.total_subagent_invocations,
+        "agent_asset": (
+            {
+                "skill_files": stats.agent_asset.skill_files_count,
+                "prompt_files": stats.agent_asset.prompt_files_count,
+                "rule_files": stats.agent_asset.rule_files_count,
+                "total_asset_files": stats.agent_asset.total_asset_files,
+                "local_method_frameworks": stats.agent_asset.local_method_frameworks[:20],
+            }
+            if stats.agent_asset is not None
+            else None
+        ),
     }
 
 

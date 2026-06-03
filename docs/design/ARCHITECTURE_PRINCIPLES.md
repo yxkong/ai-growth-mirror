@@ -120,6 +120,7 @@ Infrastructure (infra/)   ← 实现 readers / i18n / LLM / cache / snapshots
 - `domain/` 绝对不 import `infra/`、`application/`（零技术依赖）
 - `domain/` 可 import 标准库，不可 import 第三方框架
 - `application/` 负责 personal report **全流程编排**：collect → extract → aggregate → coaching → assemble view/payload → render → write
+- `application/` 负责把 **成长轨迹 + Prompt 成长教练 + 下一阶段训练冲刺** 组装成同一条闭环，不允许把这三块拆成互不引用的孤立模块
 - `application/` 通过 `infra/` 完成一切 I/O、LLM、YAML 加载；通过 `application/html_render.py` 完成 HTML 字符串渲染
 - `application/html_render.py` **禁止** 文件读写、网络/LLM 调用、直接加载 YAML、view 组装；只接收 application 预组装的 DTO 与 label catalog
 - **无**独立 `report/` 包；HTML 渲染仅在 `application/html_render.py`
@@ -136,6 +137,35 @@ Infrastructure (infra/)   ← 实现 readers / i18n / LLM / cache / snapshots
 | Infrastructure | `infra/` | 技术实现：readers、extractors、LLM client、cache、snapshots、**i18n YAML adapter** | 写业务规则；定义业务枚举 |
 | Application | `application/` | **personal report 主编排**：`generate_report_artifacts`、collect/extract/aggregate/coaching/组装 ViewModel/summary payload/写盘/快照；**HTML 渲染**（`html_render.py`） | 在 `html_render.py` 做 view 组装或 I/O |
 | Assets | `assets/` | 静态资产：LLM 提示词（`assets/prompts/`）+ UI 标签 YAML（`assets/i18n/`）+ HTML 模板（`assets/templates/`） | 不属于任何层；不含 Python 逻辑 |
+
+### 2.2.1 Snapshot / Trajectory / Coach 闭环分工
+
+这一条链路的职责边界固定如下：
+
+- `domain/snapshots/model.py`
+  - 只定义 `SnapshotSource`、`TrajectoryPoint`、`TrajectorySummary`、`LatestVsPreviousSummary` 等纯数据结构
+- `domain/snapshots/comparison.py`
+  - 只做“两期 delta / waterfall / confidence / evidence card”纯计算
+- `domain/snapshots/trajectory.py`
+  - 只做“30 天窗口裁剪 / 时间排序 / 同日折叠 / 趋势分类 / latest_vs_previous 纯摘要”
+- `infra/snapshots.py`
+  - 只负责 snapshot archive 读取、近 30 天历史加载、legacy fallback、compare 数据写盘
+- `application/growth_trajectory.py`
+  - 负责把 `window_points + daily_points + trend_summary + latest-vs-previous` 组装成统一 view model 与 sidecar 子结构
+- `application/prompt_coach.py`
+  - 负责把 PQ / finding / takeaway / prompt_style / closure_guidance / 模板 / checklist 组装成诊断视图
+- `application/growth_plan.py`
+  - 负责消费 `growth_trajectory + prompt_coach`，生成唯一完整训练计划展示区
+- `application/summary_payload.py`
+  - 负责把 `growth_trajectory / prompt_coach / growth_plan` 输出成稳定 sidecar schema
+- `assets/templates/*.j2`
+  - 只做展示，不允许读取文件、不允许做业务判定、不允许内联趋势计算
+
+新增能力的红线：
+
+- 主报告 `generate` 首次运行仍然只归档 snapshot，不展示成长轨迹区块
+- 主报告第二次及以后默认展示“近 30 天趋势 + 本期 vs 上一期辅助诊断”
+- `compare` 继续只处理任意两期 snapshot，不读取 30 天窗口，不干扰主报告自动对比逻辑
 
 ---
 
@@ -203,6 +233,8 @@ ai_growth_mirror/
 │   ├── personal_report_service.py # coaching + 渲染编排 + 写盘 + 快照归档
 │   ├── report_view.py             # PersonalReportView + build_personal_report_view 真源
 │   ├── html_render.py             # render_personal_report_html / render_share_card_html（纯 Jinja）
+│   ├── growth_trajectory.py       # 30 天趋势 + latest-vs-previous 视图组装
+│   ├── prompt_coach.py            # Prompt 成长教练诊断器组装
 │   ├── growth_plan.py             # GrowthPlanView + build_growth_plan 真源
 │   ├── summary_payload.py         # build_personal_summary_payload 真源
 │   └── label_catalogs.py          # ReportLabelCatalogs + load_report_label_catalogs
@@ -252,19 +284,24 @@ application/orchestrator.generate_report_artifacts()
             ↑ assets/templates/   html_render Jinja 渲染
 ```
 
-### 4.1 成长轨迹对比对齐规则
+### 4.1 成长轨迹对齐规则
 
 - `application/personal_report_service.py` 在写入本期 snapshot 之前，先读取 `ai-growth-mirror-archive/index.json`
-- 若 archive 中没有历史条目：`growth_delta` 为空，本期报告不显示该区块
-- 若 archive 中已有历史条目：本期报告只对齐**当前生成前最近一份** snapshot，形成“本期 vs 上期”
+- 若 archive 中没有历史条目：`growth_trajectory.available = false`，本期报告不显示该区块
+- 若 archive 中已有历史条目：本期报告默认展示近 30 天窗口趋势，并在同区块底部补“本期 vs 上期”辅助诊断
 - 任意两期的手工对比不走主报告自动区块，而走 `cli.py compare` → `infra/snapshots.py::compare_snapshots`
+- **纯逻辑边界**：`domain/snapshots/*` 只定义 snapshot source / comparison DTO 与 delta 计算；`infra/snapshots.py` 只负责 archive 读写与 compare 装载；`application/growth_trajectory.py` 负责把 `window_points / daily_points / trend_summary / latest_vs_previous` 组装成 view model；`application/html_render.py` 只做模板渲染，不读文件、不做业务计算
+- **快照输入真源**：compare 组装优先读取 snapshot 下的 `summary.json`、`report.json`、`normalized-summary.json`，只在字段缺失时回退 `profile.json`
+- **sidecar 对齐**：主报告 `.json` sidecar、`*.summary.json`、archive `report.json` 和 compare 产物 `comparisons/*.json` 都必须包含结构化 `growth_trajectory`；主报告使用 `window_points / daily_points / trend_summary / latest_vs_previous`
 
 ### 4.2 Prompt Quality 主链约束
 
 - `infra/extractors/llm.py` 负责优先接入 LLM 语义 PQ；当会话过短或 LLM 不可用时，必须降级到 `infra/extractors/heuristic.py` 的代理回填，而不是直接断档
-- `domain/signals/model.py::PromptLensScores` 需要显式携带 `source` / `coverage`，供上层说明来源边界
-- `domain/growth/scorer.py` 聚合时必须同时输出 `pq_llm_session_count / pq_heuristic_session_count / pq_light_session_count`
-- `application/report_view.py` 展示层必须向用户说明代理来源，严禁把 heuristic 直接说成 LLM Prompt 质量评估
+- `domain/signals/model.py::PromptLensScores` 携带 `evaluation_status`（`llm_evaluated | insufficient_input | llm_failed | llm_unavailable | not_applicable`）区分评估来源状态；`source_engine`（`llm | heuristic`）仅作内部引擎标记，不上主报告；`coverage`（`full | light | none`）仅表示完整度
+- `domain/cache_schema.py::SESSION_READ_SCHEMA_VERSION` 当前为 `"1.1"`；升版时旧 reads 缓存自动失效并重跑
+- `domain/growth/scorer.py` 聚合时输出：`pq_llm_session_count / pq_heuristic_session_count / pq_light_session_count`（向后兼容），以及新增 `pq_llm_evaluated_count / pq_insufficient_count / pq_llm_failed_count / pq_llm_unavailable_count`（按 evaluation_status 统计）
+- `application/report_view.py` / `prompt_coach.py` 展示层按非零子句拼装人话来源说明，严禁把 heuristic 直接说成 LLM Prompt 质量评估，禁止展示 `LLM n / heuristic n / light n` 并列数字
+- `domain/growth/prompting.py` 提供 `closure_guidance.mode`（`open_ended | engineered` 派生，不升 schema）与 `friction_synthesis` 规则意图层；`assets/prompts/growth_coach/system.md.j2` 加性扩展 LLM 输出 `friction_synthesis`，应用层护栏：evidence_refs 为空则丢弃降级规则
 
 ### 4.3 Usage / Asset 边界
 

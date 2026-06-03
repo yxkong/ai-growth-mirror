@@ -37,15 +37,6 @@
       box-shadow: 0 16px 34px rgba(99, 102, 241, 0.08);
       backdrop-filter: blur(12px);
     }
-    .sidebar-title {
-      margin: 0 0 4px;
-      font-size: 0.95rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #4338ca, #6366f1, #0ea5e9);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
     .sidebar-subtitle {
       margin: 0 0 12px;
       font-size: 0.78rem;
@@ -81,6 +72,7 @@
       position: relative;
       overflow: hidden;
       isolation: isolate;
+      scroll-margin-top: 28px;
     }
     .hero > * { position: relative; z-index: 1; }
     .hero-shell {
@@ -97,6 +89,17 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 12px;
+    }
+    .sidebar-brand-link {
+      text-decoration: none;
+      color: inherit;
+      transition: opacity 0.15s ease;
+    }
+    .sidebar-brand-link:hover {
+      opacity: 0.78;
+    }
+    .sidebar-brand-link:hover .sidebar-brand-name {
+      color: var(--accent);
     }
     .sidebar-brand-mark {
       width: 42px;
@@ -181,8 +184,14 @@
       -webkit-text-fill-color: transparent;
     }
     .hero-badge-note {
-      margin-top: 4px;
+      margin-top: 12px;
       font-size: 0.86rem;
+      line-height: 1.6;
+      color: var(--hero-muted);
+    }
+    .hero-badge-level-detail {
+      margin-top: 8px;
+      font-size: 0.8rem;
       line-height: 1.6;
       color: var(--hero-muted);
     }
@@ -306,6 +315,7 @@
       border-radius: 24px;
       padding: 26px;
       box-shadow: 0 18px 40px rgba(124, 58, 237, 0.08);
+      scroll-margin-top: 28px;
       backdrop-filter: blur(8px);
       position: relative;
       overflow: hidden;
@@ -433,9 +443,26 @@
     }
     .footer {
       margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line, rgba(148,163,184,0.24));
       color: var(--muted);
       font-size: 13px;
       text-align: center;
+      line-height: 1.9;
+    }
+    .footer-meta {
+      margin-top: 6px;
+    }
+    .footer a {
+      color: var(--accent-strong, #6d28d9);
+      text-decoration: none;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    .footer-sep {
+      margin: 0 6px;
+      opacity: 0.55;
     }
     .section-nav {
       display: flex;
@@ -650,12 +677,16 @@
         display: grid;
         grid-template-columns: 220px minmax(0, 1fr);
         gap: 24px;
-        align-items: start;
+        align-items: stretch;
       }
       .report-sidebar {
         display: block;
+      }
+      .sidebar-card {
         position: sticky;
         top: 24px;
+        max-height: calc(100vh - 48px);
+        overflow-y: auto;
       }
       .section-nav {
         display: none;
@@ -802,6 +833,40 @@
       font-weight: 700;
       color: var(--ink);
     }
+    .advanced-features {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: var(--accent-soft, rgba(124, 58, 237, 0.06));
+      border: 1px solid rgba(124, 58, 237, 0.16);
+    }
+    .advanced-features-head {
+      margin-bottom: 6px;
+      font-size: 0.92rem;
+    }
+    .advanced-features-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .advanced-feature-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid rgba(124, 58, 237, 0.22);
+      font-size: 0.82rem;
+      color: var(--accent-strong, #6d28d9);
+      font-weight: 600;
+    }
+    .advanced-feature-chip em {
+      font-style: normal;
+      font-weight: 700;
+      color: var(--accent, #7c3aed);
+    }
     .priority-why {
       margin: 0 0 14px;
       color: var(--muted);
@@ -878,7 +943,7 @@
     <div class="page-shell">
     <aside class="report-sidebar" aria-label="报告导航">
       <div class="sidebar-card">
-        <div class="sidebar-brand" aria-label="AI Growth Mirror">
+        <a class="sidebar-brand sidebar-brand-link" href="#section-summary" aria-label="AI 成长镜 · 回到报告顶部">
           <div class="sidebar-brand-mark">
             {% include 'logo/ai-growth-mirror-logo-primary.svg' %}
           </div>
@@ -886,8 +951,7 @@
             <p class="sidebar-brand-name">AI 成长镜</p>
             <p class="sidebar-brand-caption">AI Growth Mirror</p>
           </div>
-        </div>
-        <div class="sidebar-title">{{ view.report_title }}</div>
+        </a>
         <p class="sidebar-subtitle">{{ view.tool_display_name }}</p>
         <nav class="sidebar-nav">
           {% for section in view.sections if section.nav_visible %}
@@ -1052,13 +1116,29 @@
         <div class="metric">
           <div class="metric-head">
             <strong>{{ dim.label }}</strong>
-            <span class="score-value">{{ '%.1f'|format(dim.score) }}</span>
+            <span class="score-value">{% if dim.has_data %}{{ '%.1f'|format(dim.score) }}{% else %}&mdash;{% endif %}</span>
           </div>
-          <div class="bar"><span style="width: {{ dim.score }}%;"></span></div>
+          <div class="bar"><span style="width: {% if dim.has_data %}{{ dim.score }}{% else %}0{% endif %}%;"></span></div>
           <p class="meta-text">{{ dim.explanation }}</p>
           <p class="meta-text"><strong>{{ view.labels['label_next_move'] }}</strong>{{ dim.next_action }}</p>
         </div>
         {% endfor %}
+        {% if view.capability.advanced_features %}
+        <div class="advanced-features">
+          <div class="advanced-features-head">
+            <strong>{{ view.labels.get('label_advanced_features', '高级特性使用') }}</strong>
+          </div>
+          <p class="meta-text">{{ view.labels.get('label_advanced_features_hint', '') }}</p>
+          <div class="advanced-features-chips">
+            {% for feature_key, count in view.capability.advanced_features %}
+            <span class="advanced-feature-chip">
+              {{ view.labels.get('advanced_feature_' ~ feature_key, feature_key) }}
+              <em>×{{ count }}</em>
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
       </div>
     </section>
 
@@ -1112,7 +1192,8 @@
     </section>
 
     <section class="section" id="section-level-guide">
-      <h2 class="section-title">{{ view.labels['section_level_guide'] }}</h2>
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.labels['section_level_guide'] }}</h2></summary>
       <p class="section-sub">{{ view.level_guide.headline }}</p>
       <div class="tabs" role="tablist" aria-label="{{ view.labels['label_level_tabs_aria'] }}">
         {% for item in view.level_guide.items %}
@@ -1149,7 +1230,128 @@
         </div>
       </div>
       {% endfor %}
+      </details>
     </section>
+
+    {% if view.growth_trajectory and (view.growth_trajectory.available or (view.growth_trajectory.trend and view.growth_trajectory.trend.points|length >= 2)) %}
+    <section class="section" id="section-growth-delta">
+      <h2 class="section-title">{{ view.labels['section_growth_delta'] }}</h2>
+      {% if view.growth_trajectory.trend %}
+      <p class="section-sub">{{ view.labels.get('label_trend_subtitle', '近 30 天 AI 协作能力趋势') }}</p>
+      <div class="grid-3" style="margin-top:12px">
+        <div class="card">
+          <div class="kpi-label">{{ view.labels.get('label_trend_summary', '趋势结论') }}</div>
+          <div class="kpi-value">{{ view.growth_trajectory.trend.summary_label }}</div>
+          <div class="small muted">{{ view.growth_trajectory.trend.summary_text }}</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">{{ view.labels.get('label_confidence', '置信度') }}</div>
+          <div class="small">{{ view.growth_trajectory.trend.confidence_note }}</div>
+          <div class="small muted">{{ view.growth_trajectory.trend.data_sufficiency }}</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">{{ view.labels.get('label_display_points', '展示点位') }}</div>
+          <div class="small">{{ view.growth_trajectory.trend.points | length }} {{ view.labels['label_active_days'] }}</div>
+          <div class="small muted">{{ view.labels.get('label_display_points_note', '同一天默认展示最后一次快照') }}</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+            <div>
+              <h3>{{ view.labels.get('label_score_trend', '协作指数趋势') }}</h3>
+              <p class="small muted">{{ view.growth_trajectory.trend.window_label }}</p>
+            </div>
+            <div style="text-align:right">
+              <div class="kpi-value" style="font-size:1.4rem">{{ view.growth_trajectory.trend.score_series.latest_label }}</div>
+              <div class="small muted">{{ view.growth_trajectory.trend.score_series.delta_label }}</div>
+            </div>
+          </div>
+          <svg viewBox="0 0 300 140" style="width:100%; height:200px; overflow:visible">
+            {% for tick in view.growth_trajectory.trend.score_series.y_ticks %}
+            <line x1="12" y1="{{ tick.y }}" x2="288" y2="{{ tick.y }}" stroke="rgba(148,163,184,0.22)" stroke-width="1"></line>
+            <text x="0" y="{{ tick.y + 4 }}" font-size="10" fill="rgba(100,116,139,0.86)">{{ tick.value }}</text>
+            {% endfor %}
+            {% if view.growth_trajectory.trend.score_series.area_path %}
+            <path d="{{ view.growth_trajectory.trend.score_series.area_path }}" fill="rgba(124, 58, 237, 0.12)"></path>
+            {% endif %}
+            <polyline fill="none" stroke="var(--accent)" stroke-width="3" points="{{ view.growth_trajectory.trend.score_series.polyline }}"></polyline>
+            {% for point in view.growth_trajectory.trend.score_series.points %}
+            <circle cx="{{ point.x }}" cy="{{ point.y }}" r="4" fill="white" stroke="var(--accent)" stroke-width="2"></circle>
+            {% if loop.first or loop.last or loop.index0 % 5 == 0 %}
+            <text x="{{ point.x }}" y="132" text-anchor="middle" font-size="10" fill="rgba(100,116,139,0.86)">{{ point.date_label }}</text>
+            {% endif %}
+            {% endfor %}
+            {% if view.growth_trajectory.trend.score_series.points %}
+            {% set first = view.growth_trajectory.trend.score_series.points[0] %}
+            {% set last = view.growth_trajectory.trend.score_series.points[-1] %}
+            <text x="{{ first.x }}" y="118" text-anchor="start" font-size="10" fill="rgba(100,116,139,0.86)">{{ view.growth_trajectory.trend.score_series.start_label }}</text>
+            <text x="{{ last.x }}" y="118" text-anchor="end" font-size="10" fill="rgba(100,116,139,0.86)">{{ view.growth_trajectory.trend.score_series.end_label }}</text>
+            {% endif %}
+          </svg>
+          <p class="small">{{ view.growth_trajectory.trend.score_series.previous_value }} → {{ view.growth_trajectory.trend.score_series.latest_value }} · {{ view.growth_trajectory.trend.score_series.trend_label }}</p>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels.get('label_axis_trend', '五轴趋势') }}</h3>
+          {% for series in view.growth_trajectory.trend.axis_series %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ series.label }}</strong>
+              <span>{{ series.latest_label }} / {{ series.delta_label }}</span>
+            </div>
+            <svg viewBox="0 0 300 64" style="width:100%; height:72px; overflow:visible">
+              {% if series.area_path %}
+              <path d="{{ series.area_path }}" fill="{{ series.color }}" fill-opacity="0.12"></path>
+              {% endif %}
+              <polyline fill="none" stroke="{{ series.color }}" stroke-width="2.5" points="{{ series.polyline }}"></polyline>
+              {% for point in series.points %}
+              <circle cx="{{ point.x }}" cy="{{ point.y }}" r="3" fill="white" stroke="{{ series.color }}" stroke-width="1.6"></circle>
+              {% endfor %}
+            </svg>
+            <p class="small muted">{{ series.trend_label }}{% if series.insufficient_note %} · {{ series.insufficient_note }}{% endif %}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if view.growth_trajectory.available %}
+      <h3 style="margin-top:24px">{{ view.labels.get('label_latest_vs_previous', '本期 vs 上一期变化诊断') }}</h3>
+      <p class="muted">{{ view.labels['label_compared_with'] }} {{ view.growth_trajectory.prev_label }}</p>
+      <p class="section-sub">{{ view.growth_trajectory.overview }}</p>
+      <div class="grid-3" style="margin-top:12px">
+        {% for card in view.growth_trajectory.summary_cards %}
+        <div class="card">
+          <div class="kpi-label">{{ card.label }}</div>
+          <div class="kpi-value" style="color:{% if card.tone in ['up', 'high'] %}var(--accent){% elif card.tone in ['down', 'low'] %}var(--friction){% else %}var(--ink){% endif %}">
+            {{ card.value }}
+          </div>
+          <div class="small muted">{{ card.caption }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="note" style="margin-top:12px">{{ view.growth_trajectory.confidence_note }}</div>
+
+      <!-- axis_delta detail moved to compare view -->
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>{{ view.labels['label_prompt_quality'] }}</h3>
+          {% if view.growth_trajectory.prompt_quality %}
+          <p>{{ view.growth_trajectory.prompt_quality.headline }}</p>
+          <p class="small">{{ view.growth_trajectory.prompt_quality.summary }}</p>
+          <p class="small muted">{{ view.growth_trajectory.prompt_quality.source_note }}</p>
+          {% endif %}
+          {% if view.growth_trajectory.friction %}
+          <div class="note" style="margin-top:12px">
+            <strong>{{ view.labels['section_friction_changes'] }}</strong>{{ view.growth_trajectory.friction.summary }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
 
     <section class="section" id="section-prompt-coach">
       <h2 class="section-title">{{ view.labels['section_prompt_coach'] }}</h2>
@@ -1162,106 +1364,122 @@
         <div class="coach-card">
           <h3>{{ view.labels['label_current_read'] }}</h3>
           <p class="coach-evidence">{{ view.prompt_coach.evidence_summary }}</p>
-          <p class="small">{{ view.labels['label_strongest_dim'] }}{{ view.prompt_coach.strongest_label }}</p>
-          <p class="small">{{ view.labels['label_weakest_dim'] }}{{ view.prompt_coach.weakest_label }}</p>
-          <p class="small">{{ view.labels['label_focus_first'] }}{{ view.prompt_coach.weak_dimensions | join(' / ') }}</p>
-          {% if view.prompt_coach.dimension_scores %}
-          <div class="metric" style="margin-top:16px;">
-            <strong>{{ view.labels['label_prompt_dimensions'] }}</strong>
-          </div>
-          {% for item in view.prompt_coach.dimension_scores %}
-          <div class="metric">
-            <div class="metric-head">
-              <strong>{{ item.label }}</strong>
-              <span>{{ item.score }}</span>
-            </div>
-            <div class="bar"><span style="width:{{ item.score }}%"></span></div>
-          </div>
-          {% endfor %}
+          {% if view.prompt_coach.prompt_style %}
+          <p class="small"><strong>{{ view.labels.get('label_prompt_style', 'Prompt 类型') }}</strong>{{ view.prompt_coach.prompt_style.label }}</p>
           {% endif %}
-          <div class="note">{{ view.prompt_coach.strength_habit }}</div>
+          {% if view.prompt_coach.light_state_note %}
+          <div class="note">{{ view.prompt_coach.light_state_note }}</div>
+          {% endif %}
+          {% if view.prompt_coach.prompt_style %}
+          <div class="note" style="margin-top:12px">
+            {{ view.prompt_coach.prompt_style.coaching_message }}
+            {% if view.prompt_coach.prompt_style.evidence %}
+            <div class="small" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
+              {% for item in view.prompt_coach.prompt_style.evidence[:3] %}
+              <span class="chip">{{ item }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if view.prompt_coach.closure_guidance %}
+          <div class="note" style="margin-top:12px">
+            <strong>{{ view.labels.get('label_closure_guidance', '收口方式建议') }}</strong>{{ view.prompt_coach.closure_guidance.coaching_message }}
+            {% if view.prompt_coach.closure_guidance.mode %}
+            <p class="small muted" style="margin-top:8px">{{ view.labels.get('label_closure_mode_' ~ view.prompt_coach.closure_guidance.mode, '') }}</p>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
         <div class="card">
-          <h3>{{ view.labels['label_frequent_deficits'] }}</h3>
-          <ul class="list">
-            {% for deficit in view.prompt_coach.deficits %}
-            <li>{{ deficit }}</li>
-            {% endfor %}
-          </ul>
+          <h3>{{ view.labels.get('label_top_deficits', view.labels['label_frequent_deficits']) }}</h3>
+          {% for deficit in view.prompt_coach.top_deficits[:2] %}
+          <div class="metric">
+            <div class="metric-head">
+              <strong>{{ deficit.label }}</strong>
+              <span>{{ deficit.confidence }}</span>
+            </div>
+            <p class="small">{{ deficit.description }}</p>
+            <p class="small muted">{{ deficit.impact }}</p>
+          </div>
+          {% endfor %}
         </div>
       </div>
-      <div class="grid-2" style="margin-top:18px">
-        {% for takeaway in view.prompt_coach.takeaways %}
-        <div class="coach-card">
-          <h3>{{ takeaway.label }}</h3>
-          <p class="coach-tip"><strong>{{ view.labels['label_type'] }}</strong>{{ takeaway.kind }}</p>
-          <p class="coach-tip"><strong>{{ view.labels['label_why_shows_up'] }}</strong>{{ takeaway.evidence }}</p>
-          <p class="coach-tip"><strong>{{ view.labels['label_coach_note'] }}</strong>{{ takeaway.message }}</p>
-          <p class="coach-tip"><strong>{{ view.labels['label_next_move'] }}</strong>{{ takeaway.action }}</p>
-          {% if takeaway.better_prompt %}
-          <details style="margin-top:0.75rem;">
-            <summary class="theme-link" style="cursor:pointer; font-size:0.8rem; font-weight:600;">
-              {{ view.labels['label_reference_structure'] }}
-            </summary>
-            <div style="margin-top:0.5rem; background:var(--separator); border:1px solid var(--line); border-radius:6px; padding:0.75rem; font-family:monospace; font-size:0.78rem; color:var(--ink); white-space:pre-wrap; line-height:1.6;">{{ takeaway.better_prompt }}</div>
-          </details>
-          {% endif %}
+
+      {% if view.prompt_coach.friction_synthesis %}
+      <div class="card" style="margin-top:18px">
+        <h3>{{ view.labels.get('label_friction_synthesis', '提需求摩擦综合判断') }}</h3>
+        {% for item in view.prompt_coach.friction_synthesis[:2] %}
+        <div class="metric" style="margin-top:12px">
+          <p><strong>{{ item.label }}</strong></p>
+          <p class="small">{{ item.explanation }}</p>
+          <p class="small muted"><strong>{{ view.labels.get('label_next_actions', '下一步') }}：</strong>{{ item.next_action }}</p>
         </div>
         {% endfor %}
       </div>
+      {% endif %}
+
+      {% set real_rewrite_cards = view.prompt_coach.rewrite_cards | selectattr('original') | list %}
+      {% if real_rewrite_cards %}
+      <div class="grid-2" style="margin-top:18px">
+        {% for card in real_rewrite_cards[:2] %}
+        <div class="coach-card">
+          <h3>{{ view.labels.get('label_scene', '场景') }} · {{ card.scene }}</h3>
+          {% if card.original %}
+          <p class="small"><strong>{{ view.labels.get('label_original_prompt', '原始提法') }}</strong></p>
+          <div class="code">{{ card.original }}</div>
+          {% endif %}
+          <p class="coach-tip"><strong>{{ view.labels.get('label_problem', '问题') }}</strong>{{ card.problem }}</p>
+          <p class="coach-tip"><strong>{{ view.labels['label_better_prompt'] }}</strong></p>
+          <div class="code">{{ card.better_prompt }}</div>
+          <p class="coach-tip"><strong>{{ view.labels['label_why_shows_up'] }}</strong>{{ card.why }}</p>
+          <p class="small muted">{{ view.labels.get('label_confidence_note', '置信说明：') }}{{ card.confidence }} · {{ card.source_note }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if view.prompt_coach.prompt_style and view.prompt_coach.prompt_style.suggested_next_prompt %}
+      <div class="grid-2" style="margin-top:18px">
+        <div class="card">
+          <h3>{{ view.labels.get('label_suggested_next_prompt', '下次可以这样问') }}</h3>
+          <div class="code">{{ view.prompt_coach.prompt_style.suggested_next_prompt }}</div>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels.get('label_preflight_checklist', '发送前自检') }}</h3>
+          <ul class="list">
+            {% for item in view.prompt_coach.preflight_checklist[:4] %}
+            <li>{{ item.text }}</li>
+            {% endfor %}
+          </ul>
+          {% if view.prompt_coach.closure_guidance and view.prompt_coach.closure_guidance.missing_closure_methods %}
+          <p class="small muted"><strong>{{ view.labels.get('label_missing_closure', '当前更适合补：') }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
+          {% endif %}
+          {% if view.prompt_coach.recommended_training_inputs %}
+          <div class="note" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="card" style="margin-top:18px">
+        <h3>{{ view.labels.get('label_preflight_checklist', '发送前自检') }}</h3>
+        <ul class="list">
+          {% for item in view.prompt_coach.preflight_checklist[:4] %}
+          <li>{{ item.text }}</li>
+          {% endfor %}
+        </ul>
+        {% if view.prompt_coach.closure_guidance and view.prompt_coach.closure_guidance.missing_closure_methods %}
+        <p class="small muted"><strong>{{ view.labels.get('label_missing_closure', '当前更适合补：') }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
+        {% endif %}
+        {% if view.prompt_coach.recommended_training_inputs %}
+        <div class="note" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
       {% else %}
       <div class="note">{{ view.prompt_coach.headline }}</div>
       {% endif %}
-    </section>
-
-    <section class="section" id="section-friction">
-      <h2 class="section-title">{{ view.labels['section_friction'] }}</h2>
-      <p class="section-sub">{{ view.friction.headline }}</p>
-      <div class="grid-2">
-        <div class="card">
-          <h3>{{ view.labels['label_friction_source'] }}</h3>
-          <div class="pill">{{ view.friction.primary_source }}</div>
-          <ul class="list">
-            {% for item in view.friction.categories %}
-            <li>{{ item.label }} · {{ item.count }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="card">
-          <h3>{{ view.labels['label_next_actions'] }}</h3>
-          <ul class="list">
-            {% for action in view.friction.actions %}
-            <li>{{ action }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="section-exemplars">
-      <h2 class="section-title">{{ view.labels['section_exemplars'] }}</h2>
-      <p class="section-sub">{{ view.labels['label_exemplars_sub'] }}</p>
-      <div class="grid-2">
-        {% for ex in view.exemplars %}
-        <div class="card">
-          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
-            <span class="pill">{{ ex.category_label }}</span>
-            <span class="pill">{{ view.labels['label_score_pill'] }} {{ ex.score }}</span>
-          </div>
-          {% if ex.project_name %}
-          <p class="meta-text"><strong>{{ view.labels['label_project'] }}</strong>{{ ex.project_name }}</p>
-          {% endif %}
-          <p class="exemplar-title">{{ ex.summary }}</p>
-          <p class="exemplar-facts">{{ ex.facts }}</p>
-          {% if ex.why_keep %}
-          <p class="small"><strong>{{ view.labels['label_exemplar_why'] }}</strong>{{ ex.why_keep }}</p>
-          {% endif %}
-          {% if ex.technique %}
-          <div class="note" style="margin-top:12px"><strong>{{ view.labels['label_exemplar_next'] }}</strong>{{ ex.technique }}</div>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
     </section>
 
     <section class="section" id="section-growth-plan">
@@ -1279,14 +1497,20 @@
           {{ view.labels['label_heuristic_why_hint'] }}
         </p>
         {% endif %}
-        <div class="note">{{ view.labels['label_sprint_focus_note'] }}</div>
-        {% if priority.success_signal %}
-        <p class="small"><strong>{{ view.labels['label_success_signal'] }}</strong>{{ priority.success_signal }}</p>
+        {% if priority.evidence_refs %}
+        <p class="small"><strong>{{ view.labels.get('label_training_source', '训练来源：') }}</strong></p>
+        <ul class="list">
+          {% for evidence in priority.evidence_refs[:3] %}
+          <li>{{ evidence }}</li>
+          {% endfor %}
+        </ul>
         {% endif %}
-        {% if priority.stop_doing %}
-        <p class="small"><strong>{{ view.labels['label_stop_doing'] }}</strong>{{ priority.stop_doing }}</p>
+        {% if priority.linked_prompt_deficit_ids or priority.linked_template_ids or priority.linked_rewrite_card_ids or priority.linked_growth_trend_refs or priority.linked_closure_guidance_ids %}
+        <p class="small muted">
+          <strong>{{ view.labels.get('label_linked_sources', '关联来源：') }}</strong>
+          {{ (priority.linked_prompt_deficit_ids + priority.linked_template_ids + priority.linked_rewrite_card_ids + priority.linked_growth_trend_refs + priority.linked_closure_guidance_ids) | join(' / ') }}
+        </p>
         {% endif %}
-        {% if priority.week_1_actions or priority.week_2_actions %}
         <div class="grid-2">
           {% if priority.week_1_actions %}
           <div>
@@ -1309,17 +1533,79 @@
           </div>
           {% endif %}
         </div>
-        {% endif %}
         {% if priority.practice_prompt %}
         <p class="small"><strong>{{ view.labels['label_practice_prompt'] }}</strong></p>
         <div class="code">{{ priority.practice_prompt }}</div>
         {% endif %}
+        <div class="grid-2" style="margin-top:12px">
+          {% if priority.success_signal %}
+          <p class="small"><strong>{{ view.labels['label_success_signal'] }}</strong>{{ priority.success_signal }}</p>
+          {% endif %}
+          {% if priority.stop_doing %}
+          <p class="small"><strong>{{ view.labels['label_stop_doing'] }}</strong>{{ priority.stop_doing }}</p>
+          {% endif %}
+        </div>
       </div>
       {% endfor %}
     </section>
 
+    <section class="section" id="section-friction">
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.labels['section_friction'] }}</h2></summary>
+      <p class="section-sub">{{ view.friction.headline }}</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>{{ view.labels['label_friction_source'] }}</h3>
+          <div class="pill">{{ view.friction.primary_source }}</div>
+          <ul class="list">
+            {% for item in view.friction.categories %}
+            <li>{{ item.label }} · {{ item.count }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card">
+          <h3>{{ view.labels['label_next_actions'] }}</h3>
+          <ul class="list">
+            {% for action in view.friction.actions %}
+            <li>{{ action }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      </details>
+    </section>
+
+    <section class="section" id="section-exemplars">
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.labels['section_exemplars'] }}</h2></summary>
+      <p class="section-sub">{{ view.labels['label_exemplars_sub'] }}</p>
+      <div class="grid-2">
+        {% for ex in view.exemplars %}
+        <div class="card">
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+            <span class="pill">{{ ex.category_label }}</span>
+            <span class="pill">{{ view.labels['label_score_pill'] }} {{ ex.score }}</span>
+          </div>
+          {% if ex.project_name %}
+          <p class="meta-text"><strong>{{ view.labels['label_project'] }}</strong>{{ ex.project_name }}</p>
+          {% endif %}
+          <p class="exemplar-title">{{ ex.summary }}</p>
+          <p class="exemplar-facts">{{ ex.facts }}</p>
+          {% if ex.why_keep %}
+          <p class="small"><strong>{{ view.labels['label_exemplar_why'] }}</strong>{{ ex.why_keep }}</p>
+          {% endif %}
+          {% if ex.technique %}
+          <div class="note" style="margin-top:12px"><strong>{{ view.labels['label_exemplar_next'] }}</strong>{{ ex.technique }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      </details>
+    </section>
+
     <section class="section" id="section-focus">
-      <h2 class="section-title">{{ view.labels['section_work_focus'] }}</h2>
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.labels['section_work_focus'] }}</h2></summary>
       <p class="section-sub">{{ view.work_focus.headline }}</p>
       <div class="card-grid-3">
         <div class="card">
@@ -1350,10 +1636,12 @@
             {% endif %}
           </div>
         </div>
+      </details>
       </section>
 
     <section class="section" id="section-rhythm">
-      <h2 class="section-title">{{ view.labels['section_rhythm'] }}</h2>
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.labels['section_rhythm'] }}</h2></summary>
       <p class="section-sub">{{ view.collaboration_rhythm.headline }}</p>
       <div class="grid-2">
         <div class="card">
@@ -1376,10 +1664,12 @@
           {% endfor %}
         </div>
       </div>
+      </details>
     </section>
 
     <section class="section" id="section-wins">
-      <h2 class="section-title">{{ view.labels['section_wins'] }}</h2>
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.labels['section_wins'] }}</h2></summary>
       <p class="section-sub">{{ view.wins.headline }}</p>
       <div class="card-grid-3">
         {% for win in view.wins.wins %}
@@ -1391,11 +1681,13 @@
         </div>
         {% endfor %}
       </div>
+      </details>
     </section>
 
     {% if view.agent_asset %}
     <section class="section" id="section-agent-asset">
-      <h2 class="section-title">{{ view.agent_asset.headline }}</h2>
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.agent_asset.headline }}</h2></summary>
       <p class="section-sub">{{ view.agent_asset.summary_line }}</p>
       <div class="grid-3" style="margin-top:12px">
         <div class="card">
@@ -1423,45 +1715,13 @@
         {% endfor %}
       </ul>
       {% endif %}
-    </section>
-    {% endif %}
-
-    {% if view.growth_delta and view.growth_delta.available %}
-    <section class="section" id="section-growth-delta">
-      <h2 class="section-title">{{ view.labels['section_growth_delta'] }}</h2>
-      <p class="muted">{{ view.labels['label_compared_with'] }} {{ view.growth_delta.prev_label }}</p>
-      <div class="grid-3" style="margin-top:12px">
-        <div class="card">
-          <div class="kpi-label">{{ view.labels['label_score_change'] }}</div>
-          <div class="kpi-value" style="color:{% if view.growth_delta.score_delta >= 0 %}var(--accent){% else %}var(--muted){% endif %}">
-            {{ '+' if view.growth_delta.score_delta >= 0 else '' }}{{ view.growth_delta.score_delta }}
-          </div>
-          <div class="small muted">{{ view.growth_delta.prev_score }} → {{ view.growth_delta.curr_score }}</div>
-        </div>
-        <div class="card">
-          <div class="kpi-label">{{ view.labels['label_current_level'] }}</div>
-          <div class="kpi-value">{{ view.growth_delta.curr_level }}</div>
-          {% if view.growth_delta.level_delta != 0 %}
-          <div class="small" style="color:{% if view.growth_delta.level_delta > 0 %}var(--accent){% else %}var(--muted){% endif %}">
-            {% if view.growth_delta.level_delta > 0 %}{{ view.labels['label_level_up'] }}{% else %}{{ view.labels['label_level_down'] }}{% endif %}
-          </div>
-          {% endif %}
-        </div>
-        <div class="card">
-          <div class="kpi-label">{{ view.labels['label_improved_dims'] }}</div>
-          <div class="small">
-            {% for dim in view.growth_delta.improved_dims %}
-            <span class="chip" style="background:var(--accent-soft);color:var(--accent);border:none">{{ dim }}</span>
-            {% endfor %}
-            {% if not view.growth_delta.improved_dims %}<span class="muted">–</span>{% endif %}
-          </div>
-        </div>
-      </div>
+      </details>
     </section>
     {% endif %}
 
     <section class="section" id="section-style-lens">
-      <h2 class="section-title">{{ view.labels['section_style_lens'] }}</h2>
+      <details class="section-toggle">
+      <summary><h2 class="section-title">{{ view.labels['section_style_lens'] }}</h2></summary>
       <p style="font-size:0.85rem; color:var(--muted); margin-top:0.25rem; margin-bottom:1rem;">
         {{ view.labels['label_style_lens_intro'] }}
       </p>
@@ -1499,10 +1759,18 @@
           </ul>
         </div>
       </div>
+      </details>
     </section>
 
     <div class="footer">
-      {{ view.report_title }} · {{ view.tool_display_name }} · {{ view.generated_at }}
+      <div>{{ view.report_title }} · {{ view.tool_display_name }} · {{ view.generated_at }}</div>
+      <div class="footer-meta">
+        <a href="{{ view.labels.get('footer_github_url', 'https://github.com/yxkong/ai-growth-mirror') }}" target="_blank" rel="noopener noreferrer">{{ view.labels.get('footer_github_label', 'GitHub') }}</a>
+        <span class="footer-sep">·</span>
+        <span>{{ view.labels.get('footer_author', 'yxkong') }}</span>
+        <span class="footer-sep">·</span>
+        <a href="mailto:{{ view.labels.get('footer_email', '5ycode@sina.com') }}">{{ view.labels.get('footer_email', '5ycode@sina.com') }}</a>
+      </div>
     </div>
     </div>
     </div>
@@ -1528,16 +1796,20 @@
       }
 
       const navLinks = Array.from(document.querySelectorAll('.sidebar-nav-link, .section-nav-link'));
-      const sectionIds = navLinks
-        .map((link) => (link.getAttribute('href') || '').replace('#', ''))
-        .filter(Boolean);
+      const sectionIds = [...new Set(
+        navLinks
+          .map((link) => (link.getAttribute('href') || '').replace('#', ''))
+          .filter(Boolean)
+      )];
       const sections = sectionIds
         .map((id) => document.getElementById(id))
-        .filter(Boolean);
+        .filter(Boolean)
+        .sort((a, b) => a.offsetTop - b.offsetTop);
 
       if (!navLinks.length || !sections.length) return;
 
-      let suppressObserverUntil = 0;
+      let suppressScrollSpyUntil = 0;
+      const scrollOffset = 96;
 
       const setActiveLink = (activeId) => {
         navLinks.forEach((link) => {
@@ -1545,6 +1817,22 @@
           link.classList.toggle('active', isActive);
           link.setAttribute('aria-current', isActive ? 'true' : 'false');
         });
+      };
+
+      const resolveActiveSection = () => {
+        let active = sections[0];
+        for (const section of sections) {
+          const top = section.getBoundingClientRect().top;
+          if (top <= scrollOffset) {
+            active = section;
+          }
+        }
+        return active.id;
+      };
+
+      const updateActiveFromScroll = () => {
+        if (Date.now() < suppressScrollSpyUntil) return;
+        setActiveLink(resolveActiveSection());
       };
 
       setActiveLink(sections[0].id);
@@ -1555,7 +1843,7 @@
           const target = targetId ? document.getElementById(targetId) : null;
           if (!target) return;
           event.preventDefault();
-          suppressObserverUntil = Date.now() + 900;
+          suppressScrollSpyUntil = Date.now() + 1000;
           setActiveLink(targetId);
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           if (window.history && window.history.replaceState) {
@@ -1564,23 +1852,21 @@
         });
       });
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (Date.now() < suppressObserverUntil) return;
-          const visible = entries
-            .filter((entry) => entry.isIntersecting)
-            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-          if (visible && visible.target && visible.target.id) {
-            setActiveLink(visible.target.id);
-          }
+      let scrollTicking = false;
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (scrollTicking) return;
+          scrollTicking = true;
+          window.requestAnimationFrame(() => {
+            updateActiveFromScroll();
+            scrollTicking = false;
+          });
         },
-        {
-          rootMargin: '-18% 0px -62% 0px',
-          threshold: [0.2, 0.45, 0.7],
-        }
+        { passive: true }
       );
-
-      sections.forEach((section) => observer.observe(section));
+      window.addEventListener('resize', updateActiveFromScroll, { passive: true });
+      updateActiveFromScroll();
     })();
   </script>
 </body>
