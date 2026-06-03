@@ -20,6 +20,10 @@ from ...domain.signals.model import (
     SessionRead,
 )
 from ..extractors.llm import _should_extract
+from ...domain.session.heuristics import (
+    classify_session_quality,
+    passes_quality_gate as _passes_quality_gate,
+)
 from ...domain.signals.framework import aggregate_family, detect_frameworks
 
 _FRICTION_DESC_KEYS = {
@@ -72,6 +76,7 @@ def build_heuristic_session_reads_batch(
     *,
     language: str = "zh",
     max_sessions: int = 0,
+    min_quality: str = "medium",
 ) -> tuple[list[SessionRead], int]:
     """Build session reads locally from deterministic heuristics.
 
@@ -79,7 +84,7 @@ def build_heuristic_session_reads_batch(
     ``attempted_count`` here equals the number of eligible sessions after the
     same substantive-session gate used by the LLM extractor.
     """
-    eligible = [s for s in sessions if _should_extract(s)]
+    eligible = [s for s in sessions if _should_extract(s) and _passes_quality_gate(s, min_quality)]
     if max_sessions and max_sessions > 0:
         eligible = eligible[:max_sessions]
     return [
@@ -431,7 +436,8 @@ def _prompt_quality(
             )
         )
 
-    if session.prompt_word_count < 18:
+    indexed_prompt = bool(session.unique_skills_used or session.slash_commands or session.skill_invocation_count > 0)
+    if session.prompt_word_count < 18 and not indexed_prompt:
         specificity -= 12
         findings.append(
             PromptLensFinding(

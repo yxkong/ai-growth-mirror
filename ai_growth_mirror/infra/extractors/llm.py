@@ -16,6 +16,10 @@ from jinja2 import Environment
 from ...assets.prompts import build_prompt_environment, normalize_report_language
 from ...domain.common.contracts import LlmCallRequest, LlmGateway
 from ...domain.session.model import SessionRecord
+from ...domain.session.heuristics import (
+    classify_session_quality,
+    passes_quality_gate as _passes_quality_gate,
+)
 from ...domain.signals.model import MomentumSignal, ResistanceSignal, SessionRead
 from ...domain.signals.payloads import parse_session_read_payload
 from ...domain.signals.taxonomy import (
@@ -228,7 +232,10 @@ def should_read_session(meta: SessionRecord) -> bool:
 
 
 def _should_extract(meta: SessionRecord) -> bool:
-    enough_turns = meta.user_message_count >= MIN_USER_MESSAGES
+    indexed_prompt = bool(meta.unique_skills_used or meta.slash_commands or meta.skill_invocation_count > 0)
+    enough_turns = meta.user_message_count >= MIN_USER_MESSAGES or (
+        indexed_prompt and meta.user_message_count >= 1
+    )
     autonomous_single_shot = meta.user_message_count >= 1 and meta.assistant_message_count >= 3
     if not (enough_turns or autonomous_single_shot):
         return False
@@ -466,14 +473,20 @@ def _emit_progress(callback: Optional[Callable[[int, int, int, int], None]], pro
     callback(progress.done, progress.total, progress.fresh_done, progress.fresh_total)
 
 
-def _eligible_sessions(sessions: list[SessionRecord]) -> tuple[list[SessionRecord], list[tuple[SessionRecord, str]]]:
+def _eligible_sessions(
+    sessions: list[SessionRecord],
+    *,
+    min_quality: str = "medium",
+) -> tuple[list[SessionRecord], list[tuple[SessionRecord, str]]]:
     eligible: list[SessionRecord] = []
     filtered: list[tuple[SessionRecord, str]] = []
     for session in sessions:
-        if _should_extract(session):
+        if _should_extract(session) and _passes_quality_gate(session, min_quality):
             eligible.append(session)
             continue
-        if session.user_message_count < MIN_USER_MESSAGES and session.assistant_message_count < 3:
+        if not _passes_quality_gate(session, min_quality):
+            reason = f"quality-gated ({session.quality_tag} < {min_quality})"
+        elif session.user_message_count < MIN_USER_MESSAGES and session.assistant_message_count < 3:
             reason = f"low-engagement (user_msgs={session.user_message_count}, asst_msgs={session.assistant_message_count})"
         elif session.duration_minutes is not None and session.duration_minutes < MIN_DURATION_MINUTES:
             reason = f"too-short ({session.duration_minutes}min < {MIN_DURATION_MINUTES}min)"
@@ -492,9 +505,10 @@ def extract_session_reads_batch(
     force: bool = False,
     on_progress: Optional[Callable[[int, int, int, int], None]] = None,
     language: str = "zh",
+    min_quality: str = "medium",
 ) -> tuple[list[SessionRead], int]:
     language = normalize_report_language(language)
-    eligible, filtered = _eligible_sessions(sessions)
+    eligible, filtered = _eligible_sessions(sessions, min_quality=min_quality)
     if logger.isEnabledFor(logging.INFO):
         logger.debug(
             "Session-read filter: %d total -> %d eligible, %d filtered",

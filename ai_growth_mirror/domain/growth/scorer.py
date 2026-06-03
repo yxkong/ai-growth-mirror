@@ -8,7 +8,7 @@ from statistics import median
 from typing import Optional
 
 from ..session.model import SessionRecord
-from ..signals.framework import detect_frameworks
+from ..signals.framework import detect_frameworks, detect_local_method_frameworks, normalize_method_name
 from ..signals.model import SessionRead
 from .costs import cache_hit_rate
 from .model import AgentAssetStats, GrowthGap, GrowthProfile, GrowthStage, RadarAxis
@@ -123,14 +123,24 @@ def _aggregate_prompt_quality(stats: GrowthProfile, session_reads: list[SessionR
         1 for read in prompt_lens_reads if status_of(read) == "llm_unavailable"
     )
 
-    stats.pq_avg_dimensions = {
-        dimension: round(
-            sum(getattr(read.prompt_lens, dimension) for read in prompt_lens_reads)
-            / len(prompt_lens_reads),
-            1,
-        )
-        for dimension in PQ_DIMENSIONS
-    }
+    indexed_demoted = {"missing-context", "vague-request"}
+    corrected_dimensions: dict[str, float] = {}
+    for dimension in PQ_DIMENSIONS:
+        values: list[float] = []
+        for read in prompt_lens_reads:
+            value = float(getattr(read.prompt_lens, dimension))
+            findings = getattr(read.prompt_lens, "findings", []) or []
+            deficit_keys = {
+                finding.category
+                for finding in findings
+                if getattr(finding, "type", "") != "strength"
+            }
+            if dimension in {"context_provision", "request_specificity"} and getattr(read, "prompt_style", "") in {"indexed_prompt", "mixed_prompt"}:
+                if deficit_keys & indexed_demoted:
+                    value = max(value, 58.0)
+            values.append(value)
+        corrected_dimensions[dimension] = round(sum(values) / len(values), 1) if values else 0.0
+    stats.pq_avg_dimensions = corrected_dimensions
     stats.pq_avg_efficiency_score = round(
         sum(read.prompt_lens.efficiency_score for read in prompt_lens_reads)
         / len(prompt_lens_reads),
@@ -208,6 +218,12 @@ def _compute_growth_level(
     commit_rate: float = 0.0,
     total_files_modified: int = 0,
     friction_by_attribution: dict[str, int] | None = None,
+    asset_maturity_bonus: float = 0.0,
+    advanced_feature_ratio: float = 0.0,
+    skill_usage_session_rate: float = 0.0,
+    workflow_fingerprint_session_rate: float = 0.0,
+    workflow_reuse_depth: int = 0,
+    asset_authoring_session_rate: float = 0.0,
 ) -> tuple[str, int, dict[str, float]]:
     prompt_dimensions = prompt_dimensions or {}
     friction_by_attribution = friction_by_attribution or {}
@@ -302,6 +318,18 @@ def _compute_growth_level(
     )
     tool_leverage_bonus = min(tool_bonus / 25.0, 4.0)
     workflow_maturity_bonus = min(workflow_bonus / 33.0, 3.0)
+    inventory_context = min(asset_maturity_bonus / 3.0, 1.0) * 100.0
+    agentic_system = _bounded_average(
+        (skill_usage_session_rate * 100.0, 0.22),
+        (workflow_fingerprint_session_rate * 100.0, 0.16),
+        (structured_rate * 100.0, 0.14),
+        (advanced_feature_ratio * 100.0, 0.14),
+        (_soft_threshold(float(unique_skill_count), 2.0, 12.0, 100.0), 0.10),
+        (_soft_threshold(float(workflow_reuse_depth), 1.0, 8.0, 100.0), 0.10),
+        (asset_authoring_session_rate * 100.0, 0.06),
+        (assetized_session_rate * 100.0, 0.05),
+        (inventory_context, 0.03),
+    )
 
     weakest_axis = min(
         intent_clarity,
@@ -324,6 +352,7 @@ def _compute_growth_level(
         + adaptive_recovery * 0.14
         + tool_leverage_bonus
         + workflow_maturity_bonus
+        + asset_maturity_bonus
         + consistency_modifier
     )
     score = max(0, min(100, round(total_score)))
@@ -331,6 +360,23 @@ def _compute_growth_level(
         score = 69
     elif session_count < 15 and score > 82:
         score = 82
+    elif (
+        session_count >= 15
+        and agentic_system >= 88.0
+        and execution_driving >= 78.0
+        and implementation_depth >= 70.0
+        and delivery_closure >= 65.0
+        and adaptive_recovery >= 55.0
+    ):
+        score = max(score, 90)
+    elif (
+        session_count >= 15
+        and agentic_system >= 75.0
+        and execution_driving >= 70.0
+        and implementation_depth >= 65.0
+        and delivery_closure >= 50.0
+    ):
+        score = max(score, 75)
 
     if score >= 90:
         level = "L5"
@@ -349,6 +395,7 @@ def _compute_growth_level(
         "implementation_depth": round(implementation_depth, 1),
         "delivery_closure": round(delivery_closure, 1),
         "adaptive_recovery": round(adaptive_recovery, 1),
+        "agentic_system": round(agentic_system, 1),
     }
 
 
@@ -375,9 +422,28 @@ def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
         "delivery_closure",
         "adaptive_recovery",
     ]
+    sub_scores = stats.agentic_sub_scores or {}
+    pq_evaluated = max(0, stats.pq_sessions_evaluated)
+    has_outcome_signals = (
+        stats.workflow_build_substantial_count
+        + stats.workflow_build_moderate_count
+        + (stats.avg_autonomous_chain_length or 0.0)
+    ) > 0 or bool(stats.top_tools)
     axes: list[RadarAxis] = []
     for key in keys:
-        score = round((stats.agentic_sub_scores or {}).get(key, 0.0), 1)
+        score = round(sub_scores.get(key, 0.0), 1)
+        # Per-axis evidence rules: PQ-driven axes need PQ-evaluated sessions;
+        # action-driven axes need at least some recorded tool/workflow signals.
+        if key == "intent_clarity":
+            axis_has_data = pq_evaluated > 0
+        else:
+            axis_has_data = stats.session_count > 0 and (
+                pq_evaluated > 0 or has_outcome_signals
+            )
+        # Final guard: if the score is exactly zero and nothing else supports it,
+        # treat as no-data so the UI shows "—" instead of fabricating "0.0".
+        if axis_has_data and score == 0.0 and not has_outcome_signals and pq_evaluated == 0:
+            axis_has_data = False
         axes.append(
             RadarAxis(
                 key=key,
@@ -386,6 +452,7 @@ def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
                 status=_axis_status(score),
                 short_reason="",
                 confidence=confidence,
+                has_data=axis_has_data,
             )
         )
     return axes
@@ -705,10 +772,61 @@ def _populate_workflow_read_signals(stats: GrowthProfile, session_reads: list[Se
 
 def _populate_framework_fingerprints(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
     framework_counter = Counter()
+    local_counter = Counter()
+    local_methods = _local_method_frameworks(stats)
     for session in sessions:
         for match in detect_frameworks(session):
             framework_counter[match.framework.name] += 1
+        for name in detect_local_method_frameworks(session, local_methods):
+            local_counter[name] += 1
     stats.top_workflow_frameworks = framework_counter.most_common(8)
+    stats.top_local_method_frameworks = local_counter.most_common(8)
+
+
+def _populate_agentic_system_signals(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
+    usage_sessions = 0
+    framework_sessions = 0
+    public_framework_sessions = 0
+    local_method_sessions = 0
+    asset_authoring_sessions = 0
+    reusable_method_counter = Counter()
+    local_methods = _local_method_frameworks(stats)
+    for session in sessions:
+        skill_refs = _normalized_method_refs(session.unique_skills_used or [])
+        slash_refs = _normalized_method_refs(session.slash_commands or [])
+        framework_refs = [match.framework.name.lower() for match in detect_frameworks(session)]
+        local_framework_refs = list(detect_local_method_frameworks(session, local_methods))
+        if session.skill_invocation_count > 0 or skill_refs or slash_refs:
+            usage_sessions += 1
+        if framework_refs:
+            public_framework_sessions += 1
+        if local_framework_refs:
+            local_method_sessions += 1
+        if framework_refs or local_framework_refs:
+            framework_sessions += 1
+        if session.skill_files_authored > 0 or session.hook_config_modified or session.mcp_server_authored:
+            asset_authoring_sessions += 1
+        for name in set(skill_refs + [f"/{item}" for item in slash_refs] + framework_refs + local_framework_refs):
+            reusable_method_counter[name] += 1
+
+    if stats.session_count:
+        stats.skill_usage_session_rate = round(usage_sessions / stats.session_count, 4)
+        stats.public_framework_session_rate = round(public_framework_sessions / stats.session_count, 4)
+        stats.local_method_framework_session_rate = round(local_method_sessions / stats.session_count, 4)
+        stats.workflow_fingerprint_session_rate = round(framework_sessions / stats.session_count, 4)
+        stats.asset_authoring_session_rate = round(asset_authoring_sessions / stats.session_count, 4)
+    stats.workflow_reuse_depth = sum(1 for count in reusable_method_counter.values() if count >= 2)
+
+
+def _local_method_frameworks(stats: GrowthProfile) -> list[str]:
+    agent_asset = getattr(stats, "agent_asset", None)
+    if agent_asset is None:
+        return []
+    return list(getattr(agent_asset, "local_method_frameworks", []) or [])
+
+
+def _normalized_method_refs(values: list[str] | tuple[str, ...]) -> list[str]:
+    return [normalized for item in values if (normalized := normalize_method_name(item))]
 
 
 def _populate_prompt_signals(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
@@ -720,6 +838,14 @@ def _populate_prompt_signals(stats: GrowthProfile, sessions: list[SessionRecord]
         stats.code_context_rate = round(code_context / stats.session_count, 4)
     if prompt_lengths:
         stats.avg_prompt_word_count = round(sum(prompt_lengths) / len(prompt_lengths), 1)
+
+
+def _populate_advanced_feature_signals(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
+    feature_counter = Counter()
+    for session in sessions:
+        for feature in getattr(session, "advanced_features", []) or []:
+            feature_counter[feature] += 1
+    stats.advanced_feature_counts = dict(feature_counter)
 
 
 def _populate_code_session_metrics(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
@@ -735,15 +861,29 @@ def _apply_asset_floor(stats: GrowthProfile) -> None:
     if agent_asset is None or not agent_asset.has_data:
         return
     if (
-        agent_asset.skill_files_count >= 10
+        agent_asset.skill_files_count >= 5
         and stats.workflow_build_substantial_count == 0
-        and stats.workflow_build_moderate_count < 3
+        and stats.workflow_build_moderate_count < 2
     ):
-        stats.workflow_build_moderate_count = 3
-    if agent_asset.skill_files_count >= 30:
+        stats.workflow_build_moderate_count = 2
+    if agent_asset.skill_files_count >= 15:
         stats.workflow_build_substantial_count = max(stats.workflow_build_substantial_count, 1)
-    if agent_asset.skill_files_count >= 60:
+    if agent_asset.skill_files_count >= 30:
         stats.workflow_build_substantial_count = max(stats.workflow_build_substantial_count, 3)
+
+
+def _asset_maturity_bonus(stats: GrowthProfile) -> float:
+    agent_asset = getattr(stats, "agent_asset", None)
+    if agent_asset is None or not agent_asset.has_data:
+        return 0.0
+    bonus = 0.0
+    if agent_asset.skill_files_count >= 10 and agent_asset.rule_files_count >= 5:
+        bonus += 1.5
+    if agent_asset.prompt_files_count >= 10:
+        bonus += 0.8
+    if agent_asset.skill_files_count >= 30:
+        bonus += 0.7
+    return min(bonus, 3.0)
 
 
 def _valid_session_reads(session_reads: list[SessionRead]) -> list[SessionRead]:
@@ -773,6 +913,7 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead]) -> No
         else stats.verification_behavior_rate
     )
     _apply_asset_floor(stats)
+    maturity_bonus = _asset_maturity_bonus(stats)
     (
         stats.growth_level,
         stats.mirror_score,
@@ -810,7 +951,14 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead]) -> No
         commit_rate=stats.commit_rate,
         total_files_modified=stats.total_files_modified,
         friction_by_attribution=stats.friction_by_attribution,
+        asset_maturity_bonus=maturity_bonus,
+        advanced_feature_ratio=stats.advanced_feature_ratio,
+        skill_usage_session_rate=stats.skill_usage_session_rate,
+        workflow_fingerprint_session_rate=stats.workflow_fingerprint_session_rate,
+        workflow_reuse_depth=stats.workflow_reuse_depth,
+        asset_authoring_session_rate=stats.asset_authoring_session_rate,
     )
+    stats.agentic_system_score = round(stats.agentic_sub_scores.get("agentic_system", 0.0), 1)
     stats.radar_axes = _build_radar_axes(stats)
     stats.gap_rankings = _build_gap_rankings(stats)
     stats.growth_stage = _build_growth_stage(stats)
@@ -838,7 +986,9 @@ def aggregate(
     _populate_session_capabilities(stats, sessions)
     _populate_workflow_read_signals(stats, session_reads)
     _populate_framework_fingerprints(stats, sessions)
+    _populate_agentic_system_signals(stats, sessions)
     _populate_prompt_signals(stats, sessions)
+    _populate_advanced_feature_signals(stats, sessions)
     _populate_code_session_metrics(stats, sessions)
     _score_profile(stats, session_reads)
     return stats

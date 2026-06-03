@@ -187,3 +187,116 @@ def enrich_agentic_signals(session: SessionRecord) -> None:
     all_names_lower = " ".join(tool_names)
     if any(pattern in all_names_lower for pattern in TEST_PATTERNS):
         session.has_test_commands = True
+
+
+# Canonical advanced-feature keys. Keep in sync with i18n keys
+# `advanced_feature_<key>` in template_labels_*.yaml.
+ADVANCED_FEATURE_KEYS: tuple[str, ...] = (
+    "plan_mode",
+    "ask_mode",
+    "subagent_dispatch",
+    "skill_invocation",
+    "mcp_usage",
+    "multi_model",
+)
+
+_PLAN_MODE_TOOLS = frozenset({"todowrite", "todo_write"})
+_PLAN_MODE_TEXT_PATTERNS = ("plan mode is active", "进入计划模式", "plan mode active")
+_ASK_MODE_TEXT_PATTERNS = ("ask mode is active", "ask mode active")
+
+
+def enrich_advanced_features(session: SessionRecord) -> None:
+    """Derive `session.advanced_features` from already-extracted signals.
+
+    Idempotent: callers can safely run this on top of reader-specific extraction.
+    Only ADDS to the existing list; never removes signals a reader detected.
+    """
+    existing = set(session.advanced_features or [])
+
+    if session.uses_subagent or session.subagent_invocation_count > 0:
+        existing.add("subagent_dispatch")
+    if session.uses_mcp:
+        existing.add("mcp_usage")
+    if session.skill_invocation_count > 0 or session.unique_skills_used:
+        existing.add("skill_invocation")
+    if len(session.models_used or []) >= 2:
+        existing.add("multi_model")
+
+    tool_names_lower = {name.lower() for name in (session.tool_counts or {}).keys()}
+    if tool_names_lower & _PLAN_MODE_TOOLS:
+        existing.add("plan_mode")
+
+    haystack: list[str] = []
+    if session.first_prompt:
+        haystack.append(session.first_prompt.lower())
+    haystack.extend(msg.lower() for msg in (session.top_user_messages or []))
+    haystack_blob = " \n ".join(haystack)
+    if haystack_blob:
+        if any(pat in haystack_blob for pat in _PLAN_MODE_TEXT_PATTERNS):
+            existing.add("plan_mode")
+        if any(pat in haystack_blob for pat in _ASK_MODE_TEXT_PATTERNS):
+            existing.add("ask_mode")
+
+    # Preserve canonical ordering for stable rendering / snapshots.
+    session.advanced_features = [k for k in ADVANCED_FEATURE_KEYS if k in existing]
+
+
+_QUALITY_ORDER = {"low": 0, "medium": 1, "high": 2}
+
+
+def is_indexed_prompt_session(session: SessionRecord) -> bool:
+    """A session that anchors on a known skill/slash-command/rule entry.
+
+    Such sessions are *high signal* even when they have only 1 user message —
+    the user is leveraging accumulated assets rather than re-typing context.
+    """
+    return bool(
+        session.skill_invocation_count > 0
+        or session.unique_skills_used
+        or session.slash_commands
+    )
+
+
+def classify_session_quality(session: SessionRecord) -> str:
+    """Bucket a session into low/medium/high for the report quality gate.
+
+    Indexed-prompt sessions (skill / slash invocation) are guaranteed at least
+    `medium` to honor the design intent: invoking a `/delivery-workflow` once
+    and getting a long AI response is *not* a low-engagement session.
+    """
+    output_signals = (
+        session.files_modified > 0
+        or session.lines_added > 0
+        or session.lines_removed > 0
+        or session.git_commits > 0
+        or bool(session.tool_counts)
+    )
+    chain_depth = max(session.autonomous_chain_lengths or [0])
+    indexed = is_indexed_prompt_session(session)
+
+    # Bottom rung: nothing happened AND not an indexed call.
+    if (
+        session.user_message_count <= 1
+        and not output_signals
+        and chain_depth <= 1
+        and not indexed
+    ):
+        return "low"
+
+    if output_signals and (
+        session.has_verification_behavior
+        or session.has_test_commands
+        or session.git_commits > 0
+        or chain_depth >= 3
+    ):
+        return "high"
+
+    return "medium"
+
+
+def passes_quality_gate(session: SessionRecord, min_quality: str) -> bool:
+    """Tag the session with quality_tag and check it meets the minimum bar."""
+    session.quality_tag = classify_session_quality(session)
+    return _QUALITY_ORDER.get(session.quality_tag, 1) >= _QUALITY_ORDER.get(
+        min_quality, 1
+    )

@@ -218,7 +218,6 @@ wins:
 summary:
   growth_level_unrated: "未判级"
   title: "本期协作进化报告"
-  subtitle_suffix: " · AI 成长镜"
   share_title: "本期协作结论"
   strongest_signal: "当前最稳的习惯是 {strongest}"
   source_note:
@@ -634,6 +633,15 @@ prompt_coach:
       indexed_prompt: "你使用的是索引式提需求方式：用短触发词唤起已有规则、技能路由或工作流。这不属于典型的“背景缺失”。它的优势是启动快，也说明你已经有方法资产。下一步不是每次都写更长，而是补足本次对象、输入材料、目标结果和收口方式。"
       mixed_prompt: "你已经把触发词和本次任务变量结合起来了。这通常比纯长 Prompt 更稳，也不该被直接判成上下文不足。下一步重点是把对象、材料、目标结果和收口方式补齐。"
       under_specified_prompt: "这次更像是真正的欠规格输入：既没有完整需求，也没有稳定触发词或规则锚点。优先把背景、目标、约束和验收补成完整首轮输入。"
+    prompt_style_focus_messages:
+      indexed_prompt:
+        missing-context: "你已经在用索引式入口了，当前真正缺的不是规则锚点，而是本次对象、输入材料和目标结果还没有一起前置。"
+        vague-request: "你已经有触发词和流程入口了，当前更该补的是动作顺序与收口方式，别让 AI 只能沿默认 workflow 往下走。"
+        missing-acceptance-criteria: "你已经在用索引式入口了，入口不是主要问题。当前最该补的是完成定义和收口方式，把“什么算通过”跟触发词一起写清。"
+      mixed_prompt:
+        missing-context: "你这期已经出现了“触发词 + 当前任务变量”的混合写法，但本次对象、输入材料和目标结果还没有稳定地一起前置。"
+        vague-request: "你这期已经在用“触发词 + 当前任务变量”的混合写法了，当前更该补的是动作顺序和收口方式，而不是把 Prompt 一味写长。"
+        missing-acceptance-criteria: "你这期已经在用“触发词 + 当前任务变量”的混合写法了，说明入口不是主要问题。当前最该补的是完成定义和收口方式，别让 AI 按默认 workflow 提前收口。"
     prompt_style_next_prompt:
       explicit_requirement_prompt: "背景：...\n当前问题：...\n目标结果：...\n约束条件：...\n验收标准：...\n输出格式：..."
       indexed_prompt: "沿用触发词：<trigger>\n本次对象：...\n输入材料：...\n目标结果：...\n收口方式：...\n输出格式：..."
@@ -715,6 +723,9 @@ prompt_coach:
       assumption-not-surfaced:
         description: "你默认了一些背景假设，但没有显式告诉 AI。"
         impact: "AI 会按自己的理解补全，导致输出不稳定。"
+    indexed_deficit_labels:
+      missing-context: "任务变量未前置"
+      vague-request: "收口方式待明确"
     indexed_deficit_overrides:
       missing-context:
         description: "这次并不是没有规则锚点，而是索引入口之后缺少本次对象、输入材料或目标结果。"
@@ -942,18 +953,22 @@ exemplar_reuse_actions:
   general: "下次复用这次最有效的提问顺序和验证动作，而不是只复用一句话术。"
 
 level_axis_metrics:
+  labels:
+    agentic_system: "Agentic 系统成熟度"
   explanations:
     intent_clarity: "看你是否能把目标、约束、验收和上下文前置清楚。"
     execution_driving: "看你是否会主动组织推进节奏，并调动 AI / 工具能力。"
     implementation_depth: "看你是否真的进入代码、实现链路和边界，而不是停留在表层建议。"
     delivery_closure: "看结果是否被带到验证、结论和可交付状态。"
     adaptive_recovery: "看你在偏航、报错或阻塞时，能否基于新证据恢复推进。"
+    agentic_system: "看真实任务里是否稳定调动 skill、workflow、工具和方法资产，而不是只看目录里有多少文件。"
   current_values:
     intent_clarity: "轴分 {score} · 约束前置 {constraint_rate}% · 代码上下文 {code_context_rate}% · 具体度 {request_specificity}%"
     execution_driving: "轴分 {score} · 平均链 {avg_chain} · 重会话 {heavy_sessions} · subagent {subagent_count} · MCP {mcp_rate}%"
     implementation_depth: "轴分 {score} · 人均改动文件 {files_per_session} · token 体量 {token_volume_m}M · 代码验证 {code_verification_rate_pct}%"
     delivery_closure: "轴分 {score} · 加权完成率 {completion_rate}% · 验证率 {verification_rate}% · 测试率 {test_rate}%"
     adaptive_recovery: "轴分 {score} · 纠偏质量 {correction_quality}% · 结构化占比 {structured_rate_pct}% · 用户侧摩擦 {user_actionable_ratio_pct}% · 资产信号 {authored_assets}"
+    agentic_system: "轴分 {score} · skill/workflow 使用 {skill_usage_rate}% · 方法指纹 {workflow_fingerprint_rate}%（公开框架 {public_framework_rate}% / 本地方法 {local_method_rate}%）· 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}% · 高杠杆功能 {advanced_feature_rate}%"
   thresholds:
     L2:
       intent_clarity: 42
@@ -961,24 +976,28 @@ level_axis_metrics:
       implementation_depth: 40
       delivery_closure: 40
       adaptive_recovery: 38
+      agentic_system: 35
     L3:
       intent_clarity: 56
       execution_driving: 58
       implementation_depth: 55
       delivery_closure: 55
       adaptive_recovery: 52
+      agentic_system: 52
     L4:
       intent_clarity: 72
       execution_driving: 74
       implementation_depth: 70
       delivery_closure: 70
       adaptive_recovery: 68
+      agentic_system: 75
     L5:
       intent_clarity: 86
       execution_driving: 86
       implementation_depth: 84
       delivery_closure: 84
       adaptive_recovery: 82
+      agentic_system: 88
   targets:
     L2:
       intent_clarity:
@@ -996,6 +1015,9 @@ level_axis_metrics:
       adaptive_recovery:
         target: "出现基于新证据的纠偏动作"
         hint: "偏航后能拉回正轨"
+      agentic_system:
+        target: "开始在真实任务里使用 skill、workflow 或高杠杆工具"
+        hint: "先看使用痕迹，不用资产库存替代能力"
     L3:
       intent_clarity:
         target: "任务 framing 稳定，首轮上下文更完整"
@@ -1012,6 +1034,9 @@ level_axis_metrics:
       adaptive_recovery:
         target: "纠偏质量和恢复推进能力稳定出现"
         hint: "不再依赖机械重试"
+      agentic_system:
+        target: "多次任务里出现可重复的方法、技能或 workflow 调用"
+        hint: "从偶发使用走向稳定复用"
     L4:
       intent_clarity:
         target: "高复杂任务也能前置清楚目标和边界"
@@ -1028,6 +1053,9 @@ level_axis_metrics:
       adaptive_recovery:
         target: "阻塞后能快速基于证据切换路径"
         hint: "恢复推进速度更快"
+      agentic_system:
+        target: "能组合 skill、workflow、工具和上下文资产推进复杂任务"
+        hint: "能力系统开始参与真实交付"
     L5:
       intent_clarity:
         target: "复杂任务 framing 已具备高度稳定性和迁移性"
@@ -1044,3 +1072,6 @@ level_axis_metrics:
       adaptive_recovery:
         target: "偏航恢复、方法沉淀与资产复用开始联动"
         hint: "不仅能恢复，还能把恢复方法留下来"
+      agentic_system:
+        target: "方法系统能跨任务稳定复用，并和验证闭环、工具编排联动"
+        hint: "这是工作流设计者的核心证据"

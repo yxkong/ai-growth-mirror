@@ -141,14 +141,17 @@ def test_build_personal_report_view_contains_core_sections():
         catalogs=load_report_label_catalogs("zh"),
     )
     assert view.summary.growth_level
+    assert view.summary.subtitle == "Codex CLI"
     assert view.summary.share_title
     assert len(view.summary.share_lines) == 3
     assert view.sections
     assert any(item.id == "section-growth-plan" for item in view.sections)
+    assert any(item.id == "section-summary" for item in view.sections)
     assert any(item.id == "section-level-evidence" for item in view.sections)
     assert all(item.id != "section-usage" for item in view.sections)
     assert all(item.id != "section-capability" for item in view.sections)
     assert len(view.capability.dimensions) == 5
+    assert view.capability.dimensions[0].has_data is True
     assert view.radar_chart is not None
     assert view.radar_chart.polygon_points
     assert view.radar_axes
@@ -250,6 +253,11 @@ def test_generate_personal_report_writes_html_and_sidecar(tmp_path: Path):
     assert "section-style-lens" in html
     assert "AI 成长镜" in html
     assert "本期协作进化报告" in html
+    assert 'href="#section-summary"' in html
+    assert 'sidebar-brand-link' in html
+    assert "github.com/yxkong/ai-growth-mirror" in html
+    assert "5ycode@sina.com" in html
+    assert html.count('href="#section-summary"') >= 1
     assert "7 天微训练" not in html
     assert out.with_suffix(".json").exists()
     assert out.with_name("personal.summary.json").exists()
@@ -336,6 +344,89 @@ def test_prompt_coach_prefers_real_takeaway_examples():
     assert view.prompt_coach.takeaways[0].label == "先把背景交代完整"
     assert "帮我看看这个问题" in view.prompt_coach.takeaways[0].evidence
     assert "相关文件：handler.py" in view.prompt_coach.takeaways[0].better_prompt
+
+
+def test_prompt_coach_mixed_prompt_message_aligns_with_acceptance_gap():
+    session = _make_session(
+        "s1",
+        "D:/repo/a",
+        first_prompt="按照 /delivery-workflow 执行。针对 ai_growth_mirror/application/prompt_coach.py，目标结果：修正当前判断卡文案，避免和首要短板打架。",
+    )
+    session.slash_commands = ["/delivery-workflow"]
+    session.unique_skills_used = ["delivery-workflow"]
+    facet = _make_facets("s1")
+    stats = aggregate([session], [facet], tool_name="codex")
+    stats.pq_deficit_counts = {
+        "missing-acceptance-criteria": 4,
+        "missing-context": 2,
+    }
+
+    coach = build_prompt_coach_view(
+        stats=stats,
+        sessions=[session],
+        session_reads=[facet],
+        session_read_mode="llm",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert coach.prompt_style is not None
+    assert coach.prompt_style.type == "mixed_prompt"
+    assert "完成定义和收口方式" in coach.prompt_style.coaching_message
+    assert "上下文不足" not in coach.prompt_style.coaching_message
+    assert coach.prompt_style.suggested_next_prompt == ""
+    assert coach.rewrite_cards == []
+
+
+def test_prompt_coach_prioritizes_task_variable_evidence_for_mixed_prompt():
+    session = _make_session(
+        "s1",
+        "D:/repo/a",
+        first_prompt="按照 /delivery-workflow 执行。针对 ai_growth_mirror/application/prompt_coach.py 和 tests/unit/test_personal_growth_report.py，目标结果：修正当前判断卡文案。",
+    )
+    session.slash_commands = ["/delivery-workflow"]
+    session.unique_skills_used = ["delivery-workflow"]
+    facet = _make_facets("s1")
+    stats = aggregate([session], [facet], tool_name="codex")
+    stats.pq_deficit_counts = {"missing-acceptance-criteria": 3}
+
+    coach = build_prompt_coach_view(
+        stats=stats,
+        sessions=[session],
+        session_reads=[facet],
+        session_read_mode="llm",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert coach.prompt_style is not None
+    visible_evidence = coach.prompt_style.evidence[:3]
+    assert any("本次任务变量：已补" in item for item in visible_evidence)
+
+
+def test_prompt_coach_does_not_fallback_to_template_without_grounded_rewrite():
+    session = _make_session(
+        "s1",
+        "D:/repo/a",
+        first_prompt="按照 /delivery-workflow 执行。针对 ai_growth_mirror/application/prompt_coach.py，目标结果：修正当前判断卡文案。",
+    )
+    session.slash_commands = ["/delivery-workflow"]
+    session.unique_skills_used = ["delivery-workflow"]
+    facet = _make_facets("s1")
+    stats = aggregate([session], [facet], tool_name="codex")
+    stats.pq_deficit_counts = {"missing-context": 3}
+
+    view = build_personal_report_view(
+        sessions=[session],
+        session_reads=[facet],
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.prompt_coach.prompt_style is not None
+    assert view.prompt_coach.prompt_style.suggested_next_prompt == ""
+    assert view.prompt_coach.rewrite_cards == []
+    assert view.prompt_coach.universal_template is None
+    assert view.prompt_coach.scenario_templates == []
 
 
 def test_snapshot_trajectory_window_collapses_same_day_points():
@@ -1006,7 +1097,7 @@ def test_render_personal_report_html_compacts_prompt_coach_surface():
     assert "场景化模板" not in html
     assert "section_score_waterfall" not in html
     assert "LLM" in html or "heuristic" in html
-    assert "下次可以这样问" in html
+    assert "下次可以这样问" not in html
     assert "AI Growth Mirror logo" in html
 
 
@@ -1029,6 +1120,7 @@ def test_report_sections_keep_five_primary_chain():
         "section-prompt-coach",
         "section-growth-plan",
     ]
+    assert any(item.id == "section-summary" and not item.nav_visible for item in view.sections)
     assert "section-level-guide" not in visible_ids
 
 

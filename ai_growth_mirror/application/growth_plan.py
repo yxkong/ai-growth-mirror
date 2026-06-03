@@ -262,15 +262,7 @@ def _linked_deficits(key: str, prompt_coach: "PromptCoachView | None"):
 
 
 def _linked_templates(key: str, prompt_coach: "PromptCoachView | None"):
-    if prompt_coach is None:
-        return []
-    if key.startswith("prompt:"):
-        prompt_key = key.split(":", 1)[1]
-        expected = _SCENE_MAP_BY_PROMPT_DIMENSION.get(prompt_key, set())
-        rows = [item for item in prompt_coach.scenario_templates if item.scene in expected]
-        if rows:
-            return rows[:1]
-    return ([prompt_coach.universal_template] if prompt_coach.universal_template else [])[:1]
+    return []
 
 
 def _linked_rewrites(key: str, prompt_coach: "PromptCoachView | None"):
@@ -371,11 +363,6 @@ def _priority_prompt(
     for item in linked_rewrites:
         if item.better_prompt:
             return item.better_prompt
-    for item in linked_templates:
-        if item and item.template:
-            return item.template
-    if prompt_coach and prompt_coach.universal_template:
-        return prompt_coach.universal_template.template
     return base_prompt
 
 

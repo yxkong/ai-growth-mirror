@@ -2,7 +2,7 @@
 title: AI Growth Mirror Personal Detailed Design
 domain: growth_mirror
 status: canonical
-updated_at: 2026-05-29
+updated_at: 2026-06-03
 score_target: 9.9
 ---
 
@@ -166,6 +166,37 @@ score_target: 9.9
 
 禁止把这三类信息混成同一种表达，尤其不能把阶段性短板直接说成性格缺陷。
 
+## 5.3.1 Agentic 系统成熟度
+
+`growth_level` 不再只表达“会不会使用 AI”，而是表达用户是否能稳定调动一套 Agentic operating system：真实使用、工具编排、上下文工程、验证闭环、偏航恢复与方法资产回流。
+
+一级能力：
+
+- `Intent Framing`：目标、边界、约束、验收是否前置。
+- `Workflow Orchestration`：是否能组织 plan / spec / tdd / delivery workflow 等多阶段推进。
+- `Tool & Skill Leverage`：是否在真实会话中使用 skill、slash command、MCP、subagent、多模型或其他高杠杆工具。
+- `Context Engineering`：是否把文件、规则、文档、错误日志和历史上下文带入任务。
+- `Execution Depth`：是否进入真实实现链路和复杂边界。
+- `Verification Closure`：是否把结果带到 test / build / smoke / replay / golden case / commit 等可验证状态。
+- `Adaptive Recovery`：偏航、报错或阻塞后是否能基于新证据恢复推进。
+- `Method Assetization`：是否把有效方法沉淀为 skill / rule / prompt / script / checklist / ADR，并在后续任务中回流使用。
+
+证据优先级：
+
+- `Observed Usage` 最高：真实会话里出现 skill / slash / workflow / tool / verification 调用。
+- `Local Method Framework Match` 很高：`report.local_method_frameworks` 显式配置或 `asset_roots` 从本地 hub 提取出的私有方法名，在真实会话的 skill / slash 使用中被精确命中。
+- `Repeated Pattern` 次高：同一方法、skill、workflow 指纹跨多个会话重复出现。
+- `Authored Asset` 中等：创建或修改 skill / rule / prompt / script / governance asset。
+- `Inventory Context` 最低：asset_root / hub 里存在文件，只能作为背景和低权重上下文。
+
+产品约束：
+
+- 用户目录结构不可被硬编码成通用能力标准。有人放在 `share/projects`，有人放在 `./skills`，有人只通过 slash command 或 MCP 使用能力；报告应优先看真实使用和复用，不以目录分类概全。
+- `local_method_frameworks` 是可配置、可从本地 hub 提取、最终进入聚合的真源：配置项与扫描结果先合并为候选清单，再与会话中的 `unique_skills_used` / `slash_commands` 做规范化精确匹配。未被真实任务命中的候选只展示为资产上下文，不参与等级主证据。
+- skill / rule / prompt 文件数量不能单独把用户推到 L4 / L5；只有当这些资产在真实任务里被使用、复用、编排或验证闭环支撑时，才进入等级主证据。
+- `level_evidence` 必须展示 `Agentic 系统成熟度`，并同时呈现使用率、workflow 指纹、公开框架命中、本地方法命中、重复复用、资产创作和高杠杆功能使用。库存证据只能作为低权重背景，不能冒充用户当期状态。
+- 数据不足时显示“未观察到”或留白，不用静态模板或资产库存替用户编造能力画像。
+
 ## 5.4 Prompt 模块
 
 底层字段：
@@ -187,6 +218,7 @@ score_target: 9.9
 - 不是解释模型机制
 - 而是给用户一眼看懂的“下一步怎么提得更好”
 - 优先使用 `pq_top_takeaways`、真实 prompt 片段和改写示例，而不是只给抽象建议
+- 能从真实证据生成就生成；不能生成就留白或不展示，禁止用静态模板兜底冒充“你当前就是这样”
 - `Prompt 成长教练` 必须覆盖**全程 PQ 主链**，不能再因为短会话或 LLM 不可用而静默断档
 - `heuristic` 只允许作为代理来源展示，不能被描述成另一套独立的“Prompt Quality 评估产品”
 - prompt 包输入文案对外统一使用 `evidence packet` / `period summary packet` 等中性口径，不再依赖产品自述式前缀
@@ -204,24 +236,26 @@ score_target: 9.9
 
 1. `top_deficits`：本期最主要的提需求短板，至少包含问题定义、影响、来源边界、置信度、证据摘要
 2. `rewrite_cards`：2-4 张“原始提法 vs 更好提法”训练卡
-3. `universal_template`：通用提需求模板，必须覆盖背景、当前问题、目标结果、约束、参考、验收、输出格式
-4. `scenario_templates`：至少覆盖代码 Review、需求设计、Bug 排查、架构改造、文案优化、图表分析
-5. `prompt_style`：识别 `explicit_requirement_prompt / indexed_prompt / mixed_prompt / under_specified_prompt`
-6. `closure_guidance`：按任务类型给出正确收口方式，而不是默认要求测试；携带 `mode`（`open_ended | engineered` 派生，不升 schema）；`open_ended` 适用于探索/设计/分析/文案，`engineered` 适用于代码/配置/SQL/结构化生成
-7. `friction_synthesis`：标签综合判断层，LLM 配置时由 growth_coach 生成（evidence_refs 接地护栏），未配置时由 `domain/growth/prompting.py` 规则兜底；输出"你不是…而是…"风格可改动作；已打通 `growth_plan.linked_friction_synthesis_ids`
-8. `preflight_checklist` / `recommended_training_inputs`：面向下一次发送前自检和训练输入建议
+3. `prompt_style`：识别 `explicit_requirement_prompt / indexed_prompt / mixed_prompt / under_specified_prompt`
+4. `suggested_next_prompt`：只允许来自真实 `rewrite_cards` / LLM coaching / grounded takeaway 的改写结果；没有真实个性化改写时，必须为空，不得套静态模板
+5. `closure_guidance`：按任务类型给出正确收口方式，而不是默认要求测试；携带 `mode`（`open_ended | engineered` 派生，不升 schema）；`open_ended` 适用于探索/设计/分析/文案，`engineered` 适用于代码/配置/SQL/结构化生成
+6. `friction_synthesis`：标签综合判断层，LLM 配置时由 growth_coach 生成（evidence_refs 接地护栏），未配置时由 `domain/growth/prompting.py` 规则兜底；输出"你不是…而是…"风格可改动作；已打通 `growth_plan.linked_friction_synthesis_ids`
+7. `preflight_checklist` / `recommended_training_inputs`：面向下一次发送前自检和训练输入建议
+8. `universal_template` / `scenario_templates`：只能作为独立参考资产存在，不能在个性化内容缺失时顶替 `rewrite_cards` 或 `suggested_next_prompt` 出现在 personal report / compare / growth plan 主链里
 
 补充约束：
 
 - `indexed_prompt` 是正向方法资产信号，不得直接等价成 `missing-context`
+- 静态模板可以作为知识资产维护，但不得包装成“这是你这次最该怎么问”的个性化结论
 - Prompt 成长教练不再独立展示完整 `seven_day_training_plan`
 - 完整的 `Week 1 / Week 2 / practice_prompt / success_signal / stop_doing` 训练计划统一归口到 `下一阶段训练冲刺`
 
 硬约束：
 
 - 只有在真实 `PromptLensTakeaway.original` 存在时，才允许展示用户原始提法
+- 只有存在真实 `better_prompt` / grounding 证据时，才允许展示“下次可以这样问”或改写示例；否则留白
 - 只有 heuristic 数据时，必须明确标记为代理来源
-- 短会话不足时，不隐藏模块；改为展示轻量模板、自检清单和来源说明
+- 短会话不足时，不隐藏模块；改为展示来源说明、自检清单，以及明确的数据不足边界
 
 ## 5.4.3 下一阶段训练冲刺联动规则
 

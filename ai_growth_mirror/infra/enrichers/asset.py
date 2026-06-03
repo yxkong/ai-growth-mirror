@@ -19,10 +19,10 @@ Privacy notes
 from __future__ import annotations
 
 from ...domain.growth.model import AgentAssetStats
+from ...domain.signals.framework import normalize_method_name
 
 import os
-from dataclasses import field
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -33,6 +33,28 @@ _PROMPT_EXTENSIONS = frozenset({".prompt.md", ".prompt.j2", ".j2"})
 
 # Sub-directory names that typically hold project-scoped assets
 _PROJECT_DIR_NAMES = frozenset({"projects", "share"})
+_IGNORED_METHOD_NAMES = frozenset(
+    {
+        "agent-hub",
+        "hub",
+        "skills",
+        "skill",
+        "prompts",
+        "prompt",
+        "rules",
+        "rule",
+        "references",
+        "reference",
+        "projects",
+        "project",
+        "share",
+        "shared",
+        "bak",
+        "archive",
+        "scripts",
+        "script",
+    }
+)
 
 
 
@@ -41,6 +63,7 @@ def scan_asset_roots(
     asset_roots: list[Path],
     since: Optional[datetime] = None,
     until: Optional[datetime] = None,
+    local_method_frameworks: Optional[list[str]] = None,
 ) -> AgentAssetStats:
     """Scan every root in *asset_roots* and aggregate asset statistics.
 
@@ -56,6 +79,11 @@ def scan_asset_roots(
     """
     stats = AgentAssetStats()
     project_keys: set[str] = set()
+    local_methods: set[str] = {
+        normalized
+        for item in (local_method_frameworks or [])
+        if (normalized := normalize_method_name(item)) and normalized not in _IGNORED_METHOD_NAMES
+    }
     recent: list[tuple[float, str]] = []  # (mtime, relative_label)
     seen_files: set[str] = set()
 
@@ -67,9 +95,10 @@ def scan_asset_roots(
         if not root.is_dir():
             continue
         stats.roots_scanned += 1
-        _scan_dir(root, root, stats, project_keys, recent, seen_files, since_ts, until_ts)
+        _scan_dir(root, root, stats, project_keys, local_methods, recent, seen_files, since_ts, until_ts)
 
     stats.hub_project_keys = sorted(project_keys)[:20]
+    stats.local_method_frameworks = sorted(local_methods)[:120]
     deduped_recent: dict[str, float] = {}
     for mtime, label in recent:
         deduped_recent[label] = max(mtime, deduped_recent.get(label, 0.0))
@@ -92,6 +121,7 @@ def _scan_dir(
     root: Path,
     stats: AgentAssetStats,
     project_keys: set[str],
+    local_methods: set[str],
     recent: list[tuple[float, str]],
     seen_files: set[str],
     since_ts: Optional[float],
@@ -120,7 +150,7 @@ def _scan_dir(
             # Skip hidden dirs except known asset locations
             if entry.name.startswith(".") and entry.name not in {".cursor", ".agents"}:
                 continue
-            _scan_dir(entry_path, root, stats, project_keys, recent, seen_files, since_ts, until_ts, depth + 1)
+            _scan_dir(entry_path, root, stats, project_keys, local_methods, recent, seen_files, since_ts, until_ts, depth + 1)
         elif entry.is_file(follow_symlinks=False):
             category = _classify_file(entry_path)
             if category is None:
@@ -143,6 +173,9 @@ def _scan_dir(
                 stats.prompt_files_count += 1
             elif category == "rule":
                 stats.rule_files_count += 1
+            method_name = _method_name_from_asset(entry_path, category)
+            if method_name:
+                local_methods.add(method_name)
             if in_window:
                 try:
                     rel = str(entry_path.relative_to(root))
@@ -162,3 +195,19 @@ def _classify_file(path: Path) -> Optional[str]:
     if any(lower.endswith(ext) for ext in _PROMPT_EXTENSIONS):
         return "prompt"
     return None
+
+
+def _method_name_from_asset(path: Path, category: str) -> str:
+    """Derive a stable local method name from an asset path without reading content."""
+    if category == "skill":
+        candidate = path.parent.name if path.name == "SKILL.md" else path.stem
+    elif category == "prompt":
+        candidate = path.name
+    elif category == "rule":
+        candidate = path.parent.name
+    else:
+        return ""
+    normalized = normalize_method_name(candidate)
+    if not normalized or normalized in _IGNORED_METHOD_NAMES:
+        return ""
+    return normalized

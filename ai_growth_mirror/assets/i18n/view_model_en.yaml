@@ -218,7 +218,6 @@ wins:
 summary:
   growth_level_unrated: "Unrated"
   title: "This cycle's collaboration evolution"
-  subtitle_suffix: " · AI Growth Mirror"
   share_title: "This cycle's takeaway"
   strongest_signal: "Most stable habit: {strongest}"
   source_note:
@@ -634,6 +633,15 @@ prompt_coach:
       indexed_prompt: "You are using an indexed prompting style: a short trigger that wakes up existing rules, skills, or workflows. This is not the same as missing context. The next move is not to always write more, but to add the task-specific object, materials, target result, and closure method."
       mixed_prompt: "You are already combining a trigger with task-specific variables. That is usually more stable than a long generic prompt, and it should not be treated as simple context lack. Now tighten the object, materials, target result, and closure."
       under_specified_prompt: "This is a truly under-specified input: neither a stable trigger nor a complete requirement is present. Start by adding background, target, constraints, acceptance, and output format."
+    prompt_style_focus_messages:
+      indexed_prompt:
+        missing-context: "You already have an indexed entrypoint. The main gap is not missing anchors, but that the task-specific object, materials, and target result are still not front-loaded together."
+        vague-request: "You already have a trigger and workflow entrypoint. The next gap is the action order and closure method, so the AI does not just keep following the default workflow."
+        missing-acceptance-criteria: "You already have an indexed entrypoint, so entry is not the main problem. The next move is to define done and closure explicitly, and attach that passing definition to the trigger."
+      mixed_prompt:
+        missing-context: "You are already using a trigger plus current-task variables, but the task-specific object, input materials, and target result are still not being front-loaded consistently."
+        vague-request: "You are already using a trigger plus current-task variables. The next move is to tighten action order and closure, not simply make the prompt longer."
+        missing-acceptance-criteria: "You are already using a trigger plus current-task variables, which means entry is not the main problem. The next move is to define done and closure more explicitly, so the AI does not close early on the default workflow."
     prompt_style_next_prompt:
       explicit_requirement_prompt: "Background: ...\nCurrent problem: ...\nTarget result: ...\nConstraints: ...\nAcceptance: ...\nOutput format: ..."
       indexed_prompt: "Use trigger: <trigger>\nObject: ...\nInput materials: ...\nTarget result: ...\nClosure method: ...\nOutput format: ..."
@@ -715,6 +723,9 @@ prompt_coach:
       assumption-not-surfaced:
         description: "Important assumptions remain implicit instead of being stated."
         impact: "The AI fills them in on its own, which makes the output unstable."
+    indexed_deficit_labels:
+      missing-context: "Task variables not front-loaded"
+      vague-request: "Closure method unclear"
     indexed_deficit_overrides:
       missing-context:
         description: "This is not a missing-anchor case; the indexed entrypoint exists, but the task-specific object, materials, or target result are still missing."
@@ -942,18 +953,22 @@ exemplar_reuse_actions:
   general: "Reuse the question order and validation move from this session, not just one memorable phrase."
 
 level_axis_metrics:
+  labels:
+    agentic_system: "Agentic system maturity"
   explanations:
     intent_clarity: "Checks whether goal, constraints, acceptance, and context are front-loaded clearly."
     execution_driving: "Checks whether you actively organize the rhythm and leverage AI/tool capabilities."
     implementation_depth: "Checks whether you enter real code, implementation paths, and boundaries instead of staying at surface advice."
     delivery_closure: "Checks whether work reaches verification, conclusion, and a deliverable state."
     adaptive_recovery: "Checks whether you recover from drift, errors, or blockers using new evidence."
+    agentic_system: "Checks whether real tasks repeatedly mobilize skills, workflows, tools, and reusable methods instead of treating asset inventory as proof."
   current_values:
     intent_clarity: "Axis {score} · constraints {constraint_rate}% · code context {code_context_rate}% · specificity {request_specificity}%"
     execution_driving: "Axis {score} · avg chain {avg_chain} · heavy {heavy_sessions} · subagent {subagent_count} · MCP {mcp_rate}%"
     implementation_depth: "Axis {score} · files/session {files_per_session} · token volume {token_volume_m}M · code proof {code_verification_rate_pct}%"
     delivery_closure: "Axis {score} · weighted completion {completion_rate}% · verification {verification_rate}% · tests {test_rate}%"
     adaptive_recovery: "Axis {score} · correction quality {correction_quality}% · structured share {structured_rate_pct}% · user friction {user_actionable_ratio_pct}% · authored assets {authored_assets}"
+    agentic_system: "Axis {score} · skill/workflow usage {skill_usage_rate}% · method fingerprints {workflow_fingerprint_rate}% (public {public_framework_rate}% / local {local_method_rate}%) · repeated methods {workflow_reuse_depth} · asset authoring {asset_authoring_rate}% · leverage features {advanced_feature_rate}%"
   thresholds:
     L2:
       intent_clarity: 42
@@ -961,24 +976,28 @@ level_axis_metrics:
       implementation_depth: 40
       delivery_closure: 40
       adaptive_recovery: 38
+      agentic_system: 35
     L3:
       intent_clarity: 56
       execution_driving: 58
       implementation_depth: 55
       delivery_closure: 55
       adaptive_recovery: 52
+      agentic_system: 52
     L4:
       intent_clarity: 72
       execution_driving: 74
       implementation_depth: 70
       delivery_closure: 70
       adaptive_recovery: 68
+      agentic_system: 75
     L5:
       intent_clarity: 86
       execution_driving: 86
       implementation_depth: 84
       delivery_closure: 84
       adaptive_recovery: 82
+      agentic_system: 88
   targets:
     L2:
       intent_clarity:
@@ -996,6 +1015,9 @@ level_axis_metrics:
       adaptive_recovery:
         target: "Course correction uses new evidence"
         hint: "Drift can be pulled back"
+      agentic_system:
+        target: "Real tasks start using skills, workflows, or high-leverage tools"
+        hint: "Usage evidence comes before asset inventory"
     L3:
       intent_clarity:
         target: "Task framing is stable and the opening context is more complete"
@@ -1012,6 +1034,9 @@ level_axis_metrics:
       adaptive_recovery:
         target: "Recovery steering appears consistently"
         hint: "Less mechanical retrying"
+      agentic_system:
+        target: "Reusable methods, skills, or workflow calls appear across multiple tasks"
+        hint: "Usage starts becoming repeatable"
     L4:
       intent_clarity:
         target: "Even complex tasks are front-loaded with clear goal and boundary"
@@ -1028,6 +1053,9 @@ level_axis_metrics:
       adaptive_recovery:
         target: "Path switching after blockers is fast and evidence-based"
         hint: "Recovery speed improves"
+      agentic_system:
+        target: "You combine skills, workflows, tools, and context assets in complex work"
+        hint: "The capability system starts contributing to delivery"
     L5:
       intent_clarity:
         target: "Framing is highly stable and portable even on hard tasks"
@@ -1044,3 +1072,6 @@ level_axis_metrics:
       adaptive_recovery:
         target: "Recovery, method capture, and asset reuse begin to reinforce each other"
         hint: "You do not only recover; you preserve the recovery pattern"
+      agentic_system:
+        target: "The method system transfers across tasks and connects with verification closure and tool orchestration"
+        hint: "This is core workflow-designer evidence"

@@ -35,12 +35,36 @@ report:
   language: zh                  # zh | en
   # output_dir: .               # 报告输出目录，默认当前目录
 
+  # 会话质量过滤：低于此等级的会话不参与本期分析
+  #   low    : 包含所有会话（含 1 条消息且无任何输出的"无效对话"）
+  #   medium : 默认。剔除明显低质量；对索引型 prompt（/skill、/delivery-workflow 等）特例放行
+  #   high   : 仅保留有验证、测试或长链路（chain ≥ 3）的高质量会话
+  # 也可通过 `--min-quality` CLI 参数覆盖
+  min_quality: medium
+
+  # 会话范围过滤（与 CLI --repo / --dir / --keyword 等价；CLI 传参会覆盖此处）
+  # scope_repos:
+  #   - ai-growth-mirror
+  # scope_dirs:
+  #   - D:/work/ai-growth-mirror
+  # scope_keywords:
+  #   - delivery-workflow
+
   # 你的 AI 资产根目录（skills、prompts、rules 等）
-  # 用于资产统计和会话中 skill 引用识别
+  # 用于资产统计、会话中 skill 引用识别，以及从本地 hub 提取 local_method_frameworks。
+  # 注意：资产库存只是上下文；只有在真实会话中被 skill/slash 调用命中的方法，才进入等级 evidence。
   asset_roots:
     - /path/to/your/agent-hub   # 示例：本地 agent hub 根目录
     # - ~/.cursor/skills-cursor # 示例：Cursor 技能目录
     # - ~/.claude/skills        # 示例：Claude 技能目录
+
+  # 可选：显式登记你的本地/私有方法框架名。
+  # 会与 asset_roots 扫描出的 SKILL.md 父目录名、*.prompt.md 名称、rules 所在目录名合并。
+  # 适合 hub 目录不规范、或方法名不等于目录名时手动补齐。
+  local_method_frameworks:
+    - delivery-workflow
+    - ai-development-governance
+    - skill-engineering
 # ── 缓存配置 ──────────────────────────────────────────────
 cache:
   enabled: true

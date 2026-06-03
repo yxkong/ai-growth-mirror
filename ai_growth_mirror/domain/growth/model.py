@@ -19,10 +19,14 @@ class AgentAssetStats:
     total_asset_files: int = 0
     # Number of roots that were scanned successfully
     roots_scanned: int = 0
+    # Local/private method framework names discovered from configured hub roots
+    # or supplied directly via report.local_method_frameworks. Inventory alone is
+    # not evidence; these names only affect scoring when matched in sessions.
+    local_method_frameworks: list[str] = field(default_factory=list)
 
     @property
     def has_data(self) -> bool:
-        return self.total_asset_files > 0 or self.roots_scanned > 0
+        return self.total_asset_files > 0 or self.roots_scanned > 0 or bool(self.local_method_frameworks)
 
 
 @dataclass
@@ -33,6 +37,7 @@ class RadarAxis:
     status: str
     short_reason: str = ""
     confidence: float = 0.0
+    has_data: bool = True
 
 
 @dataclass
@@ -234,6 +239,17 @@ class GrowthProfile:
     # Detected public workflow frameworks (name, session_count) top-8.
     # Populated from SessionRecord.slash_commands + unique_skills_used.
     top_workflow_frameworks: list[tuple[str, int]] = field(default_factory=list)
+    # Detected local/private method frameworks (name, session_count) top-8.
+    # Names come from report.local_method_frameworks + local hub extraction.
+    top_local_method_frameworks: list[tuple[str, int]] = field(default_factory=list)
+    advanced_feature_counts: dict[str, int] = field(default_factory=dict)
+    skill_usage_session_rate: float = 0.0
+    public_framework_session_rate: float = 0.0
+    local_method_framework_session_rate: float = 0.0
+    workflow_fingerprint_session_rate: float = 0.0
+    workflow_reuse_depth: int = 0
+    asset_authoring_session_rate: float = 0.0
+    agentic_system_score: float = 0.0
 
     # Prompt quality (informational — not scored, context-dependent)
     constraint_prompt_rate: float = 0.0
@@ -241,8 +257,9 @@ class GrowthProfile:
     # Average word count of opening prompts
     avg_prompt_word_count: float = 0.0
 
-    # Skill / workflow automation (informational — not independently scored;
-    # tool_build_rate is folded into advanced_feature_ratio for scoring)
+    # Skill / workflow automation. Usage signals are stronger than inventory:
+    # a large local skill library is context, but repeated runtime use is what
+    # can lift the agentic system maturity.
     tool_build_rate: float = 0.0          # fraction of sessions with ≥1 Skill tool call
     unique_skill_count: int = 0
     assetized_session_rate: float = 0.0      # sessions that reused or authored reusable AI assets
@@ -269,5 +286,3 @@ class GrowthProfile:
     # Populated by service layer when --asset-root / config.report.asset_roots
     # is provided; None when no roots were configured or scanning was skipped.
     agent_asset: Optional[AgentAssetStats] = None
-
-

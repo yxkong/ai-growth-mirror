@@ -80,6 +80,7 @@ def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
                     "",
                 ),
                 confidence=axis.confidence,
+                has_data=getattr(axis, "has_data", True),
             )
         )
     return axes
@@ -211,6 +212,7 @@ class CapabilityDimensionView:
     score: float
     explanation: str
     next_action: str
+    has_data: bool = True
 
 
 @dataclass
@@ -218,6 +220,7 @@ class CapabilitySectionView:
     strongest_label: str
     weakest_label: str
     dimensions: list[CapabilityDimensionView] = field(default_factory=list)
+    advanced_features: list[tuple[str, int]] = field(default_factory=list)
 
 
 @dataclass
@@ -606,7 +609,11 @@ def build_personal_report_view(
     extraction_failed: int = 0,
 ) -> PersonalReportView:
     capability_scores = compute_capability_scores(stats)
-    capability = _build_capability_section(capability_scores, catalogs)
+    capability = _build_capability_section(capability_scores, catalogs, stats=stats)
+    capability.advanced_features = sorted(
+        ((key, int(value)) for key, value in (stats.advanced_feature_counts or {}).items() if value),
+        key=lambda item: (-item[1], item[0]),
+    )
     exemplars = _build_exemplars(sessions, session_reads, redact, catalogs)
     prompt_coach = build_prompt_coach_view(
         stats=stats,
@@ -757,21 +764,47 @@ def build_personal_report_view(
     )
 
 
-def _build_capability_section(capability_scores: dict[str, float], catalogs: ReportLabelCatalogs) -> CapabilitySectionView:
+def _build_capability_section(
+    capability_scores: dict[str, float],
+    catalogs: ReportLabelCatalogs,
+    *,
+    stats: Optional[GrowthProfile] = None,
+) -> CapabilitySectionView:
     meta = _view_i18n(catalogs)["capability_meta"]
+    # Mirror the rule used in scorer._build_radar_axes so the capability cards
+    # and the radar always agree on whether a dimension actually has support.
+    pq_evaluated = max(0, getattr(stats, "pq_sessions_evaluated", 0)) if stats else 0
+    has_outcome_signals = False
+    if stats is not None:
+        has_outcome_signals = (
+            stats.workflow_build_substantial_count
+            + stats.workflow_build_moderate_count
+            + (stats.avg_autonomous_chain_length or 0.0)
+        ) > 0 or bool(stats.top_tools)
+    session_count = stats.session_count if stats else 0
     dims: list[CapabilityDimensionView] = []
     for key in _CAPABILITY_ORDER:
         entry = meta.get(key, {"label": key, "explanation": "", "next_action": ""})
         label = entry["label"]
         explanation = entry["explanation"]
         next_action = entry["next_action"]
+        score = capability_scores.get(key, 0.0)
+        if stats is None:
+            has_data = True
+        elif key == "intent_clarity":
+            has_data = pq_evaluated > 0
+        else:
+            has_data = session_count > 0 and (pq_evaluated > 0 or has_outcome_signals)
+        if has_data and score == 0.0 and not has_outcome_signals and pq_evaluated == 0:
+            has_data = False
         dims.append(
             CapabilityDimensionView(
                 key=key,
                 label=label,
-                score=capability_scores.get(key, 0.0),
+                score=score,
                 explanation=explanation,
                 next_action=next_action,
+                has_data=has_data,
             )
         )
     strongest = max(dims, key=lambda item: item.score)
@@ -893,7 +926,7 @@ def _build_summary(
     )
     return PersonalSummaryView(
         title=s_i18n.get("title", ""),
-        subtitle=f"{tool_display_name}{s_i18n.get('subtitle_suffix', '')}",
+        subtitle=tool_display_name,
         headline=headline,
         score_display=score_display,
         source_note=source_note,
@@ -916,18 +949,42 @@ def _build_report_sections(
     has_agent_asset: bool,
     has_growth_delta: bool,
 ) -> list[ReportSectionLinkView]:
+    # Order MUST match report.html.j2 DOM order so sidebar nav, scroll-spy,
+    # and click targets stay aligned.
     primary_sections = [
-        ReportSectionLinkView("section-growth-signals", labels.get("section_growth_signals", "Growth signal overview")),
-        ReportSectionLinkView("section-level-evidence", labels.get("section_level_evidence", "Stage assessment")),
+        ReportSectionLinkView(
+            "section-summary",
+            labels.get("section_report_title", labels.get("report_title", "AI 成长镜")),
+            nav_visible=False,
+        ),
+        ReportSectionLinkView(
+            "section-growth-signals",
+            labels.get("section_growth_signals", "Growth signal overview"),
+        ),
+        ReportSectionLinkView(
+            "section-level-evidence",
+            labels.get("section_level_evidence", "Stage assessment"),
+        ),
     ]
     if has_growth_delta:
         primary_sections.append(
-            ReportSectionLinkView("section-growth-delta", labels.get("section_growth_delta", "Growth trajectory"))
+            ReportSectionLinkView(
+                "section-growth-delta",
+                labels.get("section_growth_delta", "Growth trajectory"),
+            )
         )
-    primary_sections.extend([
-        ReportSectionLinkView("section-prompt-coach", labels.get("section_prompt_coach", "Prompt growth coach")),
-        ReportSectionLinkView("section-growth-plan", labels.get("section_growth_plan", "Next practice sprint")),
-    ])
+    primary_sections.extend(
+        [
+            ReportSectionLinkView(
+                "section-prompt-coach",
+                labels.get("section_prompt_coach", "Prompt growth coach"),
+            ),
+            ReportSectionLinkView(
+                "section-growth-plan",
+                labels.get("section_growth_plan", "Next practice sprint"),
+            ),
+        ]
+    )
     appendix_sections = [
         ReportSectionLinkView("section-level-guide", labels.get("section_level_guide", "Collaboration level guide"), nav_visible=False, kind="appendix"),
         ReportSectionLinkView("section-friction", labels.get("section_friction", "Friction map"), nav_visible=False, kind="appendix"),
@@ -1658,6 +1715,12 @@ def _build_level_axis_metrics(
     mcp_rate = round((getattr(stats, "mcp_session_rate", 0.0) or 0.0) * 100)
     subagent_count = getattr(stats, "subagent_session_count", 0)
     tool_build_rate = round((getattr(stats, "tool_build_rate", 0.0) or 0.0) * 100)
+    skill_usage_rate = round((getattr(stats, "skill_usage_session_rate", 0.0) or 0.0) * 100)
+    public_framework_rate = round((getattr(stats, "public_framework_session_rate", 0.0) or 0.0) * 100)
+    local_method_rate = round((getattr(stats, "local_method_framework_session_rate", 0.0) or 0.0) * 100)
+    workflow_fingerprint_rate = round((getattr(stats, "workflow_fingerprint_session_rate", 0.0) or 0.0) * 100)
+    asset_authoring_rate = round((getattr(stats, "asset_authoring_session_rate", 0.0) or 0.0) * 100)
+    agentic_system_score = round(getattr(stats, "agentic_system_score", 0.0) or 0.0)
     authored_assets = (
         getattr(stats, "skill_authored_count", 0)
         + getattr(stats, "hook_modified_session_count", 0)
@@ -1705,6 +1768,16 @@ def _build_level_axis_metrics(
             tool_build_rate=tool_build_rate,
             authored_assets=authored_assets,
         ),
+        "agentic_system": current_value_templates.get("agentic_system", "").format(
+            score=agentic_system_score,
+            skill_usage_rate=skill_usage_rate,
+            public_framework_rate=public_framework_rate,
+            local_method_rate=local_method_rate,
+            workflow_fingerprint_rate=workflow_fingerprint_rate,
+            workflow_reuse_depth=getattr(stats, "workflow_reuse_depth", 0),
+            asset_authoring_rate=asset_authoring_rate,
+            advanced_feature_rate=round((getattr(stats, "advanced_feature_ratio", 0.0) or 0.0) * 100),
+        ),
     }
     raw_signals = dict(current_values)
     ordered_keys = tuple(_CAPABILITY_ORDER)
@@ -1723,6 +1796,20 @@ def _build_level_axis_metrics(
                 passed=passed,
                 explanation=f"{explanations.get(key, '')} {level_hint}".strip(),
                 raw_signal=raw_signals[key],
+                catalogs=catalogs,
+            )
+        )
+    system_profile = target_profile.get("agentic_system", {})
+    if system_profile:
+        required_score = float(thresholds.get("agentic_system", 0))
+        metrics.append(
+            _level_metric(
+                label=metrics_i18n.get("labels", {}).get("agentic_system", "Agentic system"),
+                current=current_values["agentic_system"],
+                target=system_profile.get("target", ""),
+                passed=(getattr(stats, "agentic_system_score", 0.0) or 0.0) >= required_score,
+                explanation=f"{explanations.get('agentic_system', '')} {system_profile.get('hint', '')}".strip(),
+                raw_signal=raw_signals["agentic_system"],
                 catalogs=catalogs,
             )
         )

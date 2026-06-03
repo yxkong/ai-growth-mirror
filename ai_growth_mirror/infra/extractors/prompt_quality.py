@@ -61,7 +61,10 @@ def _format_user_messages(meta: SessionRecord) -> str:
 
 def should_extract_prompt_lens(meta: SessionRecord) -> bool:
     """Whether this session is rich enough for semantic prompt-lens analysis."""
-    return meta.user_message_count >= MIN_USER_MESSAGES_FOR_PQ
+    if meta.user_message_count >= MIN_USER_MESSAGES_FOR_PQ:
+        return True
+    indexed_prompt = bool(meta.unique_skills_used or meta.slash_commands or meta.skill_invocation_count > 0)
+    return indexed_prompt and meta.user_message_count >= 1 and meta.assistant_message_count >= 3
 
 
 def extract_prompt_lens(

@@ -234,6 +234,7 @@ class GenerateReportRequest:
     no_cache: bool = False
     prompt_dirs: tuple[Path, ...] = ()
     asset_roots: list[Path] = field(default_factory=list)
+    min_quality: str | None = None
     hub_root: Optional[Path] = None
     scope_filters: SessionScope = field(default_factory=SessionScope)
     progress: Callable[[str], None] | None = None
@@ -268,6 +269,8 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
         cfg.report.language = request.language
     if request.asset_roots:
         cfg.report.asset_roots = request.asset_roots
+    if request.min_quality:
+        cfg.report.min_quality = request.min_quality
 
     progress = request.progress or (lambda _message: None)
     tool_names = resolve_requested_tools(request.tools)
@@ -394,6 +397,7 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
                 sessions,
                 language=cfg.report.language,
                 max_sessions=request.max_sessions,
+                min_quality=cfg.report.min_quality,
             )
             progress(
                 f"Session reads built: {len(all_session_reads)} "
@@ -418,6 +422,7 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
                 force=request.no_cache,
                 on_progress=request.on_session_read_progress,
                 language=cfg.report.language,
+                min_quality=cfg.report.min_quality,
             )
             failed_count = sum(
                 1 for session_read in all_session_reads if getattr(session_read, "extraction_failed", False)
@@ -458,16 +463,18 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
                 f"(requires >={MIN_SESSION_READS_FOR_MIRROR_SCORE})."
             )
 
-        enrichment_roots: list[Path] = list(request.asset_roots or [])
+        enrichment_roots: list[Path] = list(cfg.report.asset_roots or [])
         if request.hub_root:
             enrichment_roots.insert(0, request.hub_root)
+        local_method_frameworks = list(cfg.report.local_method_frameworks or [])
         asset_stats = None
-        if enrichment_roots:
+        if enrichment_roots or local_method_frameworks:
             try:
                 asset_stats = scan_asset_roots(
                     enrichment_roots,
                     since=since_dt,
                     until=until_dt,
+                    local_method_frameworks=local_method_frameworks,
                 )
             except Exception:
                 pass

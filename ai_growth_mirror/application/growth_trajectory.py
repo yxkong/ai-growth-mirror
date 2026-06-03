@@ -143,6 +143,7 @@ class GrowthTrajectorySeriesView:
     end_label: str = ""
     source_note: str = ""
     insufficient_note: str = ""
+    area_path: str = ""
 
 
 @dataclass
@@ -532,11 +533,17 @@ def _series_view(
     points: list,
     value_mode: str,
 ) -> GrowthTrajectorySeriesView:
-    svg_points, y_ticks = _chart_points(values)
+    mini = value_mode == "axis"
+    svg_points, y_ticks = _chart_points(
+        values,
+        chart_height=64.0 if mini else 112.0,
+        chart_width=300.0,
+    )
     plotted_points = [
         {
             "snapshot_id": point.snapshot_id,
             "date": point.date,
+            "date_label": _short_date(point.date),
             "value": round(float(value), 1),
             "x": svg_points[index]["x"] if index < len(svg_points) else 0.0,
             "y": svg_points[index]["y"] if index < len(svg_points) else 0.0,
@@ -544,6 +551,14 @@ def _series_view(
         for index, (point, value) in enumerate(zip(points, values))
     ]
     polyline = " ".join(f"{item['x']},{item['y']}" for item in svg_points)
+    area_path = ""
+    if len(svg_points) >= 2:
+        baseline_y = max((item["y"] for item in y_ticks), default=84.0)
+        area_path = (
+            f"M {svg_points[0]['x']} {baseline_y} "
+            + " ".join(f"L {item['x']} {item['y']}" for item in svg_points)
+            + f" L {svg_points[-1]['x']} {baseline_y} Z"
+        )
     previous_value = float(values[-2]) if len(values) >= 2 else 0.0
     latest_value = float(values[-1]) if values else 0.0
     return GrowthTrajectorySeriesView(
@@ -562,6 +577,7 @@ def _series_view(
         start_label=_short_date(points[0].date) if points else "",
         end_label=_short_date(points[-1].date) if points else "",
         insufficient_note="数据点不足" if len(values) < 3 else "",
+        area_path=area_path,
     )
 
 
@@ -935,12 +951,17 @@ def _prompt_deficit_label(key: str, catalogs: ReportLabelCatalogs) -> str:
     return labels.get(key.replace("-", "_"), key)
 
 
-def _chart_points(values: list[float]) -> tuple[list[dict[str, float]], list[dict[str, float]]]:
+def _chart_points(
+    values: list[float],
+    *,
+    chart_width: float = 300.0,
+    chart_height: float = 112.0,
+) -> tuple[list[dict[str, float]], list[dict[str, float]]]:
     if not values:
         return [], []
-    width = 240.0
-    height = 84.0
-    padding = 8.0
+    width = chart_width
+    height = chart_height
+    padding = 12.0
     max_value = max(values)
     min_value = min(values)
     span = max(max_value - min_value, 1.0)

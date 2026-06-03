@@ -105,15 +105,15 @@ def build_prompt_coach_view(
         PromptCoachDimensionView(label=dim_labels.get(key, key), score=round(float(score), 1))
         for key, score in sorted((stats.pq_avg_dimensions or {}).items(), key=lambda item: item[1])
     ]
-    top_deficit_keys = _rank_top_deficits(stats)
     prompt_style_signal, trigger_maturity = assess_prompt_style(sessions, session_reads)
+    top_deficit_keys = _rank_top_deficits(stats, prompt_style=prompt_style_signal.prompt_style)
     closure_signal = assess_closure_guidance(sessions, session_reads)
-    universal_template = _build_universal_template(catalogs)
+    universal_template = None
     top_deficits = [
         PromptCoachDeficitView(
             id=f"deficit:{key.replace('-', '_')}",
             category=key,
-            label=_deficit_label(key, catalogs),
+            label=_deficit_label(key, catalogs, prompt_style=prompt_style_signal.prompt_style),
             description=_deficit_copy(key, prompt_style_signal, catalogs).get("description", ""),
             impact=_deficit_copy(key, prompt_style_signal, catalogs).get("impact", ""),
             confidence=_deficit_confidence(stats, key),
@@ -126,17 +126,20 @@ def build_prompt_coach_view(
         stats,
         coaching,
         prompt_style_signal,
-        universal_template.template,
         catalogs,
     )
-    scenario_templates = _build_scenario_templates(catalogs)
+    scenario_templates: list[PromptCoachTemplateView] = []
     checklist = _build_preflight_checklist(top_deficits, catalogs)
     prompt_style = PromptCoachPromptStyleView(
         type=prompt_style_signal.prompt_style,
         label=trainer_i18n.get("prompt_style_labels", {}).get(prompt_style_signal.prompt_style, prompt_style_signal.prompt_style),
         evidence=_prompt_style_evidence(prompt_style_signal, stats, catalogs),
-        coaching_message=_prompt_style_message(prompt_style_signal, catalogs),
-        suggested_next_prompt=_suggested_next_prompt(prompt_style_signal, universal_template.template, catalogs),
+        coaching_message=_prompt_style_message(
+            prompt_style_signal,
+            top_deficits,
+            catalogs,
+        ),
+        suggested_next_prompt=_suggested_next_prompt(rewrite_cards),
         trigger_maturity=_trigger_maturity_lines(trigger_maturity, catalogs),
     )
     closure_guidance = PromptCoachClosureGuidanceView(
@@ -267,18 +270,45 @@ def _build_friction_synthesis_views(
     return rule_rows[:2]
 
 
-def _rank_top_deficits(stats: GrowthProfile) -> list[str]:
+def _rank_top_deficits(
+    stats: GrowthProfile,
+    prompt_style: str = "",
+) -> list[str]:
     counts = stats.pq_deficit_counts or {}
     ranked = [
         key
         for key in TOP_DEFICIT_ORDER
         if counts.get(key, 0) > 0
     ]
-    ranked.sort(key=lambda key: (-counts.get(key, 0), TOP_DEFICIT_ORDER.index(key)))
+    # indexed_prompt users already have a rule anchor; missing-context / vague-request
+    # are expected characteristics of their terse invocations, not true deficits.
+    # Demote them so they don't dominate the top list.
+    INDEXED_DEMOTED = frozenset({"missing-context", "vague-request"})
+    is_indexed = prompt_style in {"indexed_prompt", "mixed_prompt"}
+
+    def sort_key(key: str) -> tuple[int, int, int]:
+        demoted = 1 if (is_indexed and key in INDEXED_DEMOTED) else 0
+        return (demoted, -counts.get(key, 0), TOP_DEFICIT_ORDER.index(key))
+
+    ranked.sort(key=sort_key)
     return ranked[:3]
 
 
-def _deficit_label(key: str, catalogs: ReportLabelCatalogs) -> str:
+def _deficit_label(
+    key: str,
+    catalogs: ReportLabelCatalogs,
+    prompt_style: str = "",
+) -> str:
+    # When indexed_prompt/mixed_prompt, use reframed labels if available.
+    if prompt_style in {"indexed_prompt", "mixed_prompt"}:
+        override_labels = (
+            catalogs.view_model.get("prompt_coach", {})
+            .get("trainer", {})
+            .get("indexed_deficit_labels", {})
+        )
+        overridden = override_labels.get(key, "")
+        if overridden:
+            return overridden
     labels = catalogs.guidance_labels.get("pq_labels", {}).get("deficit", {})
     return labels.get(key.replace("-", "_"), key)
 
@@ -341,13 +371,11 @@ def _build_rewrite_cards(
     stats: GrowthProfile,
     coaching: CoachingContent | None,
     prompt_style_signal,
-    universal_template: str,
     catalogs: ReportLabelCatalogs,
 ) -> list["PromptCoachRewriteCardView"]:
     from .report_view import PromptCoachRewriteCardView
 
     trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
-    actions_i18n = trainer_i18n.get("rewrite_fallbacks", {})
     source_notes = trainer_i18n.get("rewrite_source_notes", {})
     cards: list[PromptCoachRewriteCardView] = []
     seen: set[str] = set()
@@ -381,7 +409,6 @@ def _build_rewrite_cards(
             override = _indexed_rewrite_copy(prompt_style_signal, category, catalogs)
             problem = override.get("problem", problem)
             why = override.get("why", why)
-            better_prompt = override.get("better_prompt") or better_prompt or _suggested_next_prompt(prompt_style_signal, universal_template, catalogs)
             if _looks_like_rule_anchor_text(original):
                 original = ""
                 confidence = "medium"
@@ -410,46 +437,7 @@ def _build_rewrite_cards(
         )
         if len(cards) >= 4:
             break
-    if cards:
-        return cards[:4]
-
-    if prompt_style_signal.prompt_style in {"indexed_prompt", "mixed_prompt"}:
-        override = _indexed_rewrite_copy(prompt_style_signal, "context_provision", catalogs)
-        cards.append(
-            PromptCoachRewriteCardView(
-                id="rewrite:indexed:1",
-                scene=prompt_style_signal.trigger_terms[0] if prompt_style_signal.trigger_terms else "requirements_design",
-                original="",
-                problem=override.get("problem", ""),
-                better_prompt=override.get("better_prompt") or _suggested_next_prompt(prompt_style_signal, universal_template, catalogs),
-                why=override.get("why", ""),
-                category="context_provision",
-                confidence="medium",
-                evidence_refs=[],
-                source_note=source_notes.get("indexed_summary", "indexed_summary"),
-            )
-        )
-        if prompt_style_signal.task_variables_present:
-            return cards[:1]
-
-    for index, (category, payload) in enumerate(actions_i18n.items(), start=1):
-        cards.append(
-            PromptCoachRewriteCardView(
-                id=f"rewrite:fallback:{index}",
-                scene=payload.get("scene", "requirements_design"),
-                original="",
-                problem=payload.get("problem", ""),
-                better_prompt=payload.get("better_prompt", ""),
-                why=payload.get("why", ""),
-                category=category,
-                confidence="low",
-                evidence_refs=[],
-                source_note=source_notes.get("light_template", "light_template"),
-            )
-        )
-        if len(cards) >= 2:
-            break
-    return cards
+    return cards[:4]
 
 
 def _build_universal_template(catalogs: ReportLabelCatalogs) -> "PromptCoachTemplateView":
@@ -549,6 +537,35 @@ def _legacy_takeaways(
                     better_prompt=card.better_prompt,
                 )
             )
+    if not rows and stats.pq_avg_dimensions:
+        dim_labels = catalogs.view_model.get("pq_dim_labels", {})
+        sorted_dims = sorted(
+            ((key, float(score)) for key, score in (stats.pq_avg_dimensions or {}).items()),
+            key=lambda item: item[1],
+        )
+        weakest_key, weakest_score = sorted_dims[0]
+        strongest_key, strongest_score = sorted_dims[-1]
+        rows.append(
+            PromptCoachTakeawayView(
+                label=dim_labels.get(weakest_key, weakest_key),
+                kind=actions.get("kind_reinforce", "Gap"),
+                evidence=f"Prompt 维度均分 {weakest_score:.1f}",
+                message="这条维度当前最弱，说明相关信息经常没有在首轮输入里补齐。",
+                action=actions.get("improve", ""),
+                better_prompt="",
+            )
+        )
+        if strongest_key != weakest_key:
+            rows.append(
+                PromptCoachTakeawayView(
+                    label=dim_labels.get(strongest_key, strongest_key),
+                    kind=actions.get("kind_strength", "Strength"),
+                    evidence=f"Prompt 维度均分 {strongest_score:.1f}",
+                    message="这条维度当前相对稳定，可以继续保留成你的默认输入习惯。",
+                    action=actions.get("reinforce", actions.get("improve", "")),
+                    better_prompt="",
+                )
+            )
     if top_deficits:
         deficit = top_deficits[0]
         rows.append(
@@ -631,12 +648,16 @@ def _source_note(
 def _prompt_style_evidence(signal, stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> list[str]:
     trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
     rows: list[str] = []
+    variable_key = "task_variables_yes" if signal.task_variables_present else "task_variables_no"
+    variable_line = trainer_i18n.get("prompt_style_evidence", {}).get(variable_key, "")
     if signal.trigger_terms:
         rows.append(
             trainer_i18n.get("prompt_style_evidence", {}).get("trigger_terms", "触发词：{terms}").format(
                 terms=" / ".join(signal.trigger_terms)
             )
         )
+    if signal.task_variables_present and variable_line:
+        rows.append(variable_line)
     if signal.rule_refs:
         rows.append(
             trainer_i18n.get("prompt_style_evidence", {}).get("rule_refs", "规则引用：{refs}").format(
@@ -672,24 +693,31 @@ def _prompt_style_evidence(signal, stats: GrowthProfile, catalogs: ReportLabelCa
                 prompts=stats.agent_asset.prompt_files_count,
             )
         )
-    variable_key = "task_variables_yes" if signal.task_variables_present else "task_variables_no"
-    rows.append(
-        trainer_i18n.get("prompt_style_evidence", {}).get(variable_key, "")
-    )
+    if not signal.task_variables_present and variable_line:
+        rows.append(variable_line)
     return [item for item in rows if item]
 
 
-def _prompt_style_message(signal, catalogs: ReportLabelCatalogs) -> str:
-    messages = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("prompt_style_messages", {})
+def _prompt_style_message(signal, top_deficits, catalogs: ReportLabelCatalogs) -> str:
+    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
+    messages = trainer_i18n.get("prompt_style_messages", {})
+    focus_messages = trainer_i18n.get("prompt_style_focus_messages", {})
+    if top_deficits:
+        focus_text = (
+            focus_messages.get(signal.prompt_style, {})
+            .get(top_deficits[0].category, "")
+        )
+        if focus_text:
+            return focus_text
     return messages.get(signal.prompt_style, "")
 
 
-def _suggested_next_prompt(signal, universal_template: str, catalogs: ReportLabelCatalogs) -> str:
-    templates = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("prompt_style_next_prompt", {})
-    prompt = templates.get(signal.prompt_style, "")
-    if prompt:
-        return prompt
-    return universal_template
+def _suggested_next_prompt(rewrite_cards) -> str:
+    for item in rewrite_cards:
+        prompt = (item.better_prompt or "").strip()
+        if prompt:
+            return prompt
+    return ""
 
 
 def _trigger_maturity_lines(signal, catalogs: ReportLabelCatalogs) -> list[str]:
@@ -781,7 +809,6 @@ def _indexed_rewrite_copy(
     catalogs: ReportLabelCatalogs,
 ) -> dict[str, str]:
     trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
-    prompt = _suggested_next_prompt(prompt_style_signal, "", catalogs)
     style_key = (
         prompt_style_signal.prompt_style
         if prompt_style_signal.prompt_style in {"indexed_prompt", "mixed_prompt"}
@@ -791,7 +818,6 @@ def _indexed_rewrite_copy(
     return {
         "problem": scoped.get("problem_map", {}).get(category, scoped.get("problem", "")),
         "why": scoped.get("why", trainer_i18n.get("rewrite_why_default", "")),
-        "better_prompt": scoped.get("better_prompt", prompt) or prompt,
     }
 
 

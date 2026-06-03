@@ -2,7 +2,7 @@
 title: AI Growth Mirror 来源真相与教练重构设计
 domain: growth_mirror
 status: canonical
-updated_at: 2026-06-02
+updated_at: 2026-06-03
 score_target: 9.8
 supersedes: docs/plan/plan.md, docs/plan/需求.md
 ---
@@ -41,6 +41,8 @@ AI 成长镜 = 一面"能说真话、且能把问题翻译成下一步动作"的
 - 真相线：每个结论都能说清"怎么得出、可信度多少"。
 - 诊断线：标签 → 人话综合判断 → 可改动作。
 - 决策线：主报告 3 分钟读完即知"在哪/怎么问/怎么练"，深挖去 compare。
+- 个性化生成线：能从真实证据推出来的内容才展示；推不出来就留白，不用模板冒充用户当期状态。
+- Agentic 等级线：等级优先看真实会话中的 skill / workflow / tool / verification 使用与复用；hub / asset_root 文件库存只作低权重背景，不能单独代表用户能力阶段。本地/私有方法框架通过 `report.local_method_frameworks` 显式配置或 `asset_roots` 扫描提取，再与真实会话 skill / slash 使用做精确匹配后进入聚合。
 
 ## 2. 来源真相模型（决策 1）
 
@@ -101,6 +103,7 @@ LLM 输出的 `evidence_refs` 必须命中真实 findings；缺证据降级规�
 - 主链 5 段全展开：成长信号 → 阶段评估 → [成长轨迹] → Prompt 教练 → 训练冲刺。
 - 附录区块（level-guide/friction/exemplars/focus/rhythm/wins/agent-asset/style-lens）默认折叠为可点开卡片（启用已有 `.section-toggle`）。
 - Prompt 教练删 `LLM n / heuristic n / light n` 并列行，换 §2.3 人话。
+- `下次可以这样问`、`rewrite cards` 只在存在 grounded `better_prompt` 时展示；没有真实改写时，主报告与 compare 都不做静态模板兜底。
 
 ### compare = 深度版
 
@@ -122,7 +125,9 @@ LLM 输出的 `evidence_refs` 必须命中真实 findings；缺证据降级规�
 - `domain/growth/prompting.py`：`ClosureGuidanceSignal` 加 `mode` 派生 + 常量。
 - `application/prompt_coach.py` / `report_view.py`：closure_guidance view 增 `mode`。
 - `assets/i18n/view_model_{zh,en}.yaml`、`template_labels_*`：加 open_ended/engineered 文案。
-- 验收：`pytest tests/unit -q`；新增"主报告无并列三数字"与 mode 断言。
+- `Prompt Coach` 个性化输出加严格护栏：`suggested_next_prompt` 与 `rewrite_cards` 只接真实 evidence-backed 改写；`universal/scenario template` 不再作为 personal report / compare / growth_plan 的兜底输入。
+- `Level Evidence` 新增 `Agentic 系统成熟度`：以实际 skill/workflow 使用、公开 framework 指纹、本地方法框架命中、重复复用、资产创作和高杠杆功能为主证据；资产库存仅作为上下文，防止把某个用户的目录结构泛化成所有人的等级标准。
+- 验收：`pytest tests/unit -q`；新增"主报告无并列三数字"、mode 断言，以及"无 grounded rewrite 时不展示模板 prompt" 断言。
 
 ### P1
 - `domain/signals/model.py`：`PromptLensScores` 加 `evaluation_status`，`coverage` 增 `none`，保留内部 `source_engine`。

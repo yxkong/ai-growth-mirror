@@ -133,6 +133,12 @@ def cli(ctx: click.Context) -> None:
     default=None,
     help="Root directory of your agent hub (skills/prompts/rules). Used to compute asset footprint.",
 )
+@click.option(
+    "--min-quality",
+    type=click.Choice(["low", "medium", "high"]),
+    default=None,
+    help="Minimum session quality included in analysis (overrides config.report.min_quality).",
+)
 @click.option("--max-sessions", type=int, default=500,
               help="Max sessions for LLM session-read extraction per tool (default: 500, 0=unlimited). "
                    "Uses time-stratified sampling to ensure all time periods are covered.")
@@ -167,6 +173,7 @@ def generate_cmd(
     session_read_mode,
     asset_roots,
     hub_root,
+    min_quality,
     max_sessions,
     workers,
     no_sidecar,
@@ -194,6 +201,8 @@ def generate_cmd(
         cfg.report.language = language
     if asset_roots:
         cfg.report.asset_roots = list(asset_roots)
+    if min_quality:
+        cfg.report.min_quality = min_quality
 
     click.echo(
         f"[Config] 加载配置：provider={cfg.llm.provider}, model={cfg.llm.model}, "
@@ -216,9 +225,17 @@ def generate_cmd(
     since_label = since.strftime("%Y-%m-%d") if since else "last-30-days"
     until_label = until.strftime("%Y-%m-%d") if until else "now"
     scope_filters = SessionScope(
-        repos=tuple(r.strip() for r in scope_repos if r.strip()),
-        dirs=tuple(scope_dirs),
-        keywords=tuple(k.strip() for k in scope_keywords if k.strip()),
+        repos=tuple(
+            r.strip()
+            for r in (scope_repos if scope_repos else cfg.report.scope_repos)
+            if r and str(r).strip()
+        ),
+        dirs=tuple(scope_dirs if scope_dirs else cfg.report.scope_dirs),
+        keywords=tuple(
+            k.strip()
+            for k in (scope_keywords if scope_keywords else cfg.report.scope_keywords)
+            if k and str(k).strip()
+        ),
     )
     run_id = resolve_personal_run_id(
         tools=selected_tool_names,
@@ -329,6 +346,7 @@ def generate_cmd(
         no_cache=no_cache,
         prompt_dirs=tuple(prompt_dirs),
         asset_roots=list(asset_roots or cfg.report.asset_roots or []),
+        min_quality=min_quality or cfg.report.min_quality,
         hub_root=Path(hub_root) if hub_root else None,
         scope_filters=scope_filters,
         progress=progress,

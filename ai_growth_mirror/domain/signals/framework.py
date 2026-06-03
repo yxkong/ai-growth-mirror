@@ -24,6 +24,7 @@ be one PR per framework, with the upstream source URL in the comment.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 # bundles plan + tdd + debug skills) maps to "mixed" so the LLM can still
 # disambiguate per-session.
 WORKFLOW_FAMILIES = ("plan_driven", "spec_driven", "tdd", "adaptive")
+_METHOD_NORMALIZER = re.compile(r"[^a-z0-9._:-]+")
 
 
 @dataclass(frozen=True)
@@ -240,6 +242,40 @@ def framework_display_name(name: str) -> str:
         if fw.name == name:
             return fw.display_name or fw.name
     return name
+
+
+def normalize_method_name(value: str) -> str:
+    """Normalize a slash command, skill name, or hub asset name for exact matching."""
+    text = (value or "").strip().lower().replace("\\", "/")
+    if "/" in text:
+        text = text.rstrip("/").split("/")[-1]
+    text = text.lstrip("/")
+    for suffix in (".prompt.md", ".prompt.j2", ".j2", ".md", ".yaml", ".yml"):
+        if text.endswith(suffix):
+            text = text[: -len(suffix)]
+            break
+    return _METHOD_NORMALIZER.sub("-", text).strip("-_.:")
+
+
+def detect_local_method_frameworks(
+    meta: "SessionRecord",
+    local_method_frameworks: list[str] | tuple[str, ...],
+) -> tuple[str, ...]:
+    """Return configured/hub-derived local method names that appear in one session.
+
+    This intentionally uses exact normalized names only.  A large local hub is
+    inventory context; it becomes level evidence only when the same method name
+    is observed in the session's skill invocations or slash commands.
+    """
+    configured = set(_normalized_nonempty(local_method_frameworks or []))
+    if not configured:
+        return ()
+    observed = set(_normalized_nonempty([*(meta.unique_skills_used or []), *(meta.slash_commands or [])]))
+    return tuple(sorted(configured & observed))
+
+
+def _normalized_nonempty(values: list[str] | tuple[str, ...]) -> list[str]:
+    return [normalized for item in values if (normalized := normalize_method_name(item))]
 
 
 def detect_frameworks(meta: "SessionRecord") -> list[FrameworkMatch]:

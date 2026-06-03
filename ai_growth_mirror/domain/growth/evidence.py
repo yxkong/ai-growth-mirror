@@ -104,6 +104,13 @@ def _stats_payload(stats: GrowthProfile, *, redact: bool) -> dict[str, Any]:
         "avg_prompt_word_count": stats.avg_prompt_word_count,
         "unique_skill_count": stats.unique_skill_count,
         "assetized_session_rate": stats.assetized_session_rate,
+        "skill_usage_session_rate": stats.skill_usage_session_rate,
+        "public_framework_session_rate": stats.public_framework_session_rate,
+        "local_method_framework_session_rate": stats.local_method_framework_session_rate,
+        "workflow_fingerprint_session_rate": stats.workflow_fingerprint_session_rate,
+        "workflow_reuse_depth": stats.workflow_reuse_depth,
+        "asset_authoring_session_rate": stats.asset_authoring_session_rate,
+        "agentic_system_score": stats.agentic_system_score,
         "growth_level": stats.growth_level,
         "mirror_score": stats.mirror_score,
         "pq_sessions_evaluated": stats.pq_sessions_evaluated,
@@ -129,6 +136,7 @@ def _stats_payload(stats: GrowthProfile, *, redact: bool) -> dict[str, Any]:
                 "prompt_files": stats.agent_asset.prompt_files_count,
                 "rule_files": stats.agent_asset.rule_files_count,
                 "total_asset_files": stats.agent_asset.total_asset_files,
+                "local_method_frameworks": stats.agent_asset.local_method_frameworks[:20],
             }
             if stats.agent_asset is not None
             else None

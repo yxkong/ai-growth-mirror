@@ -37,15 +37,6 @@
       box-shadow: 0 16px 34px rgba(99, 102, 241, 0.08);
       backdrop-filter: blur(12px);
     }
-    .sidebar-title {
-      margin: 0 0 4px;
-      font-size: 0.95rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #4338ca, #6366f1, #0ea5e9);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
     .sidebar-subtitle {
       margin: 0 0 12px;
       font-size: 0.78rem;
@@ -81,6 +72,7 @@
       position: relative;
       overflow: hidden;
       isolation: isolate;
+      scroll-margin-top: 28px;
     }
     .hero > * { position: relative; z-index: 1; }
     .hero-shell {
@@ -97,6 +89,17 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 12px;
+    }
+    .sidebar-brand-link {
+      text-decoration: none;
+      color: inherit;
+      transition: opacity 0.15s ease;
+    }
+    .sidebar-brand-link:hover {
+      opacity: 0.78;
+    }
+    .sidebar-brand-link:hover .sidebar-brand-name {
+      color: var(--accent);
     }
     .sidebar-brand-mark {
       width: 42px;
@@ -181,8 +184,14 @@
       -webkit-text-fill-color: transparent;
     }
     .hero-badge-note {
-      margin-top: 4px;
+      margin-top: 12px;
       font-size: 0.86rem;
+      line-height: 1.6;
+      color: var(--hero-muted);
+    }
+    .hero-badge-level-detail {
+      margin-top: 8px;
+      font-size: 0.8rem;
       line-height: 1.6;
       color: var(--hero-muted);
     }
@@ -306,6 +315,7 @@
       border-radius: 24px;
       padding: 26px;
       box-shadow: 0 18px 40px rgba(124, 58, 237, 0.08);
+      scroll-margin-top: 28px;
       backdrop-filter: blur(8px);
       position: relative;
       overflow: hidden;
@@ -433,9 +443,26 @@
     }
     .footer {
       margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line, rgba(148,163,184,0.24));
       color: var(--muted);
       font-size: 13px;
       text-align: center;
+      line-height: 1.9;
+    }
+    .footer-meta {
+      margin-top: 6px;
+    }
+    .footer a {
+      color: var(--accent-strong, #6d28d9);
+      text-decoration: none;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    .footer-sep {
+      margin: 0 6px;
+      opacity: 0.55;
     }
     .section-nav {
       display: flex;
@@ -650,12 +677,16 @@
         display: grid;
         grid-template-columns: 220px minmax(0, 1fr);
         gap: 24px;
-        align-items: start;
+        align-items: stretch;
       }
       .report-sidebar {
         display: block;
+      }
+      .sidebar-card {
         position: sticky;
         top: 24px;
+        max-height: calc(100vh - 48px);
+        overflow-y: auto;
       }
       .section-nav {
         display: none;
@@ -802,6 +833,40 @@
       font-weight: 700;
       color: var(--ink);
     }
+    .advanced-features {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: var(--accent-soft, rgba(124, 58, 237, 0.06));
+      border: 1px solid rgba(124, 58, 237, 0.16);
+    }
+    .advanced-features-head {
+      margin-bottom: 6px;
+      font-size: 0.92rem;
+    }
+    .advanced-features-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .advanced-feature-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid rgba(124, 58, 237, 0.22);
+      font-size: 0.82rem;
+      color: var(--accent-strong, #6d28d9);
+      font-weight: 600;
+    }
+    .advanced-feature-chip em {
+      font-style: normal;
+      font-weight: 700;
+      color: var(--accent, #7c3aed);
+    }
     .priority-why {
       margin: 0 0 14px;
       color: var(--muted);
@@ -878,7 +943,7 @@
     <div class="page-shell">
     <aside class="report-sidebar" aria-label="报告导航">
       <div class="sidebar-card">
-        <div class="sidebar-brand" aria-label="AI Growth Mirror">
+        <a class="sidebar-brand sidebar-brand-link" href="#section-summary" aria-label="AI 成长镜 · 回到报告顶部">
           <div class="sidebar-brand-mark">
             {% include 'logo/ai-growth-mirror-logo-primary.svg' %}
           </div>
@@ -886,8 +951,7 @@
             <p class="sidebar-brand-name">AI 成长镜</p>
             <p class="sidebar-brand-caption">AI Growth Mirror</p>
           </div>
-        </div>
-        <div class="sidebar-title">{{ view.report_title }}</div>
+        </a>
         <p class="sidebar-subtitle">{{ view.tool_display_name }}</p>
         <nav class="sidebar-nav">
           {% for section in view.sections if section.nav_visible %}
@@ -1052,13 +1116,29 @@
         <div class="metric">
           <div class="metric-head">
             <strong>{{ dim.label }}</strong>
-            <span class="score-value">{{ '%.1f'|format(dim.score) }}</span>
+            <span class="score-value">{% if dim.has_data %}{{ '%.1f'|format(dim.score) }}{% else %}&mdash;{% endif %}</span>
           </div>
-          <div class="bar"><span style="width: {{ dim.score }}%;"></span></div>
+          <div class="bar"><span style="width: {% if dim.has_data %}{{ dim.score }}{% else %}0{% endif %}%;"></span></div>
           <p class="meta-text">{{ dim.explanation }}</p>
           <p class="meta-text"><strong>{{ view.labels['label_next_move'] }}</strong>{{ dim.next_action }}</p>
         </div>
         {% endfor %}
+        {% if view.capability.advanced_features %}
+        <div class="advanced-features">
+          <div class="advanced-features-head">
+            <strong>{{ view.labels.get('label_advanced_features', '高级特性使用') }}</strong>
+          </div>
+          <p class="meta-text">{{ view.labels.get('label_advanced_features_hint', '') }}</p>
+          <div class="advanced-features-chips">
+            {% for feature_key, count in view.capability.advanced_features %}
+            <span class="advanced-feature-chip">
+              {{ view.labels.get('advanced_feature_' ~ feature_key, feature_key) }}
+              <em>×{{ count }}</em>
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
       </div>
     </section>
 
@@ -1188,20 +1268,26 @@
               <div class="small muted">{{ view.growth_trajectory.trend.score_series.delta_label }}</div>
             </div>
           </div>
-          <svg viewBox="0 0 240 104" style="width:100%; height:160px; overflow:visible">
+          <svg viewBox="0 0 300 140" style="width:100%; height:200px; overflow:visible">
             {% for tick in view.growth_trajectory.trend.score_series.y_ticks %}
-            <line x1="8" y1="{{ tick.y }}" x2="232" y2="{{ tick.y }}" stroke="rgba(148,163,184,0.22)" stroke-width="1"></line>
+            <line x1="12" y1="{{ tick.y }}" x2="288" y2="{{ tick.y }}" stroke="rgba(148,163,184,0.22)" stroke-width="1"></line>
             <text x="0" y="{{ tick.y + 4 }}" font-size="10" fill="rgba(100,116,139,0.86)">{{ tick.value }}</text>
             {% endfor %}
+            {% if view.growth_trajectory.trend.score_series.area_path %}
+            <path d="{{ view.growth_trajectory.trend.score_series.area_path }}" fill="rgba(124, 58, 237, 0.12)"></path>
+            {% endif %}
             <polyline fill="none" stroke="var(--accent)" stroke-width="3" points="{{ view.growth_trajectory.trend.score_series.polyline }}"></polyline>
             {% for point in view.growth_trajectory.trend.score_series.points %}
             <circle cx="{{ point.x }}" cy="{{ point.y }}" r="4" fill="white" stroke="var(--accent)" stroke-width="2"></circle>
+            {% if loop.first or loop.last or loop.index0 % 5 == 0 %}
+            <text x="{{ point.x }}" y="132" text-anchor="middle" font-size="10" fill="rgba(100,116,139,0.86)">{{ point.date_label }}</text>
+            {% endif %}
             {% endfor %}
             {% if view.growth_trajectory.trend.score_series.points %}
             {% set first = view.growth_trajectory.trend.score_series.points[0] %}
             {% set last = view.growth_trajectory.trend.score_series.points[-1] %}
-            <text x="{{ first.x }}" y="102" text-anchor="start" font-size="10" fill="rgba(100,116,139,0.86)">{{ view.growth_trajectory.trend.score_series.start_label }}</text>
-            <text x="{{ last.x }}" y="102" text-anchor="end" font-size="10" fill="rgba(100,116,139,0.86)">{{ view.growth_trajectory.trend.score_series.end_label }}</text>
+            <text x="{{ first.x }}" y="118" text-anchor="start" font-size="10" fill="rgba(100,116,139,0.86)">{{ view.growth_trajectory.trend.score_series.start_label }}</text>
+            <text x="{{ last.x }}" y="118" text-anchor="end" font-size="10" fill="rgba(100,116,139,0.86)">{{ view.growth_trajectory.trend.score_series.end_label }}</text>
             {% endif %}
           </svg>
           <p class="small">{{ view.growth_trajectory.trend.score_series.previous_value }} → {{ view.growth_trajectory.trend.score_series.latest_value }} · {{ view.growth_trajectory.trend.score_series.trend_label }}</p>
@@ -1214,7 +1300,10 @@
               <strong>{{ series.label }}</strong>
               <span>{{ series.latest_label }} / {{ series.delta_label }}</span>
             </div>
-            <svg viewBox="0 0 240 48" style="width:100%; height:52px; overflow:visible">
+            <svg viewBox="0 0 300 64" style="width:100%; height:72px; overflow:visible">
+              {% if series.area_path %}
+              <path d="{{ series.area_path }}" fill="{{ series.color }}" fill-opacity="0.12"></path>
+              {% endif %}
               <polyline fill="none" stroke="{{ series.color }}" stroke-width="2.5" points="{{ series.polyline }}"></polyline>
               {% for point in series.points %}
               <circle cx="{{ point.x }}" cy="{{ point.y }}" r="3" fill="white" stroke="{{ series.color }}" stroke-width="1.6"></circle>
@@ -1350,14 +1439,11 @@
       </div>
       {% endif %}
 
+      {% if view.prompt_coach.prompt_style and view.prompt_coach.prompt_style.suggested_next_prompt %}
       <div class="grid-2" style="margin-top:18px">
         <div class="card">
           <h3>{{ view.labels.get('label_suggested_next_prompt', '下次可以这样问') }}</h3>
-          {% if view.prompt_coach.prompt_style and view.prompt_coach.prompt_style.suggested_next_prompt %}
           <div class="code">{{ view.prompt_coach.prompt_style.suggested_next_prompt }}</div>
-          {% elif view.prompt_coach.universal_template %}
-          <div class="code">{{ view.prompt_coach.universal_template.template }}</div>
-          {% endif %}
         </div>
         <div class="card">
           <h3>{{ view.labels.get('label_preflight_checklist', '发送前自检') }}</h3>
@@ -1374,6 +1460,22 @@
           {% endif %}
         </div>
       </div>
+      {% else %}
+      <div class="card" style="margin-top:18px">
+        <h3>{{ view.labels.get('label_preflight_checklist', '发送前自检') }}</h3>
+        <ul class="list">
+          {% for item in view.prompt_coach.preflight_checklist[:4] %}
+          <li>{{ item.text }}</li>
+          {% endfor %}
+        </ul>
+        {% if view.prompt_coach.closure_guidance and view.prompt_coach.closure_guidance.missing_closure_methods %}
+        <p class="small muted"><strong>{{ view.labels.get('label_missing_closure', '当前更适合补：') }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
+        {% endif %}
+        {% if view.prompt_coach.recommended_training_inputs %}
+        <div class="note" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
 
       {% else %}
       <div class="note">{{ view.prompt_coach.headline }}</div>
@@ -1661,7 +1763,14 @@
     </section>
 
     <div class="footer">
-      {{ view.report_title }} · {{ view.tool_display_name }} · {{ view.generated_at }}
+      <div>{{ view.report_title }} · {{ view.tool_display_name }} · {{ view.generated_at }}</div>
+      <div class="footer-meta">
+        <a href="{{ view.labels.get('footer_github_url', 'https://github.com/yxkong/ai-growth-mirror') }}" target="_blank" rel="noopener noreferrer">{{ view.labels.get('footer_github_label', 'GitHub') }}</a>
+        <span class="footer-sep">·</span>
+        <span>{{ view.labels.get('footer_author', 'yxkong') }}</span>
+        <span class="footer-sep">·</span>
+        <a href="mailto:{{ view.labels.get('footer_email', '5ycode@sina.com') }}">{{ view.labels.get('footer_email', '5ycode@sina.com') }}</a>
+      </div>
     </div>
     </div>
     </div>
@@ -1687,16 +1796,20 @@
       }
 
       const navLinks = Array.from(document.querySelectorAll('.sidebar-nav-link, .section-nav-link'));
-      const sectionIds = navLinks
-        .map((link) => (link.getAttribute('href') || '').replace('#', ''))
-        .filter(Boolean);
+      const sectionIds = [...new Set(
+        navLinks
+          .map((link) => (link.getAttribute('href') || '').replace('#', ''))
+          .filter(Boolean)
+      )];
       const sections = sectionIds
         .map((id) => document.getElementById(id))
-        .filter(Boolean);
+        .filter(Boolean)
+        .sort((a, b) => a.offsetTop - b.offsetTop);
 
       if (!navLinks.length || !sections.length) return;
 
-      let suppressObserverUntil = 0;
+      let suppressScrollSpyUntil = 0;
+      const scrollOffset = 96;
 
       const setActiveLink = (activeId) => {
         navLinks.forEach((link) => {
@@ -1704,6 +1817,22 @@
           link.classList.toggle('active', isActive);
           link.setAttribute('aria-current', isActive ? 'true' : 'false');
         });
+      };
+
+      const resolveActiveSection = () => {
+        let active = sections[0];
+        for (const section of sections) {
+          const top = section.getBoundingClientRect().top;
+          if (top <= scrollOffset) {
+            active = section;
+          }
+        }
+        return active.id;
+      };
+
+      const updateActiveFromScroll = () => {
+        if (Date.now() < suppressScrollSpyUntil) return;
+        setActiveLink(resolveActiveSection());
       };
 
       setActiveLink(sections[0].id);
@@ -1714,7 +1843,7 @@
           const target = targetId ? document.getElementById(targetId) : null;
           if (!target) return;
           event.preventDefault();
-          suppressObserverUntil = Date.now() + 900;
+          suppressScrollSpyUntil = Date.now() + 1000;
           setActiveLink(targetId);
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           if (window.history && window.history.replaceState) {
@@ -1723,23 +1852,21 @@
         });
       });
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (Date.now() < suppressObserverUntil) return;
-          const visible = entries
-            .filter((entry) => entry.isIntersecting)
-            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-          if (visible && visible.target && visible.target.id) {
-            setActiveLink(visible.target.id);
-          }
+      let scrollTicking = false;
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (scrollTicking) return;
+          scrollTicking = true;
+          window.requestAnimationFrame(() => {
+            updateActiveFromScroll();
+            scrollTicking = false;
+          });
         },
-        {
-          rootMargin: '-18% 0px -62% 0px',
-          threshold: [0.2, 0.45, 0.7],
-        }
+        { passive: true }
       );
-
-      sections.forEach((section) => observer.observe(section));
+      window.addEventListener('resize', updateActiveFromScroll, { passive: true });
+      updateActiveFromScroll();
     })();
   </script>
 </body>

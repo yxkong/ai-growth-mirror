@@ -32,4 +32,5 @@ packages = ["ai_growth_mirror"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q"
+addopts = "-q --basetemp=.tmp/pytest"
+cache_dir = ".tmp/pytest-cache"

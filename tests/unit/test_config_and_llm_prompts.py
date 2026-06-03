@@ -78,6 +78,29 @@ def test_load_config_roundtrip(tmp_path: Path):
     assert c.llm.base_url == provider_default_base_url("openai")
 
 
+def test_config_loads_local_method_frameworks(tmp_path: Path):
+    workspace_tmp = run_workspace(tmp_path, "local_methods")
+    p = workspace_tmp / "c.yaml"
+    p.write_text(
+        yaml.safe_dump(
+            {
+                "report": {
+                    "local_method_frameworks": [
+                        "delivery-workflow",
+                        "  skill-engineering  ",
+                        "",
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    c = GrowthMirrorConfig.load(p)
+
+    assert c.report.local_method_frameworks == ["delivery-workflow", "skill-engineering"]
+
+
 def test_provider_api_key_resolution(monkeypatch):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "ds-demo")
     monkeypatch.setenv("ZHIPUAI_API_KEY", "glm-demo")

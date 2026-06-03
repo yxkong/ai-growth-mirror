@@ -15,6 +15,7 @@ from ...domain.session.heuristics import (
     TEST_PATTERNS,
     WRITE_TOOL_NAMES,
     detect_authorship_path,
+    enrich_advanced_features,
     enrich_agentic_signals,
     enrich_prompt_signals,
 )
@@ -76,6 +77,11 @@ class BaseSessionAdapter(ABC):
         """Apply shared session heuristics from the domain layer."""
         enrich_agentic_signals(session)
 
+    @staticmethod
+    def _enrich_advanced_features(session: SessionRecord) -> None:
+        """Derive higher-order collaboration features uniformly across readers."""
+        enrich_advanced_features(session)
+
     def _iter_sessions_from_root(
         self,
         since: Optional[datetime] = None,
@@ -124,6 +130,11 @@ class BaseSessionAdapter(ABC):
                     except Exception:
                         # Cache failures are non-fatal — degrade to no-cache mode silently.
                         pass
+            # Derive plan/subagent/skill/MCP/multi-model features. Idempotent &
+            # ADD-only, so safe to run on both fresh parses and cache hits —
+            # this lets older caches (without advanced_features) light up
+            # without requiring `--no-cache`.
+            self._enrich_advanced_features(session)
             if since:
                 # Determine the session's last-activity timestamp.
                 last_activity = raw.start_time

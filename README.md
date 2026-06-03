@@ -94,6 +94,16 @@ Growth Mirror 为每款 AI 编码工具配备独立 Adapter，但对外体验一
 
 AI Growth Mirror 把分散在各 AI 编码工具里的会话历史，转成一份**可行动**的成长报告：不只统计用了多少次 AI，更回答「协作模式如何、卡在哪里、下一步练什么」。
 
+### 界面预览
+
+**本期协作进化报告（Hero）** — 协作指数、L3 等级、Token/成本口径与训练建议一览：
+
+![本期协作进化报告 Hero](docs/assets/images/growth_mirror.png)
+
+**成长信号总览** — 五轴雷达、短板排行与四维协作读数：
+
+![成长信号总览](docs/assets/images/image.png)
+
 ### 核心能力
 
 | 能力 | 说明 |
@@ -101,12 +111,12 @@ AI Growth Mirror 把分散在各 AI 编码工具里的会话历史，转成一�
 | **多工具聚合** | 国际主流（Claude Code、Codex、Cursor、Gemini）+ 国产（CodeBuddy、Trae、QCoder）共 7 款；`--tools all` 一次扫齐 |
 | **双模式分析** | `heuristic` 纯本地规则（零外部调用）/ `llm` 语义深度分析（需 API Key）/ `auto` 按 Key 自动切换 |
 | **五轴雷达评分** | 意图清晰度、执行驱动力、实施深度、交付闭环、适应恢复力 — 五个维度量化 AI 协作能力 |
-| **L1–L5 成长等级** | 从初学者到专家，阶梯式评估，每个等级有具体行为描述 |
-| **个性化成长教练** | LLM 模式下生成改进建议、训练冲刺计划与 Prompt 优化指南 |
+| **L1–L5 成长等级** | 从初学者到专家，阶梯式评估，每个等级有具体行为描述；等级同时参考真实使用、工具编排、验证闭环和方法资产回流 |
+| **个性化成长教练** | 只在有真实证据时生成改进建议、改写示例与下一问法；证据不足时明确留白，不用模板冒充你的当前状态 |
 | **摩擦根因分析** | 区分用户可行动阻力、AI 能力边界与环境阻力，定位成长瓶颈 |
 | **协作风格洞察** | 识别深度委托者、工具编排者、验证先行等高信号协作模式 |
 | **成长轨迹对比** | 每次生成自动归档快照；报告内默认对比「本期 vs 上一期」，也可用 CLI 任意两期对比 |
-| **资产足迹** | 可选扫描本地 skills、prompts、rules 等 Agent 资产，评估资产化成熟度 |
+| **资产足迹** | 可选扫描本地 skills、prompts、rules 等 Agent 资产；资产库存只做上下文，必须结合真实使用与复用信号解读 |
 | **脱敏分享** | `--redact` 隐藏敏感信息，输出可对外分享的精简版报告 |
 | **智能缓存** | mtime 增量缓存，相同会话不重复解析，重复运行更快 |
 | **i18n** | 中英文双语，报告语言可切换 |
@@ -224,8 +234,22 @@ ai-growth-mirror generate --session-read-mode heuristic
 ai-growth-mirror generate --session-read-mode llm
 
 # Agent 资产足迹（hub 或 skills 目录）
+# 这些路径下的 skill / prompt / rule 文件数量只作为资产上下文；
+# 等级优先看真实会话里是否使用、复用、编排和验证。
 ai-growth-mirror generate --hub-root /path/to/your/hub
 ai-growth-mirror generate --asset-root ~/.cursor/skills
+
+# 会话质量过滤（plan 3.1）
+#   low    : 不过滤（包含纯空对话）
+#   medium : 默认；剔除明显低质量，但保留索引型 prompt（/skill、/delivery-workflow 等）
+#   high   : 仅保留有验证、测试或长链路（chain ≥ 3）的会话
+ai-growth-mirror generate --min-quality medium
+
+# 分析范围过滤（只统计指定仓库 / 目录 / 关键词的会话）
+ai-growth-mirror generate --repo ai-growth-mirror
+ai-growth-mirror generate --dir D:/work/ai-growth-mirror
+ai-growth-mirror generate --keyword delivery-workflow
+# 也可写入 config.yaml → report.scope_repos / scope_dirs / scope_keywords
 
 # 脱敏分享
 ai-growth-mirror generate --redact
@@ -233,6 +257,14 @@ ai-growth-mirror generate --redact
 # 流水线日志
 ai-growth-mirror generate -v
 ```
+
+**报告呈现里值得注意的几点设计**：
+
+- **数据不足不编造**：当某能力轴或维度缺乏证据（如未跑过 PQ 评估，且无任何工具/链路信号），UI 会显示 `—` 而不是伪造的 `0.0`。
+- **个性化内容不模板兜底**：`Prompt Coach` 里的 `下次可以这样问`、改写示例等，只在存在真实 `better_prompt` / grounded takeaway 时展示；没有就留空，不拿静态模板假装是你的当期状态。
+- **索引型 Prompt 不被歧视**：使用 `/skill`、`/delivery-workflow`、`@docs/` 等"指令式"Prompt 触发的简短会话，不会被判为低质量（plan 2.1）。
+- **高级特性识别**：自动识别 *Plan 模式 / Ask 模式 / 子 Agent 分发 / Skill 调用 / MCP 工具 / 多模型协作*，并在协作能力地图下方以芯片形式呈现（plan 4.1）。
+- **Agentic 系统成熟度**：等级不只看 Prompt 或文件库存，而是综合真实 skill/workflow 使用、workflow 指纹、工具编排、验证闭环、方法资产创作与后续复用；资产目录只做低权重上下文，不能单独把用户推到高等级。
 
 **快照对比**（需至少两次 generate 产生的 `ai-growth-mirror-archive/`）：
 
@@ -346,10 +378,14 @@ cache:
 report:
   asset_roots:
     - /path/to/your/agent-hub   # 可选
+  local_method_frameworks:
+    - delivery-workflow          # 可选；与 asset_roots 扫描结果合并
 tools:
   claude_code:
     enabled: true               # 需要 Claude Code 会话时打开
 ```
+
+`asset_roots` 会扫描本地 hub / `./skills` / prompts / rules 目录，提取 `SKILL.md` 父目录名、`*.prompt.md` 名称和 rules 所在目录名作为候选本地方法；`local_method_frameworks` 用于手动补齐目录不规范或别名不一致的私有方法。库存本身只作为上下文，只有这些方法在真实会话的 skill / slash 使用中被命中，才进入 `Agentic 系统成熟度` 与 L1-L5 等级证据。
 
 ---
 
