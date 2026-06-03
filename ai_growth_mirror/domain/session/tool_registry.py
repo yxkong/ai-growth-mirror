@@ -10,7 +10,7 @@ TOOL_ALIASES = {
     "all": "all",
 }
 
-TOOL_CHOICES = ["all", "claude", "codex", "cursor", "trae", "qcoder"]
+TOOL_CHOICES = ["all", "claude", "codex", "cursor", "cline", "kilo", "trae", "qcoder"]
 
 
 def resolve_requested_tool_names(
