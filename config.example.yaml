@@ -12,6 +12,12 @@ tools:
   codex:
     enabled: true
     # data_root: ~/.codex
+  # cline:
+  #   enabled: true
+  #   # data_root: ~/.cline/data
+  # kilo:
+  #   enabled: true
+  #   # data_root: ~/.kilocode   # 或 kilo-code.customStoragePath 指向的目录
   # claude_code:
   #   enabled: false
 

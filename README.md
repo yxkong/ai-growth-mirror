@@ -1,6 +1,6 @@
 ﻿# AI Growth Mirror
 
-**AI Growth Mirror**（个人成长镜）是一款**本地优先**的 AI 协作能力分析工具。从本机 AI 编码工具的日志目录读取历史会话（Cursor、Codex、Claude Code、CodeBuddy、Trae、QCoder、Gemini 等 7 款），经统一适配、信号提取与五轴评分，生成可交互的个人成长报告。
+**AI Growth Mirror**（个人成长镜）是一款**本地优先**的 AI 协作能力分析工具。从本机 AI 编码工具的日志目录读取历史会话（Cursor、Codex、Claude Code、Cline、Kilo Code、CodeBuddy、Trae、QCoder、Gemini 等 9 款），经统一适配、信号提取与五轴评分，生成可交互的个人成长报告。
 
 > **核心目标**：帮 AI 编码用户看清自己的协作模式、摩擦瓶颈与资产化程度，明确下一步最值得投入的成长方向。
 
@@ -16,7 +16,7 @@ flowchart TB
         direction TB
         subgraph tools_intl["tools_intl"]
             direction LR
-            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini]
+            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini] --- t_cline[Cline]
         end
         subgraph tools_cn["tools_cn"]
             direction LR
@@ -72,7 +72,7 @@ flowchart TB
 
 **你能得到什么**：Cursor 侧优先用完整转录还原工具链与验证行为；Codex 侧额外解析 Token 用量，报告 Hero 可直接展示成本。两种数据源最终汇入**同一份成长报告**——换工具不用换评估标准。
 
-### 一套引擎，读懂 7 款工具
+### 一套引擎，读懂 9 款工具
 
 Growth Mirror 为每款 AI 编码工具配备独立 Adapter，但对外体验一致：指定 `--tools all` 或按需勾选，其余交给 pipeline。
 
@@ -108,7 +108,7 @@ AI Growth Mirror 把分散在各 AI 编码工具里的会话历史，转成一�
 
 | 能力 | 说明 |
 |------|------|
-| **多工具聚合** | 国际主流（Claude Code、Codex、Cursor、Gemini）+ 国产（CodeBuddy、Trae、QCoder）共 7 款；`--tools all` 一次扫齐 |
+| **多工具聚合** | 国际主流（Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code）+ 国产（CodeBuddy、Trae、QCoder）共 9 款；`--tools all` 一次扫齐 |
 | **双模式分析** | `heuristic` 纯本地规则（零外部调用）/ `llm` 语义深度分析（需 API Key）/ `auto` 按 Key 自动切换 |
 | **五轴雷达评分** | 意图清晰度、执行驱动力、实施深度、交付闭环、适应恢复力 — 五个维度量化 AI 协作能力 |
 | **L1–L5 成长等级** | 从初学者到专家，阶梯式评估，每个等级有具体行为描述；等级同时参考真实使用、工具编排、验证闭环和方法资产回流 |
@@ -335,7 +335,7 @@ print(result.output_path, result.session_count, result.growth_level)
 
 ## 支持的 AI 工具
 
-CLI `--tools` 可选：`all` | `cursor` | `codex` | `claude` | `codebuddy` | `gemini` | `trae` | `qcoder`（`claude` 为 `claude_code` 别名）。
+CLI `--tools` 可选：`all` | `cursor` | `codex` | `claude` | `codebuddy` | `gemini` | `cline` | `kilo` | `trae` | `qcoder`（`claude` 为 `claude_code` 别名）。
 
 | 类型 | 工具 | 配置键 `tools.*` | 典型数据源 | 备注 |
 |------|------|------------------|------------|------|
@@ -343,6 +343,8 @@ CLI `--tools` 可选：`all` | `cursor` | `codex` | `claude` | `codebuddy` | `ge
 | 国际主流 | Codex | `codex` | `~/.codex/` | 默认启用 |
 | 国际主流 | Cursor | `cursor` | `~/.cursor/` | 默认启用 |
 | 国际主流 | Gemini | `gemini` | `~/.gemini/antigravity/brain/` | 默认随 `all` |
+| 国际主流 | Cline | `cline` | `~/.cline/data/` 或 VS Code `globalStorage/saoudrizwan.claude-dev/` | 默认随 `all` |
+| 国际主流 | Kilo Code | `kilo` | VS Code `globalStorage/kilocode.kilo-code/`（可配置 `customStoragePath`） | 默认随 `all` |
 | 国产 | CodeBuddy | `codebuddy` | `~/.codebuddy/` | 默认随 `all` |
 | 国产 | Trae | `trae` | `~/.trae-cn/` 或 Windows workspaceStorage | 默认随 `all` |
 | 国产 | QCoder | `qcoder` | `~/.qoder/` 或 Windows workspaceStorage | 默认随 `all` |
@@ -363,7 +365,7 @@ CLI `--tools` 可选：`all` | `cursor` | `codex` | `claude` | `codebuddy` | `ge
 ## Token / 成本 / 缓存（报告内）
 
 - 只统计 reader 能解析 **usage 字段**的会话（以 **Codex、Claude Code、Gemini** 为主）
-- Cursor / Trae / QCoder / CodeBuddy 仍参与成长评分；无 usage 时 Hero 显示 `--`，不填 0
+- Cursor / Trae / QCoder / CodeBuddy / Cline / Kilo 仍参与成长评分；无 usage 时 Hero 显示 `--`，不填 0（Cline/Kilo 若 `taskHistory.json` 含 tokens 会填入）
 - `memory` 当前未采集，报告会标注
 
 ---

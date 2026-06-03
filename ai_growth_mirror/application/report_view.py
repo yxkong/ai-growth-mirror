@@ -1413,6 +1413,8 @@ def _build_usage_coverage_note(
         "claude_code": "Claude Code",
         "trae": "Trae",
         "qoder": "Qoder",
+        "cline": "Cline",
+        "kilo": "Kilo Code",
     }
     tool_has_usage: dict[str, bool] = {}
     for session in sessions:
