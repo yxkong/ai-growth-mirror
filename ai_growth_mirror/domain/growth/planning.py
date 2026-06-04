@@ -28,6 +28,8 @@ def priority_family(key: str) -> str:
         return "implementation_depth"
     if key in {"execution_driving", "workflow_composition_gap"}:
         return "execution_driving"
+    if key == "agentic_system":
+        return "agentic_system"
     return key
 
 
@@ -93,6 +95,16 @@ def rank_growth_priorities(
         candidates.append(RankedPriority(key, 96.0, ("latest_regression",)))
     for key in trend_axis_keys:
         candidates.append(RankedPriority(key, 88.0, ("trend_stall",)))
+
+    agentic_system_score = float(getattr(stats, "agentic_system_score", 0.0) or 0.0)
+    if agentic_system_score and agentic_system_score < 75.0:
+        candidates.append(
+            RankedPriority(
+                "agentic_system",
+                90.0 - agentic_system_score * 0.35,
+                ("agentic_system_gap",),
+            )
+        )
 
     deficit_priority_map = {
         "missing-context": ("prompt:context_provision", 95.0, "deficit_missing_context"),

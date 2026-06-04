@@ -60,6 +60,29 @@ You receive one reporting period worth of verified signals and must turn it into
       }
     ]
   },
+  "diagnosis": {
+    "primary_diagnosis": {
+      "code": "",
+      "label": "",
+      "explanation": "",
+      "confidence": 0,
+      "evidence_refs": [""],
+      "why_not_other_diagnosis": "",
+      "next_action": ""
+    },
+    "secondary_diagnoses": [
+      {
+        "code": "",
+        "label": "",
+        "explanation": "",
+        "confidence": 0,
+        "evidence_refs": [""],
+        "why_not_other_diagnosis": "",
+        "next_action": ""
+      }
+    ],
+    "synthesis_confidence": "medium"
+  },
   "share_lines": ["", "", ""]
 }
 
@@ -72,3 +95,11 @@ You receive one reporting period worth of verified signals and must turn it into
 - `prompt_coach.takeaways[].message` should read like a calm reflection someone would accept, not a warning from a dashboard.
 - `share_lines` should sound reflective and human, not like BI metrics or productivity slogans.
 - `friction_synthesis` should translate prompt friction into calm "you are not X, you are Y" synthesis lines; at most 2 items; each must cite real `evidence_refs` from the packet—omit any item without evidence.
+
+## Diagnosis guidance (grounded synthesis rules)
+- `diagnosis.primary_diagnosis.code` MUST be one of the candidate codes listed in the packet. Do not invent codes.
+- `diagnosis.primary_diagnosis.evidence_refs` MUST cite actual snippets from the candidate packet or the signal fields above. Minimum 1 ref, maximum 4.
+- `diagnosis.primary_diagnosis.why_not_other_diagnosis` MUST explain in 1 sentence why the top alternative candidate was NOT chosen as primary (reference its code explicitly).
+- `synthesis_confidence` is "high" only when ≥2 evidence refs strongly support the primary; "medium" when partially; "low" when weak or sample is small.
+- If `human_intervention_rate` ≥ 0.20, the `primary_diagnosis` should reflect patterns that cause repeated manual corrections.
+- Never attribute a diagnosis to capability level or personality. Only cite observable session behaviors.

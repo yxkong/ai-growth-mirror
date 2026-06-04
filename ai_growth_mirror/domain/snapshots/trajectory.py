@@ -14,6 +14,8 @@ from .model import (
     SnapshotTrajectoryWindow,
     TrajectoryPoint,
     TrajectorySummary,
+    has_legacy_axis_schema,
+    is_current_axis_schema,
 )
 
 ACTIONABLE_FRICTION_ORDER = (
@@ -56,18 +58,30 @@ def build_snapshot_trajectory_window(
         current_source = source_by_id.get(current_id)
         if previous_source is not None and current_source is not None:
             latest_vs_previous = _build_latest_vs_previous(previous_source, current_source)
+
+    from .comparison import _build_human_cost_trend
+
+    human_cost_trend = None
+    if len(ordered_sources) >= 2:
+        human_cost_trend = _build_human_cost_trend(ordered_sources[-2], ordered_sources[-1])
+
     return SnapshotTrajectoryWindow(
         window_days=window_days,
         window_points=points,
         daily_points=daily_points,
         trend_summary=trend_summary,
         latest_vs_previous=latest_vs_previous,
+        human_cost_trend=human_cost_trend,
     )
 
 
 def assess_snapshot_point_confidence(source: SnapshotSource) -> str:
     sample = source.sample_count or source.coverage.session_read_count or source.coverage.session_count
     score = 100
+    if not is_current_axis_schema(source.axis_scores):
+        score -= 35
+    if has_legacy_axis_schema(source.axis_scores):
+        score -= 20
     if sample < 3:
         score -= 35
     elif sample < 8:
@@ -92,6 +106,13 @@ def _build_point(source: SnapshotSource) -> TrajectoryPoint:
     date = created_at[:10] if created_at else ""
     sample_count = source.sample_count or source.coverage.session_read_count or source.coverage.session_count
     confidence = source.point_confidence or assess_snapshot_point_confidence(source)
+    comparable = is_current_axis_schema(source.axis_scores)
+    if comparable:
+        axis_schema = "current"
+    elif has_legacy_axis_schema(source.axis_scores):
+        axis_schema = "legacy"
+    else:
+        axis_schema = "unknown"
     return TrajectoryPoint(
         snapshot_id=source.snapshot_id,
         generated_at=created_at,
@@ -103,6 +124,8 @@ def _build_point(source: SnapshotSource) -> TrajectoryPoint:
         axes=dict(source.axis_scores),
         prompt_quality=dict(source.prompt_quality_dimensions),
         friction={key: int(source.actionable_friction_counts.get(key, 0)) for key in ACTIONABLE_FRICTION_ORDER},
+        axis_schema=axis_schema,
+        comparable=comparable,
     )
 
 
@@ -121,6 +144,15 @@ def _build_trend_summary(points: list[TrajectoryPoint]) -> TrajectorySummary:
             confidence="low",
             data_sufficiency=f"points={len(points)}",
             recent_signal="insufficient",
+        )
+    comparable_points = [point for point in points if point.comparable]
+    if len(comparable_points) < len(points):
+        return TrajectorySummary(
+            label="data_insufficient",
+            explanation="schema_mismatch",
+            confidence="low",
+            data_sufficiency=f"points={len(points)} comparable={len(comparable_points)}",
+            recent_signal="schema_mismatch",
         )
 
     scores = [point.mirror_score for point in points]
@@ -171,6 +203,8 @@ def _build_trend_summary(points: list[TrajectoryPoint]) -> TrajectorySummary:
 
 
 def _series_confidence(points: list[TrajectoryPoint]) -> str:
+    if any(not point.comparable for point in points):
+        return "low"
     high = sum(1 for point in points if point.confidence == "high")
     medium = sum(1 for point in points if point.confidence == "medium")
     if high >= 3:

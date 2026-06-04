@@ -20,6 +20,7 @@ from ...domain.session.heuristics import (
     classify_session_quality,
     passes_quality_gate as _passes_quality_gate,
 )
+from ...domain.signals.framework import detect_frameworks, summarise_for_hint
 from ...domain.signals.model import MomentumSignal, ResistanceSignal, SessionRead
 from ...domain.signals.payloads import parse_session_read_payload
 from ...domain.signals.taxonomy import (
@@ -66,6 +67,9 @@ def _authoring_hints_for(meta: SessionRecord) -> str:
 
 def _workflow_hints_for(meta: SessionRecord) -> str:
     hints: list[str] = []
+    framework_hint = summarise_for_hint(detect_frameworks(meta))
+    if framework_hint:
+        hints.append(framework_hint)
     plan_calls = sum(1 for command in meta.slash_commands if command in {"/plan", "/spec"})
     if plan_calls:
         hints.append(f"{plan_calls} /plan or /spec slash command(s)")

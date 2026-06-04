@@ -789,6 +789,7 @@ def _populate_agentic_system_signals(stats: GrowthProfile, sessions: list[Sessio
     public_framework_sessions = 0
     local_method_sessions = 0
     asset_authoring_sessions = 0
+    human_intervention_sessions = 0
     reusable_method_counter = Counter()
     local_methods = _local_method_frameworks(stats)
     for session in sessions:
@@ -806,6 +807,8 @@ def _populate_agentic_system_signals(stats: GrowthProfile, sessions: list[Sessio
             framework_sessions += 1
         if session.skill_files_authored > 0 or session.hook_config_modified or session.mcp_server_authored:
             asset_authoring_sessions += 1
+        if session.user_interruptions >= 2:
+            human_intervention_sessions += 1
         for name in set(skill_refs + [f"/{item}" for item in slash_refs] + framework_refs + local_framework_refs):
             reusable_method_counter[name] += 1
 
@@ -815,6 +818,8 @@ def _populate_agentic_system_signals(stats: GrowthProfile, sessions: list[Sessio
         stats.local_method_framework_session_rate = round(local_method_sessions / stats.session_count, 4)
         stats.workflow_fingerprint_session_rate = round(framework_sessions / stats.session_count, 4)
         stats.asset_authoring_session_rate = round(asset_authoring_sessions / stats.session_count, 4)
+        stats.human_intervention_session_rate = round(human_intervention_sessions / stats.session_count, 4)
+    stats.human_intervention_session_count = human_intervention_sessions
     stats.workflow_reuse_depth = sum(1 for count in reusable_method_counter.values() if count >= 2)
 
 

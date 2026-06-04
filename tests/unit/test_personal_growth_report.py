@@ -311,6 +311,7 @@ def test_personal_summary_payload_exports_closed_loop_fields():
     assert "recommended_training_inputs" in payload["prompt_coach"]
     assert "window_points" in payload["growth_trajectory"]
     assert "daily_points" in payload["growth_trajectory"]
+    assert "action_contract" in payload["growth_plan"]["priorities"][0]
     assert "linked_growth_trend_refs" in payload["growth_plan"]["priorities"][0]
     assert "linked_closure_guidance_ids" in payload["growth_plan"]["priorities"][0]
 
@@ -344,6 +345,35 @@ def test_prompt_coach_prefers_real_takeaway_examples():
     assert view.prompt_coach.takeaways[0].label == "先把背景交代完整"
     assert "帮我看看这个问题" in view.prompt_coach.takeaways[0].evidence
     assert "相关文件：handler.py" in view.prompt_coach.takeaways[0].better_prompt
+
+
+def test_prompt_coach_drops_placeholder_rewrite_cards():
+    from ai_growth_mirror.domain.signals.model import PromptLensTakeaway
+
+    sessions = [_make_session("s1", "D:/repo/a")]
+    facets = [_make_facets("s1")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+    stats.pq_top_takeaways = [
+        PromptLensTakeaway(
+            type="improve",
+            category="context_provision",
+            label="补上下文",
+            original="帮我看看。",
+            better_prompt="现象：[问题]\n相关文件：[路径]\n约束：[不可改范围]\n验收：[验证方式]",
+            why="placeholder should not surface as personalized advice",
+        )
+    ]
+
+    coach = build_prompt_coach_view(
+        stats=stats,
+        sessions=sessions,
+        session_reads=facets,
+        session_read_mode="heuristic",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert coach.rewrite_cards == []
+    assert coach.prompt_style.suggested_next_prompt == ""
 
 
 def test_prompt_coach_mixed_prompt_message_aligns_with_acceptance_gap():
@@ -482,6 +512,172 @@ def test_snapshot_trajectory_window_collapses_same_day_points():
     assert window.trend_summary.label in {"sustained_up", "volatile_up"}
 
 
+def test_snapshot_trajectory_marks_legacy_axis_schema_low_confidence():
+    legacy = SnapshotSource(
+        snapshot_id="legacy",
+        created_at="2026-05-29 10:00:00",
+        date_range="2026-05",
+        tool_display_name="Codex CLI",
+        growth_level="L3",
+        mirror_score=60,
+        axis_scores={
+            "delegation": 70.0,
+            "verification": 60.0,
+            "breadth": 55.0,
+            "authorship": 50.0,
+            "outcome": 58.0,
+            "workflow": 62.0,
+        },
+        coverage=SnapshotCoverage(session_count=20, session_read_count=20, has_usage_data=True),
+        sample_count=20,
+    )
+    current = SnapshotSource(
+        snapshot_id="current",
+        created_at="2026-05-30 10:00:00",
+        date_range="2026-05",
+        tool_display_name="Codex CLI",
+        growth_level="L3",
+        mirror_score=70,
+        axis_scores={
+            "intent_clarity": 45.0,
+            "execution_driving": 80.0,
+            "implementation_depth": 78.0,
+            "delivery_closure": 55.0,
+            "adaptive_recovery": 52.0,
+        },
+        coverage=SnapshotCoverage(session_count=20, session_read_count=20, has_usage_data=True),
+        sample_count=20,
+    )
+
+    window = build_snapshot_trajectory_window([legacy, current])
+
+    assert window.window_points[0].axis_schema == "legacy"
+    assert window.window_points[0].comparable is False
+    assert window.window_points[0].confidence == "low"
+
+
+def test_snapshot_compare_confidence_drops_on_axis_schema_mismatch():
+    from ai_growth_mirror.domain.snapshots.comparison import compare_snapshot_sources
+
+    previous = SnapshotSource(
+        snapshot_id="legacy",
+        created_at="2026-05-29 10:00:00",
+        growth_level="L3",
+        mirror_score=60,
+        axis_scores={"delegation": 70.0, "verification": 60.0},
+        coverage=SnapshotCoverage(session_count=30, session_read_count=30, has_usage_data=True),
+    )
+    current = SnapshotSource(
+        snapshot_id="current",
+        created_at="2026-05-30 10:00:00",
+        growth_level="L4",
+        mirror_score=82,
+        axis_scores={
+            "intent_clarity": 60.0,
+            "execution_driving": 85.0,
+            "implementation_depth": 82.0,
+            "delivery_closure": 75.0,
+            "adaptive_recovery": 72.0,
+        },
+        coverage=SnapshotCoverage(session_count=30, session_read_count=30, has_usage_data=True),
+    )
+
+    comparison = compare_snapshot_sources(previous, current)
+
+    assert comparison.confidence.level == "low"
+    assert "axis_schema_mismatch" in comparison.confidence.reasons
+
+
+def test_llm_workflow_hints_include_public_framework_fingerprint():
+    from ai_growth_mirror.infra.extractors.llm import _workflow_hints_for
+
+    session = _make_session("s1", "D:/repo/a")
+    session.slash_commands = ["/spec-create"]
+
+    hints = _workflow_hints_for(session)
+
+    assert "framework fingerprints" in hints
+    assert "cc_spec_workflow" in hints
+
+
+def test_level_evidence_agentic_system_metric_is_system_layer_kind():
+    sessions = [_make_session(f"s{i}", "D:/repo/a") for i in range(1, 5)]
+    facets = [_make_facets(f"s{i}") for i in range(1, 5)]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    capability_scores = {axis.key: axis.score for axis in stats.radar_axes}
+    section = _build_level_evidence(
+        stats=stats,
+        capability_scores=capability_scores,
+        session_read_mode="llm",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    system_metrics = [metric for metric in section.metrics if metric.kind == "system_layer"]
+    axis_metrics = [metric for metric in section.metrics if metric.kind == "axis"]
+    assert system_metrics, "agentic_system metric must be surfaced as system_layer"
+    assert len(axis_metrics) == 5, "five collaboration axes must remain on the main layer"
+    assert "Agentic" in system_metrics[0].label or "系统" in system_metrics[0].label
+
+
+def test_trajectory_point_view_surfaces_axis_schema_and_comparable():
+    from ai_growth_mirror.application.growth_trajectory import _build_trend_view
+
+    legacy = SnapshotSource(
+        snapshot_id="legacy",
+        created_at="2026-05-29 10:00:00",
+        growth_level="L3",
+        mirror_score=60,
+        axis_scores={
+            "delegation": 70.0,
+            "verification": 60.0,
+            "breadth": 55.0,
+            "authorship": 50.0,
+            "outcome": 58.0,
+            "workflow": 62.0,
+        },
+        coverage=SnapshotCoverage(session_count=20, session_read_count=20, has_usage_data=True),
+        sample_count=20,
+    )
+    current = SnapshotSource(
+        snapshot_id="current",
+        created_at="2026-05-30 10:00:00",
+        growth_level="L3",
+        mirror_score=70,
+        axis_scores={
+            "intent_clarity": 60.0,
+            "execution_driving": 80.0,
+            "implementation_depth": 78.0,
+            "delivery_closure": 55.0,
+            "adaptive_recovery": 52.0,
+        },
+        coverage=SnapshotCoverage(session_count=20, session_read_count=20, has_usage_data=True),
+        sample_count=20,
+    )
+
+    window = build_snapshot_trajectory_window([legacy, current])
+    view = _build_trend_view(window, load_report_label_catalogs("zh"))
+
+    schemas = {point.axis_schema for point in view.points}
+    assert "legacy" in schemas
+    assert any(point.comparable is False for point in view.points)
+    assert view.summary_code in {"data_insufficient", "stable", "sustained_up", "volatile_up"}
+
+
+def test_wins_evidence_does_not_say_five_core_growth_axes_only():
+    catalogs = load_report_label_catalogs("zh")
+    evidence_template = (
+        catalogs.view_model.get("wins", {})
+        .get("cards", {})
+        .get("strongest_dim", {})
+        .get("evidence", "")
+    )
+    assert "5 个核心成长轴" not in evidence_template, (
+        "wins evidence should no longer call the 5 axes the only growth axes — "
+        "agentic_system is a system layer."
+    )
+
+
 def test_prompt_coach_classifies_indexed_prompt_without_treating_it_as_missing_context():
     sessions = [
         _make_session(
@@ -542,7 +738,7 @@ def test_prompt_coach_classifies_mixed_prompt():
     assert view.prompt_coach.prompt_style.type == "mixed_prompt"
 
 
-def test_prompt_coach_reframes_indexed_rule_blob_rewrite_card():
+def test_prompt_coach_does_not_turn_indexed_rule_blob_into_template_rewrite_card():
     session = _make_session(
         "s1",
         "D:/repo/a",
@@ -584,11 +780,8 @@ def test_prompt_coach_reframes_indexed_rule_blob_rewrite_card():
 
     assert view.prompt_coach.prompt_style is not None
     assert view.prompt_coach.prompt_style.type == "indexed_prompt"
-    assert view.prompt_coach.rewrite_cards
-    card = view.prompt_coach.rewrite_cards[0]
-    assert card.original == ""
-    assert "索引" in card.problem
-    assert "索引入口摘要" in card.source_note
+    assert view.prompt_coach.rewrite_cards == []
+    assert view.prompt_coach.prompt_style.suggested_next_prompt == ""
 
 
 def test_prompt_coach_classifies_under_specified_prompt():

@@ -339,6 +339,7 @@ def _snapshot_source_from_payloads(
             prompt_coach=prompt_coach,
         ),
         sample_count=int(coverage.get("session_read_count", coverage.get("session_count", stats.get("session_count", 0))) or 0),
+        human_intervention_session_rate=_as_float(stats.get("human_intervention_session_rate")),
     )
     snapshot_source.point_confidence = assess_snapshot_point_confidence(snapshot_source)
     return snapshot_source

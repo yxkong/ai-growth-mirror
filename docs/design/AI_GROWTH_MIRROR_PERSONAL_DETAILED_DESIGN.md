@@ -60,6 +60,7 @@ score_target: 9.9
   - 顶部先展示 **近 30 天趋势结论**，趋势指标至少覆盖 `mirror_score`、`growth_level`、五轴、Prompt Quality 五维、行动型摩擦五类
   - 同一天多次 generate 时，页面默认只展示当天最后一次 snapshot；sidecar JSON 必须保留 `window_points` 全量点位和 `daily_points` 展示点位
   - 当 `daily_points < 3` 时只展示已有点位和“数据不足”说明，不强行做长期趋势判断
+  - 当历史 snapshot 使用旧能力轴（`delegation / verification / breadth / authorship / outcome / workflow`）或缺少当前五轴时，趋势与 latest-vs-previous 必须降为低置信，并标记 schema mismatch；禁止把跨评分模型变化的点位包装成强趋势
   - 若存在上一期 snapshot，则同区块下半部分继续展示 **本期 vs 上一期变化诊断**
   - 诊断区顶部必须包含 5 张 summary cards：当前阶段、协作指数变化、最大进步轴、当前短板轴、置信度/样本量说明
   - 诊断区中部至少包含五轴对比、成长变化瀑布、Prompt Quality 来源说明、摩擦与恢复变化、方法资产沉淀
@@ -195,6 +196,7 @@ score_target: 9.9
 - `local_method_frameworks` 是可配置、可从本地 hub 提取、最终进入聚合的真源：配置项与扫描结果先合并为候选清单，再与会话中的 `unique_skills_used` / `slash_commands` 做规范化精确匹配。未被真实任务命中的候选只展示为资产上下文，不参与等级主证据。
 - skill / rule / prompt 文件数量不能单独把用户推到 L4 / L5；只有当这些资产在真实任务里被使用、复用、编排或验证闭环支撑时，才进入等级主证据。
 - `level_evidence` 必须展示 `Agentic 系统成熟度`，并同时呈现使用率、workflow 指纹、公开框架命中、本地方法命中、重复复用、资产创作和高杠杆功能使用。库存证据只能作为低权重背景，不能冒充用户当期状态。
+- `human_intervention_session_rate` 是第一版“降低人工介入成本”事实指标：只统计当前人工纠偏压力，不直接声称已减少成本；只有存在可比历史后，才允许表达减少趋势。
 - 数据不足时显示“未观察到”或留白，不用静态模板或资产库存替用户编造能力画像。
 
 ## 5.4 Prompt 模块
@@ -263,13 +265,15 @@ score_target: 9.9
 
 - `growth_trajectory`：近 30 天持续低迷轴、本期最新退步轴、本期最新证据
 - `prompt_coach`：top deficits、rewrite cards、通用/场景模板
+- `agentic_system_score / human_intervention_session_rate`：方法系统化缺口与人工纠偏压力
 
 联动规则：
 
-- Prompt 维度或 deficit 明显偏弱时，优先输出 `prompt:*` 类型训练任务
+- Prompt 维度或 deficit 明显偏弱时，输出 `prompt:*` 类型训练任务，但不得用静态模板替代个性化证据
+- `agentic_system_score < 75` 或人工纠偏率偏高时，必须生成 `Action Contract`：说明应新增/强化哪个 rule、skill 或 workflow，以及下次自然语言入口如何自动触发
 - `intent_clarity + missing-context / vague-request` 合并成“需求表达训练”
 - `delivery_closure + missing-acceptance-criteria` 合并成“验收标准训练”
-- 每个训练任务都必须附带 `evidence_refs` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids / linked_growth_trend_refs / linked_closure_guidance_ids`
+- 每个训练任务都必须附带 `evidence_refs`、`action_contract` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids / linked_growth_trend_refs / linked_closure_guidance_ids`
 
 ## 5.4.1 usage 模块
 

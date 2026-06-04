@@ -49,6 +49,14 @@ priorities:
     week_1_actions: []
     practice_prompt: "If the current path is wrong, do not retry mechanically. Explain: 1. what is wrong 2. what new evidence changed the view 3. what the new minimal path is."
 
+  agentic_system:
+    title: "Method systemization"
+    why: "This is not about writing longer prompts. It turns recurring evaluation criteria into rules, skills, or workflows so the next natural-language task starts on the right path by default."
+    success_signal: "Similar tasks automatically trigger the right skill, rule, or workflow, and the user needs fewer follow-up corrections about boundaries and acceptance."
+    stop_doing: "Relying on ad-hoc follow-up corrections to add principles, counterexamples, and acceptance criteria each time."
+    week_1_actions: []
+    practice_prompt: "Before execution, check whether this task already has a reusable rule, skill, or workflow. If not, produce a minimal action contract first: judgement criteria, counterexample boundaries, evidence requirements, delivery mode, and validation gates."
+
   friction:
     title: "Correction clarity"
     why: ""

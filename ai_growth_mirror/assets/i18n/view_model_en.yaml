@@ -195,7 +195,7 @@ wins:
   cards:
     strongest_dim:
       title: "{label} is already becoming a default habit"
-      evidence: "This dimension scores {score:.1f}, currently your strongest of the five core growth axes."
+      evidence: "This dimension scores {score:.1f}, currently your strongest of the five core collaboration axes (systemization layer is tracked separately)."
     delivery_closure:
       title: "Verification is entering your default loop"
       evidence: "Your current verification behavior rate is about {pct}%."
@@ -330,6 +330,8 @@ growth_trajectory:
       small_sample: "The comparison window is too small."
       limited_sample: "The comparison window is still small."
       extraction_failed: "Some sessions failed extraction."
+      axis_schema_mismatch: "Snapshots cross a scoring-axis schema change, so the trend should not be treated as strong evidence."
+      legacy_axis_schema: "Some historical snapshots still use the legacy capability axes."
       missing_usage: "Usage coverage is incomplete."
       prompt_proxy: "Prompt Quality is mostly proxy-filled or under-sampled."
       prompt_mixed: "Prompt Quality mixes LLM and proxy signals."
@@ -968,7 +970,7 @@ level_axis_metrics:
     implementation_depth: "Axis {score} · files/session {files_per_session} · token volume {token_volume_m}M · code proof {code_verification_rate_pct}%"
     delivery_closure: "Axis {score} · weighted completion {completion_rate}% · verification {verification_rate}% · tests {test_rate}%"
     adaptive_recovery: "Axis {score} · correction quality {correction_quality}% · structured share {structured_rate_pct}% · user friction {user_actionable_ratio_pct}% · authored assets {authored_assets}"
-    agentic_system: "Axis {score} · skill/workflow usage {skill_usage_rate}% · method fingerprints {workflow_fingerprint_rate}% (public {public_framework_rate}% / local {local_method_rate}%) · repeated methods {workflow_reuse_depth} · asset authoring {asset_authoring_rate}% · leverage features {advanced_feature_rate}%"
+    agentic_system: "System score {score} · skill/workflow usage {skill_usage_rate}% · method fingerprints {workflow_fingerprint_rate}% (public {public_framework_rate}% / local {local_method_rate}%) · repeated methods {workflow_reuse_depth} · asset authoring {asset_authoring_rate}% · leverage features {advanced_feature_rate}%"
   thresholds:
     L2:
       intent_clarity: 42

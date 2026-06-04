@@ -396,6 +396,8 @@ def _build_rewrite_cards(
     for index, item in enumerate(samples, start=1):
         if item.type != "improve" or not item.better_prompt:
             continue
+        if _looks_like_placeholder_prompt(item.better_prompt):
+            continue
         card_id = f"rewrite:{index}"
         category = item.category or "request_specificity"
         scene = DIMENSION_SCENE_MAP.get(category, "requirements_design")
@@ -715,9 +717,41 @@ def _prompt_style_message(signal, top_deficits, catalogs: ReportLabelCatalogs) -
 def _suggested_next_prompt(rewrite_cards) -> str:
     for item in rewrite_cards:
         prompt = (item.better_prompt or "").strip()
-        if prompt:
+        if prompt and not _looks_like_placeholder_prompt(prompt):
             return prompt
     return ""
+
+
+def _looks_like_placeholder_prompt(text: str) -> bool:
+    value = (text or "").strip()
+    if not value:
+        return False
+    placeholder_markers = (
+        "[问题]",
+        "[路径]",
+        "[不可改范围]",
+        "[验证方式]",
+        "[issue]",
+        "[paths]",
+        "[must not change]",
+        "[verification]",
+        "<你要完成什么>",
+        "<现状/报错/背景>",
+        "<路径1, 路径2>",
+        "<不允许改什么>",
+        "<如何算完成>",
+        "<trigger>",
+        "<paths>",
+    )
+    if any(marker in value for marker in placeholder_markers):
+        return True
+    # Template-like ellipses are allowed in checklist/template assets, but not
+    # as personalized rewrite cards or "next prompt" advice.
+    if "..." in value or "…" in value:
+        return True
+    if "：" in value and "<" in value and ">" in value:
+        return True
+    return False
 
 
 def _trigger_maturity_lines(signal, catalogs: ReportLabelCatalogs) -> list[str]:

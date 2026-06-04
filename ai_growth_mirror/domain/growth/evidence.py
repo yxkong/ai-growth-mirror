@@ -12,7 +12,7 @@ from ..session.scope import SessionScope
 from ..signals.model import SessionRead
 from .model import GrowthProfile
 
-EVIDENCE_SCHEMA_VERSION = "1.1"
+EVIDENCE_SCHEMA_VERSION = "1.2"
 
 
 @dataclass(frozen=True)
@@ -27,6 +27,7 @@ class CoreEvidence:
     stats: dict[str, Any]
     session_examples: list[dict[str, Any]] = field(default_factory=list)
     session_read_summaries: list[dict[str, Any]] = field(default_factory=list)
+    agentic_evidence_graph: dict[str, Any] | None = None
 
 
 def _utc_now() -> str:
@@ -110,6 +111,8 @@ def _stats_payload(stats: GrowthProfile, *, redact: bool) -> dict[str, Any]:
         "workflow_fingerprint_session_rate": stats.workflow_fingerprint_session_rate,
         "workflow_reuse_depth": stats.workflow_reuse_depth,
         "asset_authoring_session_rate": stats.asset_authoring_session_rate,
+        "human_intervention_session_count": stats.human_intervention_session_count,
+        "human_intervention_session_rate": stats.human_intervention_session_rate,
         "agentic_system_score": stats.agentic_system_score,
         "growth_level": stats.growth_level,
         "mirror_score": stats.mirror_score,
@@ -232,9 +235,18 @@ def build_core_evidence(
     redact: bool = False,
     session_example_limit: int = 25,
     session_read_summary_limit: int = 40,
+    include_evidence_graph: bool = True,
 ) -> CoreEvidence:
     session_by_id = {session.session_id: session for session in sessions}
     scope = scope_filters or SessionScope()
+
+    agentic_graph: dict[str, Any] | None = None
+    if include_evidence_graph:
+        from .evidence_graph import build_agentic_evidence_graph, evidence_graph_to_dict
+
+        graph = build_agentic_evidence_graph(sessions, facets)
+        agentic_graph = evidence_graph_to_dict(graph)
+
     return CoreEvidence(
         schema_version=EVIDENCE_SCHEMA_VERSION,
         generated_at=_utc_now(),
@@ -264,6 +276,7 @@ def build_core_evidence(
             limit=session_read_summary_limit,
             redact=redact,
         ),
+        agentic_evidence_graph=agentic_graph,
     )
 
 

@@ -24,6 +24,11 @@ from ...domain.growth.coaching import (
     parse_coaching_payload,
     priority_keys_for_coaching,
 )
+from ...domain.growth.diagnosis import (
+    build_diagnosis_candidate_packet,
+    rule_fallback_diagnosis,
+)
+from ...domain.growth.planning import rank_growth_priorities
 from .execution import complete_json_with_retries
 
 _COACH_RETRY_DELAYS = (2.0, 5.0)
@@ -53,15 +58,41 @@ def generate_growth_guidance(
     language: str = "zh",
     tool_display_name: str = "AI Tool",
     period_label: str = "",
+    trend_info: str = "",
+    schema_mismatch: bool = False,
+    recent_friction_snippets: list[str] | None = None,
+    recent_takeaway_snippets: list[str] | None = None,
 ) -> Optional[CoachingContent]:
     """Call LLM to generate personalized growth guidance.
 
     Returns None on failure (caller falls back to rule-based content).
+    The function now builds a structured Stage-1 DiagnosisCandidatePacket and
+    passes it into the prompt so the LLM can perform grounded Stage-2 synthesis.
     """
     pq_dims = stats.pq_avg_dimensions or {}
     weakest_pq = min(pq_dims.items(), key=lambda kv: kv[1]) if pq_dims else ("", 0.0)
     top_friction = sorted(stats.friction_type_counts.items(), key=lambda kv: -kv[1])[:5]
     language = normalize_report_language(language)
+    priority_keys = priority_keys_for_coaching(stats, capability_scores)
+
+    # Stage-1: build ranked candidates and evidence packet
+    ranked_priorities = rank_growth_priorities(
+        stats,
+        capability_scores,
+        top_deficit_keys=tuple(
+            (stats.pq_deficit_counts or {}).keys()
+        )[:5],
+    )
+    diagnosis_packet = build_diagnosis_candidate_packet(
+        stats,
+        capability_scores,
+        ranked_priorities,
+        recent_friction_snippets=recent_friction_snippets,
+        recent_takeaway_snippets=recent_takeaway_snippets,
+        trend_info=trend_info,
+        schema_mismatch=schema_mismatch,
+    )
+
     ctx: dict[str, Any] = {
         "language": language,
         "report_language": language,
@@ -92,7 +123,10 @@ def generate_growth_guidance(
         "skill_authored_count": getattr(stats, "skill_authored_count", 0),
         "hook_modified_session_count": getattr(stats, "hook_modified_session_count", 0),
         "mcp_authored_session_count": getattr(stats, "mcp_authored_session_count", 0),
-        "priority_keys": priority_keys_for_coaching(stats, capability_scores),
+        "priority_keys": priority_keys,
+        # Stage-1 evidence packet for grounded Stage-2 synthesis
+        "diagnosis_candidates": diagnosis_packet.candidates,
+        "diagnosis_packet": diagnosis_packet,
     }
 
     prompt_adapter = GrowthGuideTemplateAdapter()
@@ -118,7 +152,11 @@ def generate_growth_guidance(
         if not isinstance(raw, dict):
             logger.warning("growth guidance response was not a JSON object: %r", type(raw).__name__)
             return None
-        return parse_coaching_payload(raw)
+        coaching = parse_coaching_payload(raw)
+        # Stage-3: if LLM didn't produce a diagnosis, fall back to rule layer
+        if coaching.diagnosis is None:
+            coaching.diagnosis = rule_fallback_diagnosis(diagnosis_packet)
+        return coaching
     except Exception as exc:
         logger.warning("growth guidance LLM call failed: %s", exc)
         return None

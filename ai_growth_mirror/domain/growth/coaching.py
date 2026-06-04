@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .model import GrowthProfile
 
+from .diagnosis import DiagnosisResult
 from .planning import select_growth_priority_keys
 
 
@@ -56,6 +57,8 @@ class CoachingContent:
     friction_synthesis: list[FrictionSynthesisItem] = field(default_factory=list)
     share_lines: list[str] = field(default_factory=list)
     source: str = "llm"
+    # Stage-2 diagnosis result (None when coaching was rule-based only)
+    diagnosis: DiagnosisResult | None = None
 
 
 def priority_keys_for_coaching(
@@ -116,6 +119,15 @@ def parse_coaching_payload(raw: dict) -> CoachingContent:
         for index, item in enumerate(prompt_coach.get("friction_synthesis", [])[:2])
     ]
 
+    # Stage-2 grounded diagnosis
+    from .diagnosis import parse_diagnosis_payload, rerank_diagnosis_result, DiagnosisCandidatePacket
+
+    diagnosis: DiagnosisResult | None = None
+    raw_diagnosis = raw.get("diagnosis")
+    if isinstance(raw_diagnosis, dict):
+        parsed = parse_diagnosis_payload(raw_diagnosis)
+        diagnosis = rerank_diagnosis_result(parsed, DiagnosisCandidatePacket())
+
     return CoachingContent(
         growth_headline=growth_plan.get("headline", ""),
         priorities=priorities,
@@ -125,4 +137,5 @@ def parse_coaching_payload(raw: dict) -> CoachingContent:
         friction_synthesis=friction_synthesis,
         share_lines=raw.get("share_lines", [])[:3],
         source="llm",
+        diagnosis=diagnosis,
     )

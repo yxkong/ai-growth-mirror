@@ -123,6 +123,8 @@ class GrowthTrajectoryPointView:
     growth_level: str
     sample_count: int
     confidence: str
+    axis_schema: str = "current"
+    comparable: bool = True
 
 
 @dataclass
@@ -165,6 +167,18 @@ class GrowthTrajectoryTrendView:
 
 
 @dataclass
+class HumanCostTrendView:
+    """View model for human_cost_reduction trend between snapshots."""
+
+    available: bool = False
+    direction: str = "unknown"  # "improving" | "worsening" | "flat" | "unknown"
+    note: str = ""
+    previous_rate_pct: str = ""
+    current_rate_pct: str = ""
+    delta_pct: str = ""
+
+
+@dataclass
 class GrowthTrajectoryView:
     available: bool
     prev_label: str = ""
@@ -179,6 +193,7 @@ class GrowthTrajectoryView:
     method_assets: Optional[GrowthTrajectoryMethodAssetsView] = None
     evidence_cards: list[GrowthTrajectoryEvidenceCardView] = field(default_factory=list)
     next_priorities: list[GrowthTrajectoryPriorityView] = field(default_factory=list)
+    human_cost_trend: Optional[HumanCostTrendView] = None
     data: dict[str, object] = field(default_factory=dict)
 
 
@@ -424,6 +439,31 @@ def _build_latest_vs_previous_view_from_comparison(
         method_assets=_build_method_assets_view(comparison, gt_i18n),
         evidence_cards=_build_evidence_cards(comparison, catalogs),
         next_priorities=_build_priority_views(comparison, catalogs),
+        human_cost_trend=_build_human_cost_trend_view(comparison),
+    )
+
+
+def _build_human_cost_trend_view(comparison: object) -> HumanCostTrendView:
+    """Build view model for human_cost_reduction trend."""
+    trend = getattr(comparison, "human_cost_trend", None)
+    if trend is None or not trend.available:
+        note = (
+            getattr(trend, "note", "")
+            if trend is not None
+            else "historical snapshots do not yet contain human cost data"
+        )
+        return HumanCostTrendView(available=False, direction="unknown", note=note)
+
+    prev_pct = f"{round((trend.previous_rate or 0.0) * 100, 1)}%"
+    curr_pct = f"{round((trend.current_rate or 0.0) * 100, 1)}%"
+    delta_pct = f"{round(abs(trend.delta) * 100, 1)}pp"
+    return HumanCostTrendView(
+        available=True,
+        direction=trend.direction,
+        note=trend.note,
+        previous_rate_pct=prev_pct,
+        current_rate_pct=curr_pct,
+        delta_pct=delta_pct,
     )
 
 
@@ -439,6 +479,8 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
             growth_level=point.growth_level,
             sample_count=point.sample_count,
             confidence=point.confidence,
+            axis_schema=getattr(point, "axis_schema", "current"),
+            comparable=bool(getattr(point, "comparable", True)),
         )
         for point in trajectory_window.daily_points
     ]

@@ -104,6 +104,8 @@ LLM 输出的 `evidence_refs` 必须命中真实 findings；缺证据降级规�
 - 附录区块（level-guide/friction/exemplars/focus/rhythm/wins/agent-asset/style-lens）默认折叠为可点开卡片（启用已有 `.section-toggle`）。
 - Prompt 教练删 `LLM n / heuristic n / light n` 并列行，换 §2.3 人话。
 - `下次可以这样问`、`rewrite cards` 只在存在 grounded `better_prompt` 时展示；没有真实改写时，主报告与 compare 都不做静态模板兜底。
+- heuristic / fallback 来源里的 placeholder rewrite（如 `[问题]`、`[路径]`、`<...>`、`...`）必须被过滤，不能作为个性化改写或下一问法展示。
+- 成长轨迹必须带 axis schema 可比性判断；旧轴或缺轴 snapshot 只能低置信展示，不能参与强趋势结论。
 
 ### compare = 深度版
 
@@ -127,6 +129,8 @@ LLM 输出的 `evidence_refs` 必须命中真实 findings；缺证据降级规�
 - `assets/i18n/view_model_{zh,en}.yaml`、`template_labels_*`：加 open_ended/engineered 文案。
 - `Prompt Coach` 个性化输出加严格护栏：`suggested_next_prompt` 与 `rewrite_cards` 只接真实 evidence-backed 改写；`universal/scenario template` 不再作为 personal report / compare / growth_plan 的兜底输入。
 - `Level Evidence` 新增 `Agentic 系统成熟度`：以实际 skill/workflow 使用、公开 framework 指纹、本地方法框架命中、重复复用、资产创作和高杠杆功能为主证据；资产库存仅作为上下文，防止把某个用户的目录结构泛化成所有人的等级标准。
+- `session_read` LLM prompt 接收公开 framework fingerprint hint；私有 framework 仍走本地方法命中和 scoring 聚合，不硬塞进公开 registry。
+- `Growth Plan` 新增 `Action Contract`：当 Agentic 系统成熟度低或人工纠偏压力高时，输出应沉淀的 rule / skill / workflow 契约，而不是只给通用 Prompt 模板。
 - 验收：`pytest tests/unit -q`；新增"主报告无并列三数字"、mode 断言，以及"无 grounded rewrite 时不展示模板 prompt" 断言。
 
 ### P1

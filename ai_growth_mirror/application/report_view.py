@@ -487,6 +487,7 @@ class LevelEvidenceMetricView:
     status: str
     explanation: str
     raw_signal: str
+    kind: str = "axis"
 
 
 @dataclass
@@ -1813,6 +1814,7 @@ def _build_level_axis_metrics(
                 explanation=f"{explanations.get('agentic_system', '')} {system_profile.get('hint', '')}".strip(),
                 raw_signal=raw_signals["agentic_system"],
                 catalogs=catalogs,
+                kind="system_layer",
             )
         )
     return metrics
@@ -2170,6 +2172,7 @@ def _level_metric(
     raw_signal: str,
     *,
     catalogs: ReportLabelCatalogs,
+    kind: str = "axis",
 ) -> LevelEvidenceMetricView:
     ev = _view_i18n(catalogs).get("level_evidence", {})
     status_met = ev.get("status_met", "Met")
@@ -2181,6 +2184,7 @@ def _level_metric(
         status=status_met if passed else status_unmet,
         explanation=explanation,
         raw_signal=raw_signal,
+        kind=kind,
     )
 
 

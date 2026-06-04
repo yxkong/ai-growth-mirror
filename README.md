@@ -265,6 +265,8 @@ ai-growth-mirror generate -v
 - **索引型 Prompt 不被歧视**：使用 `/skill`、`/delivery-workflow`、`@docs/` 等"指令式"Prompt 触发的简短会话，不会被判为低质量（plan 2.1）。
 - **高级特性识别**：自动识别 *Plan 模式 / Ask 模式 / 子 Agent 分发 / Skill 调用 / MCP 工具 / 多模型协作*，并在协作能力地图下方以芯片形式呈现（plan 4.1）。
 - **Agentic 系统成熟度**：等级不只看 Prompt 或文件库存，而是综合真实 skill/workflow 使用、workflow 指纹、工具编排、验证闭环、方法资产创作与后续复用；资产目录只做低权重上下文，不能单独把用户推到高等级。
+- **Action Contract 训练**：下一阶段训练不只给通用 Prompt 模板；当发现 Agentic 系统缺口或人工纠偏较多时，会提示应沉淀的 rule / skill / workflow 契约。
+- **趋势可比性降级**：历史快照若仍使用旧能力轴，成长轨迹会降为低置信，不把跨 schema 的变化包装成强趋势。
 
 **快照对比**（需至少两次 generate 产生的 `ai-growth-mirror-archive/`）：
 
