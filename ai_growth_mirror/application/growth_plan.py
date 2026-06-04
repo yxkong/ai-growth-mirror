@@ -401,30 +401,32 @@ def _priority_action_contract(
         action_contract_to_lines,
     )
 
-    focus_deficit_map: dict[str, str] = {
-        "delivery_closure": "missing-acceptance-criteria",
-        "prompt:request_specificity": "vague-request",
-        "prompt:context_provision": "missing-context",
-        "prompt:scope_management": "scope-drift",
-        "prompt:correction_quality": "unclear-correction",
+    # Each priority key only shows contracts whose deficits belong to its own domain.
+    # This prevents every training item from rendering the same global top-5 deficits.
+    # None  → no filtering (show all); set() → no deficit contracts (strength axis).
+    _KEY_DEFICIT_SCOPE: dict[str, set[str]] = {
+        "delivery_closure": {"missing-acceptance-criteria"},
+        "intent_clarity": {"missing-context", "vague-request", "assumption-not-surfaced", "late-constraint"},
+        "adaptive_recovery": {"unclear-correction", "scope-drift"},
+        "execution_driving": {"vague-request", "scope-drift"},
+        "implementation_depth": set(),  # strength axis — no deficit-driven contracts
+        "prompt:context_provision": {"missing-context", "late-constraint"},
+        "prompt:request_specificity": {"vague-request", "assumption-not-surfaced"},
+        "prompt:scope_management": {"scope-drift"},
+        "prompt:correction_quality": {"unclear-correction"},
+        "prompt:information_timing": {"late-constraint"},
+        "agentic_system": set(),
+        "friction": {"unclear-correction", "scope-drift"},
     }
-    related_deficit = focus_deficit_map.get(key, "")
-
-    import copy
-    scoped_stats = copy.copy(stats)
-    if related_deficit:
-        boosted = dict(stats.pq_deficit_counts or {})
-        boosted[related_deficit] = boosted.get(related_deficit, 0) + 3
-        try:
-            scoped_stats.pq_deficit_counts = boosted
-        except (AttributeError, TypeError):
-            pass
+    focus_deficit_keys: set[str] | None = _KEY_DEFICIT_SCOPE.get(key, None)
 
     cap_scores = capability_scores or {}
     contract_report = generate_action_contracts(
-        scoped_stats,
+        stats,
         cap_scores,
         diagnosis_code=key if key in {"agentic_system", "delivery_closure"} else "",
+        focus_deficit_keys=focus_deficit_keys,
+        priority_key=key,
         max_items=5,
     )
     lines = action_contract_to_lines(contract_report)

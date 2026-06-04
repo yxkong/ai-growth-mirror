@@ -166,6 +166,8 @@ def generate_action_contracts(
     *,
     graph_summary: "AgenticEvidenceGraphSummary | None" = None,
     diagnosis_code: str = "",
+    focus_deficit_keys: set[str] | None = None,
+    priority_key: str | None = None,
     max_items: int = 6,
 ) -> ActionContractReport:
     """Generate dynamic action contracts from high-frequency correction patterns.
@@ -175,6 +177,16 @@ def generate_action_contracts(
     2. Evidence refs must cite real stats fields or diagnosis codes.
     3. Items are ranked by priority and de-duped by kind+title.
     4. At most max_items are returned to avoid overwhelming the user.
+
+    Args:
+        focus_deficit_keys: When provided, only generate deficit-driven contracts
+            for the specified deficit keys. Pass an empty set to suppress all
+            deficit-driven contracts (e.g., for a strength axis). Pass None to
+            use all deficits (global / summary view).
+        priority_key: The training priority key this call is for. Non-deficit
+            contracts (agentic, human-cost, delivery-closure) are restricted to
+            their most relevant key so they don't repeat across every section.
+            Pass None (default) to include all non-deficit contracts (global view).
     """
     pq_deficit_counts = dict(stats.pq_deficit_counts or {})
     human_intervention_rate = float(getattr(stats, "human_intervention_session_rate", 0.0) or 0.0)
@@ -183,10 +195,20 @@ def generate_action_contracts(
     delivery_closure_score = capability_scores.get("delivery_closure", 100.0)
     total_human_corrections = getattr(stats, "human_intervention_session_count", 0)
 
+    # Keys where each non-deficit contract type is permitted.
+    # When priority_key is set and not in the allowed set, skip that contract.
+    _AGENTIC_CONTRACT_KEYS: set[str] = {"agentic_system", "execution_driving"}
+    _HUMAN_COST_CONTRACT_KEYS: set[str] = {"adaptive_recovery", "friction"}
+    _CLOSURE_CONTRACT_KEYS: set[str] = {"delivery_closure"}
+
     items: list[ActionContractItem] = []
 
-    # Deficit-driven contracts: generate from highest-frequency deficits
+    # Deficit-driven contracts: generate from highest-frequency deficits.
+    # When focus_deficit_keys is set, only include matching deficit keys so that
+    # each training priority only shows contracts relevant to its own domain.
     for deficit_key, count in sorted(pq_deficit_counts.items(), key=lambda x: -x[1]):
+        if focus_deficit_keys is not None and deficit_key not in focus_deficit_keys:
+            continue
         if count < 1:
             continue
         template = _DEFICIT_RULE_TEMPLATES.get(deficit_key)
@@ -203,8 +225,9 @@ def generate_action_contracts(
         )
         items.append(item)
 
-    # Agentic system gap contract
-    if agentic_score < 65.0:
+    # Agentic system gap contract — only when priority is agentic-related or global view
+    _show_agentic = priority_key is None or priority_key in _AGENTIC_CONTRACT_KEYS
+    if agentic_score < 65.0 and _show_agentic:
         item = ActionContractItem(
             kind=_AGENTIC_SKILL_TEMPLATE.kind,
             title=_AGENTIC_SKILL_TEMPLATE.title,
@@ -215,8 +238,9 @@ def generate_action_contracts(
         )
         items.append(item)
 
-    # Human cost contract: if ≥20% sessions needed ≥2 corrections
-    if human_intervention_rate >= 0.20:
+    # Human cost contract — only when priority is recovery/friction related or global view
+    _show_human_cost = priority_key is None or priority_key in _HUMAN_COST_CONTRACT_KEYS
+    if human_intervention_rate >= 0.20 and _show_human_cost:
         human_pct = round(human_intervention_rate * 100)
         item = ActionContractItem(
             kind=_HUMAN_COST_WORKFLOW_TEMPLATE.kind,
@@ -228,8 +252,9 @@ def generate_action_contracts(
         )
         items.append(item)
 
-    # Delivery closure contract: if verification rate low or delivery score low
-    if verification_rate < 0.40 or delivery_closure_score < 60.0:
+    # Delivery closure contract — only when priority is delivery_closure or global view
+    _show_closure = priority_key is None or priority_key in _CLOSURE_CONTRACT_KEYS
+    if (verification_rate < 0.40 or delivery_closure_score < 60.0) and _show_closure:
         item = ActionContractItem(
             kind=_CLOSURE_WORKFLOW_TEMPLATE.kind,
             title=_CLOSURE_WORKFLOW_TEMPLATE.title,
@@ -243,8 +268,9 @@ def generate_action_contracts(
         )
         items.append(item)
 
-    # Evidence Graph signal: enrich with cross-dimension observation
-    if graph_summary is not None and graph_summary.high_intervention_rate >= 0.15:
+    # Evidence Graph signal — only for agentic/friction keys or global view
+    _show_graph = priority_key is None or priority_key in _AGENTIC_CONTRACT_KEYS | _HUMAN_COST_CONTRACT_KEYS
+    if graph_summary is not None and graph_summary.high_intervention_rate >= 0.15 and _show_graph:
         high_pct = round(graph_summary.high_intervention_rate * 100)
         items.append(
             ActionContractItem(

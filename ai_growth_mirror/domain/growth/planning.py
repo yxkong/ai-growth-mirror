@@ -91,9 +91,19 @@ def rank_growth_priorities(
     if user_actionable / total_friction >= 0.25:
         candidates.append(RankedPriority("friction", 72.0, ("user_actionable_friction",)))
 
+    # Regression signals only matter if the capability is NOT already strong.
+    # If the current score is above the "safe" threshold, a temporary regression
+    # doesn't warrant a training priority — it belongs in the trajectory section.
+    _REGRESSION_SAFE_SCORE = 75.0
     for key in regression_axis_keys:
+        current = capability_scores.get(key, 0.0)
+        if current >= _REGRESSION_SAFE_SCORE:
+            continue
         candidates.append(RankedPriority(key, 96.0, ("latest_regression",)))
     for key in trend_axis_keys:
+        current = capability_scores.get(key, 0.0)
+        if current >= _REGRESSION_SAFE_SCORE:
+            continue
         candidates.append(RankedPriority(key, 88.0, ("trend_stall",)))
 
     agentic_system_score = float(getattr(stats, "agentic_system_score", 0.0) or 0.0)

@@ -16,17 +16,20 @@ from ...domain.signals.tooling import compute_tier_counts, normalize_tool_name
 from .base import (
     BaseSessionAdapter,
     EXEC_TOOL_NAMES,
+    SKILL_READ_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
     TEST_PATTERNS,
     WRITE_TOOL_NAMES,
     content_revision_mtime,
     detect_authorship_path,
     detect_language,
+    extract_skill_name_from_path,
     parse_ts,
 )
 
 _USER_QUERY_RE = re.compile(r"<user_query>\s*(.*?)\s*</user_query>", re.DOTALL | re.IGNORECASE)
 _PATH_INPUT_KEYS = ("path", "file_path", "target_file", "target_notebook", "notebook_path")
+
 
 
 class CursorAdapter(BaseSessionAdapter):
@@ -318,6 +321,16 @@ class CursorAdapter(BaseSessionAdapter):
                         uses_web_fetch = True
                     if normalized in {"todowrite", "todo_write"}:
                         advanced_features.add("plan_mode")
+                    # Detect skill usage: agent read a SKILL.md file from a skill folder.
+                    # This is the canonical evidence of skill invocation in Cursor transcripts
+                    # because agent rules/skills are not injected into user messages but the
+                    # agent explicitly reads SKILL.md when it follows a skill.
+                    if path and normalized in SKILL_READ_TOOL_NAMES:
+                        skill_name = extract_skill_name_from_path(path)
+                        if skill_name:
+                            unique_skills.add(skill_name)
+                            skill_invocation_count += 1
+                            advanced_features.add("skill_invocation")
                     if normalized in WRITE_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.WRITE:
                         pending_write = True
                     if normalized in EXEC_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.BASH:

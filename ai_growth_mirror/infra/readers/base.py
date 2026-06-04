@@ -1,6 +1,7 @@
 """Shared reader utilities and BaseSessionAdapter ABC."""
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
@@ -275,3 +276,38 @@ def detect_language(file_path: str) -> Optional[str]:
         ".toml": "TOML", ".sql": "SQL", ".html": "HTML", ".css": "CSS",
     }
     return EXT_MAP.get(ext)
+
+
+# ---------------------------------------------------------------------------
+# Skill-read fingerprint shared helper
+# ---------------------------------------------------------------------------
+
+# Recognise SKILL.md reads from any of these skill directory layouts:
+#   .claude/skills/<name>/SKILL.md
+#   .cursor/skills-cursor/<name>/SKILL.md
+#   skills/share/<name>/SKILL.md
+#   skills/projects/<project>/<name>/SKILL.md     (last two parts = folder/SKILL.md)
+_SKILL_PATH_RE = re.compile(
+    r"[/\\](?:skills(?:-cursor)?(?:[/\\](?:share|projects)[/\\][^/\\]+)?)[/\\]([^/\\]+)[/\\]SKILL\.md",
+    re.IGNORECASE,
+)
+
+# Tool names whose primary purpose is reading a file (not writing)
+SKILL_READ_TOOL_NAMES: frozenset[str] = frozenset({
+    "readfile", "read", "get_file_contents", "fetchmcpresource",
+    "read_file", "view_file",
+})
+
+
+def extract_skill_name_from_path(file_path: str) -> Optional[str]:
+    """Return the skill folder name if *file_path* is a SKILL.md read, else None.
+
+    Used by IDE transcript readers (Cursor, Gemini, Cline, CodeBuddy …) to
+    detect which configured local-method frameworks were actually invoked in a
+    session, by watching for assistant ReadFile calls to SKILL.md paths.
+    """
+    m = _SKILL_PATH_RE.search(file_path)
+    if not m:
+        return None
+    name = m.group(1).strip()
+    return name if name and name.lower() not in (".", "skills", "skills-cursor") else None
