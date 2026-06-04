@@ -32,8 +32,18 @@ updated_at: 2026-06-01
 
 1. 架构总纲 → 2. Personal 详细设计 → 3. 命名与语气边界 → 4. 根因分析 → 5. 传播设计
 
+## 最近更新（Agentic 架构 · v0.4-patch1）
+
+`feat/agentic-diagnosis-graph` 分支已落盘的设计增量（详见 [AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md](./AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md) 与 [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md)）：
+
+- **三段式 LLM 诊断层**：Rule 候选包 → LLM grounded synthesis（`evidence_refs` + `why_not_other_diagnosis`）→ Rule 重排；`CoachingContent.diagnosis` 字段
+- **Agentic Evidence Graph**：六维会话事实图（task_intent / method_used / context_used / execution_path / closure_state / human_intervention），随 `CoreEvidence` sidecar 持久化（schema 1.2）
+- **Action Contract Generator**：基于高频纠偏与 agentic 信号动态产出 rule/skill/workflow/checklist 草稿，替换 growth plan 固定 5 条
+- **human_cost_reduction 趋势**：`SnapshotSource.human_intervention_session_rate` 持久化 + `HumanCostTrend` 跨快照 improving/worsening/flat 对比
+
 ## 修订记录
 
+- 2026-06-04：索引补充 Agentic 架构四 Feature（v0.4-patch1）说明与阅读入口。
 - 2026-05-25：创建索引。  
 - 2026-05-25：补充 V2 与 12 轮 review。  
 - 2026-05-26：全量索引、status 标注、指向重构契约与治理说明。

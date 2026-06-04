@@ -195,7 +195,7 @@ wins:
   cards:
     strongest_dim:
       title: "你已经把“{label}”做成稳定习惯"
-      evidence: "该维度得分 {score:.1f}，是当前 5 个核心成长轴中的最高项。"
+      evidence: "该维度得分 {score:.1f}，是当前 5 个核心协作轴中的最高项（系统化能力层另列）。"
     delivery_closure:
       title: "你开始把验证带进默认流程"
       evidence: "当前验证行为率约 {pct}%。"
@@ -330,6 +330,8 @@ growth_trajectory:
       small_sample: "样本量太少。"
       limited_sample: "样本量仍然偏小。"
       extraction_failed: "存在提取失败的会话。"
+      axis_schema_mismatch: "快照跨过评分轴 schema 变化，不能直接做强趋势判断。"
+      legacy_axis_schema: "部分历史快照仍使用旧能力轴。"
       missing_usage: "usage 数据覆盖不完整。"
       prompt_proxy: "Prompt Quality 主要来自代理回填或样本不足。"
       prompt_mixed: "Prompt Quality 来源混合，需要保留边界感。"
@@ -968,7 +970,7 @@ level_axis_metrics:
     implementation_depth: "轴分 {score} · 人均改动文件 {files_per_session} · token 体量 {token_volume_m}M · 代码验证 {code_verification_rate_pct}%"
     delivery_closure: "轴分 {score} · 加权完成率 {completion_rate}% · 验证率 {verification_rate}% · 测试率 {test_rate}%"
     adaptive_recovery: "轴分 {score} · 纠偏质量 {correction_quality}% · 结构化占比 {structured_rate_pct}% · 用户侧摩擦 {user_actionable_ratio_pct}% · 资产信号 {authored_assets}"
-    agentic_system: "轴分 {score} · skill/workflow 使用 {skill_usage_rate}% · 方法指纹 {workflow_fingerprint_rate}%（公开框架 {public_framework_rate}% / 本地方法 {local_method_rate}%）· 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}% · 高杠杆功能 {advanced_feature_rate}%"
+    agentic_system: "系统分 {score} · skill/workflow 使用 {skill_usage_rate}% · 方法指纹 {workflow_fingerprint_rate}%（公开框架 {public_framework_rate}% / 本地方法 {local_method_rate}%）· 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}% · 高杠杆功能 {advanced_feature_rate}%"
   thresholds:
     L2:
       intent_clarity: 42

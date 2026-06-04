@@ -786,6 +786,39 @@
       color: var(--evidence-unmet);
       margin-top: 2px;
     }
+    .evidence-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 14px 0 4px;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--hero-muted);
+    }
+    .evidence-divider span {
+      padding: 2px 8px;
+      border: 1px solid var(--separator);
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.05);
+    }
+    .evidence-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--separator);
+    }
+    .evidence-divider--system span {
+      background: rgba(14, 165, 233, 0.08);
+      border-color: rgba(14, 165, 233, 0.35);
+      color: #0369a1;
+    }
+    .evidence-row--system_layer {
+      background: rgba(14, 165, 233, 0.04);
+      border-radius: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+    }
     .coach-card {
       background: linear-gradient(180deg, #ffffff 0%, #f9fbff 55%, #f2f7ff 100%);
       border: 1px solid var(--card-border);
@@ -1176,9 +1209,19 @@
       </div>
       {% endif %}
       <div class="evidence-list">
+        {% set ns = namespace(printed_axes_header=false, printed_system_header=false) %}
         {% for item in view.level_evidence.metrics %}
         {% set is_met = item.status == view.labels['label_met'] %}
-        <div class="evidence-row">
+        {% set kind = item.kind | default('axis') %}
+        {% if kind == 'axis' and not ns.printed_axes_header %}
+        <div class="evidence-divider"><span>{{ view.labels.get('label_collaboration_axes', 'Collaboration axes') }}</span></div>
+        {% set ns.printed_axes_header = true %}
+        {% endif %}
+        {% if kind == 'system_layer' and not ns.printed_system_header %}
+        <div class="evidence-divider evidence-divider--system"><span>{{ view.labels.get('label_system_layer', 'Systemization layer') }}</span></div>
+        {% set ns.printed_system_header = true %}
+        {% endif %}
+        <div class="evidence-row evidence-row--{{ kind }}">
           <span class="evidence-icon{% if is_met %} met{% else %} unmet{% endif %}">{% if is_met %}✓{% else %}○{% endif %}</span>
           <div class="evidence-body">
             <div class="evidence-label">{{ item.label }} · {{ item.status }}</div>
@@ -1536,6 +1579,14 @@
         {% if priority.practice_prompt %}
         <p class="small"><strong>{{ view.labels['label_practice_prompt'] }}</strong></p>
         <div class="code">{{ priority.practice_prompt }}</div>
+        {% endif %}
+        {% if priority.action_contract %}
+        <p class="small"><strong>{{ view.labels.get('label_action_contract', 'Action contract') }}</strong></p>
+        <ul class="list">
+          {% for item in priority.action_contract %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
         {% endif %}
         <div class="grid-2" style="margin-top:12px">
           {% if priority.success_signal %}

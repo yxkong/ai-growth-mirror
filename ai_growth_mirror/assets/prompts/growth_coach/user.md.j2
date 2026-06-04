@@ -49,6 +49,49 @@ Priority keys selected by the product:
 - {{ area }}
 {% endfor %}
 
+{% set _candidates = diagnosis_candidates | default([]) %}
+{% set _packet = diagnosis_packet | default(None) %}
+{% if _candidates %}
+## Stage-1 rule-layer diagnosis candidates (ordered by urgency)
+
+These are the rule-layer findings your grounded synthesis must evaluate.
+Select the most strongly evidenced one as `primary_diagnosis` and explain
+why each alternative was NOT chosen (`why_not_other_diagnosis`).
+
+{% for cand in _candidates %}
+Candidate {{ loop.index }}:
+- code: {{ cand.code }}
+- urgency: {{ "%.1f"|format(cand.urgency) }}
+- axis_key: {{ cand.axis_key or "—" }}
+- current_score: {{ "%.1f"|format(cand.current_score) }}
+- threshold: {{ "%.1f"|format(cand.threshold_score) }}
+- reason_codes: {{ cand.reason_codes | join(", ") }}
+- evidence: {{ cand.evidence_snippets | join("; ") or "—" }}
+{% endfor %}
+
+{% if _packet %}
+Cross-cutting signals:
+- human_intervention_rate: {{ "%.2f"|format(_packet.human_intervention_rate) }}
+- agentic_system_score: {{ "%.1f"|format(_packet.agentic_system_score) }}
+- schema_mismatch: {{ _packet.schema_mismatch }}
+- session_count: {{ _packet.session_count }}
+- top_deficit_counts: {% for k, v in _packet.top_deficit_counts.items() %}{{ k }}={{ v }} {% endfor %}
+
+{% if _packet.recent_friction_snippets %}
+Recent friction evidence (from real sessions):
+{% for snippet in _packet.recent_friction_snippets %}
+- {{ snippet }}
+{% endfor %}
+{% endif %}
+{% if _packet.recent_takeaway_snippets %}
+Recent positive takeaways (from real sessions):
+{% for snippet in _packet.recent_takeaway_snippets %}
+- {{ snippet }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endif %}
+
 Write the output in the tone of:
 - a calm reflection partner for AI-assisted work,
 - focused on behavioral evidence and trainable next steps,

@@ -10,12 +10,15 @@ from .model import (
     EvidenceCard,
     FrictionDelta,
     FrictionTypeDelta,
+    HumanCostTrend,
     MethodAssetDelta,
     NumericDelta,
     PromptQualityDelta,
     SnapshotComparison,
     SnapshotSource,
     TrainingPriority,
+    has_legacy_axis_schema,
+    is_current_axis_schema,
 )
 
 AXIS_ORDER = (
@@ -76,6 +79,7 @@ def compare_snapshot_sources(
     confidence = _build_confidence(previous, current, prompt_quality)
     evidence_cards = _build_evidence_cards(previous, current, axis_deltas, friction, method_assets)
     next_priorities = _build_priorities(current, axis_deltas, friction, prompt_quality, method_assets)
+    human_cost_trend = _build_human_cost_trend(previous, current)
     return SnapshotComparison(
         previous=previous,
         current=current,
@@ -91,11 +95,57 @@ def compare_snapshot_sources(
         evidence_cards=evidence_cards,
         confidence=confidence,
         next_priorities=next_priorities,
+        human_cost_trend=human_cost_trend,
     )
 
 
 def snapshot_comparison_to_dict(comparison: SnapshotComparison) -> dict[str, object]:
     return asdict(comparison)
+
+
+def _build_human_cost_trend(
+    previous: SnapshotSource,
+    current: SnapshotSource,
+) -> HumanCostTrend:
+    """Compute the human_cost_reduction trend between two snapshots."""
+    prev_rate = previous.human_intervention_session_rate
+    curr_rate = current.human_intervention_session_rate
+
+    if prev_rate is None or curr_rate is None:
+        return HumanCostTrend(
+            available=False,
+            previous_rate=prev_rate,
+            current_rate=curr_rate,
+            note="historical snapshots do not yet contain human_intervention_session_rate; "
+                 "trend available after next report generation",
+        )
+
+    delta = round(curr_rate - prev_rate, 4)
+    if abs(delta) < 0.02:
+        direction = "flat"
+    elif delta < 0:
+        direction = "improving"  # rate decreased = fewer human corrections
+    else:
+        direction = "worsening"
+
+    pct_prev = round(prev_rate * 100, 1)
+    pct_curr = round(curr_rate * 100, 1)
+    pct_delta = round(abs(delta) * 100, 1)
+    if direction == "improving":
+        note = f"human correction rate reduced from {pct_prev}% → {pct_curr}% (−{pct_delta}pp)"
+    elif direction == "worsening":
+        note = f"human correction rate increased from {pct_prev}% → {pct_curr}% (+{pct_delta}pp)"
+    else:
+        note = f"human correction rate stable at ~{pct_curr}%"
+
+    return HumanCostTrend(
+        available=True,
+        previous_rate=prev_rate,
+        current_rate=curr_rate,
+        delta=delta,
+        direction=direction,
+        note=note,
+    )
 
 
 def _build_axis_deltas(previous: SnapshotSource, current: SnapshotSource) -> list[AxisDelta]:
@@ -257,6 +307,12 @@ def _build_confidence(
     if previous.coverage.extraction_failed or current.coverage.extraction_failed:
         reasons.append("extraction_failed")
         score -= 20
+    if not is_current_axis_schema(previous.axis_scores) or not is_current_axis_schema(current.axis_scores):
+        reasons.append("axis_schema_mismatch")
+        score -= 35
+    if has_legacy_axis_schema(previous.axis_scores) or has_legacy_axis_schema(current.axis_scores):
+        reasons.append("legacy_axis_schema")
+        score -= 15
     if not previous.coverage.has_usage_data or not current.coverage.has_usage_data:
         reasons.append("missing_usage")
         score -= 10

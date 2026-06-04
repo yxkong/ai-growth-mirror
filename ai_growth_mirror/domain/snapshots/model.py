@@ -4,6 +4,35 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+CURRENT_TRAJECTORY_AXIS_KEYS = frozenset(
+    {
+        "intent_clarity",
+        "execution_driving",
+        "implementation_depth",
+        "delivery_closure",
+        "adaptive_recovery",
+    }
+)
+
+LEGACY_TRAJECTORY_AXIS_KEYS = frozenset(
+    {
+        "delegation",
+        "verification",
+        "breadth",
+        "authorship",
+        "outcome",
+        "workflow",
+    }
+)
+
+
+def is_current_axis_schema(axes: dict[str, float]) -> bool:
+    return CURRENT_TRAJECTORY_AXIS_KEYS.issubset(set(axes))
+
+
+def has_legacy_axis_schema(axes: dict[str, float]) -> bool:
+    return bool(LEGACY_TRAJECTORY_AXIS_KEYS & set(axes))
+
 
 @dataclass
 class SnapshotIndexEntry:
@@ -75,6 +104,8 @@ class SnapshotSource:
     evidence_by_topic: dict[str, list[str]] = field(default_factory=dict)
     sample_count: int = 0
     point_confidence: str = "low"
+    # human cost signal: rate of sessions requiring ≥2 user corrections
+    human_intervention_session_rate: float | None = None
 
 
 @dataclass
@@ -89,6 +120,8 @@ class TrajectoryPoint:
     axes: dict[str, float] = field(default_factory=dict)
     prompt_quality: dict[str, float] = field(default_factory=dict)
     friction: dict[str, int] = field(default_factory=dict)
+    axis_schema: str = "current"
+    comparable: bool = True
 
 
 @dataclass
@@ -145,6 +178,7 @@ class SnapshotTrajectoryWindow:
     daily_points: list[TrajectoryPoint] = field(default_factory=list)
     trend_summary: TrajectorySummary = field(default_factory=TrajectorySummary)
     latest_vs_previous: LatestVsPreviousSummary | None = None
+    human_cost_trend: HumanCostTrend | None = None
 
 
 @dataclass
@@ -243,6 +277,18 @@ class TrainingPriority:
 
 
 @dataclass
+class HumanCostTrend:
+    """Trend of human_intervention_session_rate across snapshots."""
+
+    available: bool = False
+    previous_rate: float | None = None
+    current_rate: float | None = None
+    delta: float = 0.0
+    direction: str = "flat"  # "improving" | "worsening" | "flat" | "unknown"
+    note: str = ""
+
+
+@dataclass
 class SnapshotComparison:
     previous: SnapshotSource
     current: SnapshotSource
@@ -258,3 +304,4 @@ class SnapshotComparison:
     evidence_cards: list[EvidenceCard] = field(default_factory=list)
     confidence: ConfidenceAssessment = field(default_factory=ConfidenceAssessment)
     next_priorities: list[TrainingPriority] = field(default_factory=list)
+    human_cost_trend: HumanCostTrend = field(default_factory=HumanCostTrend)

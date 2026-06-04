@@ -60,6 +60,7 @@ score_target: 9.9
   - 顶部先展示 **近 30 天趋势结论**，趋势指标至少覆盖 `mirror_score`、`growth_level`、五轴、Prompt Quality 五维、行动型摩擦五类
   - 同一天多次 generate 时，页面默认只展示当天最后一次 snapshot；sidecar JSON 必须保留 `window_points` 全量点位和 `daily_points` 展示点位
   - 当 `daily_points < 3` 时只展示已有点位和“数据不足”说明，不强行做长期趋势判断
+  - 当历史 snapshot 使用旧能力轴（`delegation / verification / breadth / authorship / outcome / workflow`）或缺少当前五轴时，趋势与 latest-vs-previous 必须降为低置信，并标记 schema mismatch；禁止把跨评分模型变化的点位包装成强趋势
   - 若存在上一期 snapshot，则同区块下半部分继续展示 **本期 vs 上一期变化诊断**
   - 诊断区顶部必须包含 5 张 summary cards：当前阶段、协作指数变化、最大进步轴、当前短板轴、置信度/样本量说明
   - 诊断区中部至少包含五轴对比、成长变化瀑布、Prompt Quality 来源说明、摩擦与恢复变化、方法资产沉淀
@@ -195,6 +196,7 @@ score_target: 9.9
 - `local_method_frameworks` 是可配置、可从本地 hub 提取、最终进入聚合的真源：配置项与扫描结果先合并为候选清单，再与会话中的 `unique_skills_used` / `slash_commands` 做规范化精确匹配。未被真实任务命中的候选只展示为资产上下文，不参与等级主证据。
 - skill / rule / prompt 文件数量不能单独把用户推到 L4 / L5；只有当这些资产在真实任务里被使用、复用、编排或验证闭环支撑时，才进入等级主证据。
 - `level_evidence` 必须展示 `Agentic 系统成熟度`，并同时呈现使用率、workflow 指纹、公开框架命中、本地方法命中、重复复用、资产创作和高杠杆功能使用。库存证据只能作为低权重背景，不能冒充用户当期状态。
+- `human_intervention_session_rate` 是第一版“降低人工介入成本”事实指标：只统计当前人工纠偏压力，不直接声称已减少成本；只有存在可比历史后，才允许表达减少趋势。
 - 数据不足时显示“未观察到”或留白，不用静态模板或资产库存替用户编造能力画像。
 
 ## 5.4 Prompt 模块
@@ -263,13 +265,80 @@ score_target: 9.9
 
 - `growth_trajectory`：近 30 天持续低迷轴、本期最新退步轴、本期最新证据
 - `prompt_coach`：top deficits、rewrite cards、通用/场景模板
+- `agentic_system_score / human_intervention_session_rate`：方法系统化缺口与人工纠偏压力
 
 联动规则：
 
-- Prompt 维度或 deficit 明显偏弱时，优先输出 `prompt:*` 类型训练任务
+- Prompt 维度或 deficit 明显偏弱时，输出 `prompt:*` 类型训练任务，但不得用静态模板替代个性化证据
+- `agentic_system_score < 75` 或人工纠偏率偏高时，必须生成 `Action Contract`：说明应新增/强化哪个 rule、skill 或 workflow，以及下次自然语言入口如何自动触发
 - `intent_clarity + missing-context / vague-request` 合并成“需求表达训练”
 - `delivery_closure + missing-acceptance-criteria` 合并成“验收标准训练”
-- 每个训练任务都必须附带 `evidence_refs` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids / linked_growth_trend_refs / linked_closure_guidance_ids`
+- 每个训练任务都必须附带 `evidence_refs`、`action_contract` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids / linked_growth_trend_refs / linked_closure_guidance_ids`
+
+## 三段式 LLM 诊断层
+
+### 架构
+
+```
+Stage 1 (Rule 层)  →  DiagnosisCandidatePacket
+Stage 2 (LLM)      →  GroundedDiagnosis (evidence_refs + confidence + why_not_other_diagnosis)
+Stage 3 (Rule 排序) →  rerank_diagnosis_result()
+```
+
+### 关键合约
+
+| 对象 | 位置 | 说明 |
+|------|------|------|
+| `DiagnosisCandidate` | `domain/growth/diagnosis.py` | 单条候选：code / urgency / reason_codes / evidence_snippets |
+| `DiagnosisCandidatePacket` | 同上 | Stage-1 输出：候选列表 + 人工干预率 + 高频缺口数 + 会话证据 |
+| `GroundedDiagnosis` | 同上 | Stage-2 输出：label / explanation / confidence / evidence_refs / why_not_other_diagnosis |
+| `DiagnosisResult` | 同上 | primary + secondary 列表 + synthesis_confidence + source |
+
+### 强制约束
+- LLM 输出的 `evidence_refs` 必须引用 Stage-1 packet 中的实际证据片段，最少 1 条
+- `why_not_other_diagnosis` 必须明确说明为什么不选候选 2
+- `synthesis_confidence` 仅在 ≥2 条强证据时标注 "high"
+- LLM 不可用时，`rule_fallback_diagnosis()` 直接从 Stage-1 candidates 产出降级结果
+
+## Agentic Evidence Graph
+
+### 六维节点
+
+| 维度 | 字段 | 来源 |
+|------|------|------|
+| 任务意图 | `task_intent` | `SessionRead.work_intent_mix` 主键 |
+| 使用方法 | `method_used` | `unique_skills_used + slash_commands + advanced_features` |
+| 使用上下文 | `context_used` | prompt 内容特征 + tool_counts.Read |
+| 执行路径 | `execution_path` | tool_counts 组合标签（read→edit→run→verify 等） |
+| 收口状态 | `closure_state` | `SessionRead.delivery_outcome` 映射 |
+| 人工干预 | `human_intervention` | `user_interruptions` 计数 |
+
+`build_agentic_evidence_graph(sessions, session_reads)` 组装图，`evidence_graph_to_dict()` 序列化。随 `CoreEvidence` 写入报告 sidecar（schema 1.2）。
+
+## Action Contract Generator
+
+替换原 `growth_plan._priority_action_contract` 固定 5 条输出。
+
+`generate_action_contracts(stats, cap_scores, graph_summary, ...)` 规则：
+1. 对 `pq_deficit_counts` 中频次最高的缺口，匹配 `_DEFICIT_RULE_TEMPLATES` 产出针对性 rule/skill 草稿
+2. `agentic_system_score < 65` 时产出"方法路由 Skill"草稿
+3. `human_intervention_session_rate ≥ 0.20` 时产出"人工纠偏自动化 Workflow"草稿
+4. `verification_rate < 0.40 or delivery_closure < 60` 时产出"交付收口 Workflow"草稿
+5. `graph_summary.high_intervention_rate ≥ 0.15` 时产出五项 Checklist 草稿
+
+输出按 priority 降序，去重，最多 max_items 条。
+
+## human_cost_reduction 趋势
+
+`SnapshotSource.human_intervention_session_rate` 从 `stats.human_intervention_session_rate` 持久化到快照 summary。
+
+`HumanCostTrend`（`domain/snapshots/model.py`）：
+- `available: bool` — 两端快照都有数据时 True
+- `direction: str` — "improving" | "worsening" | "flat" | "unknown"
+- `delta: float` — 当期率 − 上期率（负值为 improving）
+- `note: str` — 人类可读趋势文本，如 "human correction rate reduced from 35.0% → 15.0% (−20.0pp)"
+
+在 `SnapshotComparison` 和 `SnapshotTrajectoryWindow` 中均携带此趋势。
 
 ## 5.4.1 usage 模块
 

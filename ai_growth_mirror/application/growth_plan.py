@@ -56,6 +56,7 @@ class GrowthPriorityView:
     linked_growth_trend_refs: list[str] = field(default_factory=list)
     linked_closure_guidance_ids: list[str] = field(default_factory=list)
     linked_friction_synthesis_ids: list[str] = field(default_factory=list)
+    action_contract: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -103,6 +104,7 @@ def build_growth_plan(
         "scope_control_gap": "intent_clarity",
         "code_penetration_gap": "implementation_depth",
         "workflow_composition_gap": "execution_driving",
+        "agentic_system": "agentic_system",
         "friction": "adaptive_recovery",
     }
     top_deficit_keys = tuple(
@@ -124,6 +126,7 @@ def build_growth_plan(
         _build_priority_view(
             key=key,
             stats=stats,
+            capability_scores=capability_scores,
             prompt_coach=prompt_coach,
             growth_trajectory=growth_trajectory,
             priorities_data=priorities_data,
@@ -147,6 +150,7 @@ def _build_priority_view(
     *,
     key: str,
     stats: GrowthProfile,
+    capability_scores: dict[str, float],
     prompt_coach: "PromptCoachView | None",
     growth_trajectory: "GrowthTrajectoryView | None",
     priorities_data: dict[str, Any],
@@ -186,6 +190,7 @@ def _build_priority_view(
         linked_rewrite_card_ids=[item.id for item in linked_rewrites],
         linked_growth_trend_refs=linked_growth_trends,
         linked_closure_guidance_ids=linked_closure_ids,
+        action_contract=_priority_action_contract(key, stats, linked_deficits, prompt_coach, capability_scores),
     )
 
 
@@ -383,6 +388,61 @@ def _priority_actions(
         week_2 = week_2 or ["下周开始让 AI 先复述收口方式，再进入执行。"]
     return week_1, week_2
 
+
+def _priority_action_contract(
+    key: str,
+    stats: GrowthProfile,
+    linked_deficits,
+    prompt_coach: "PromptCoachView | None",
+    capability_scores: dict[str, float] | None = None,
+) -> list[str]:
+    from ..domain.growth.action_contracts import (
+        generate_action_contracts,
+        action_contract_to_lines,
+    )
+
+    # Each priority key only shows contracts whose deficits belong to its own domain.
+    # This prevents every training item from rendering the same global top-5 deficits.
+    # None  → no filtering (show all); set() → no deficit contracts (strength axis).
+    _KEY_DEFICIT_SCOPE: dict[str, set[str]] = {
+        "delivery_closure": {"missing-acceptance-criteria"},
+        "intent_clarity": {"missing-context", "vague-request", "assumption-not-surfaced", "late-constraint"},
+        "adaptive_recovery": {"unclear-correction", "scope-drift"},
+        "execution_driving": {"vague-request", "scope-drift"},
+        "implementation_depth": set(),  # strength axis — no deficit-driven contracts
+        "prompt:context_provision": {"missing-context", "late-constraint"},
+        "prompt:request_specificity": {"vague-request", "assumption-not-surfaced"},
+        "prompt:scope_management": {"scope-drift"},
+        "prompt:correction_quality": {"unclear-correction"},
+        "prompt:information_timing": {"late-constraint"},
+        "agentic_system": set(),
+        "friction": {"unclear-correction", "scope-drift"},
+    }
+    focus_deficit_keys: set[str] | None = _KEY_DEFICIT_SCOPE.get(key, None)
+
+    cap_scores = capability_scores or {}
+    contract_report = generate_action_contracts(
+        stats,
+        cap_scores,
+        diagnosis_code=key if key in {"agentic_system", "delivery_closure"} else "",
+        focus_deficit_keys=focus_deficit_keys,
+        priority_key=key,
+        max_items=5,
+    )
+    lines = action_contract_to_lines(contract_report)
+
+    has_friction_synthesis = bool(prompt_coach and prompt_coach.friction_synthesis)
+    high_human_intervention = (getattr(stats, "human_intervention_session_rate", 0.0) or 0.0) >= 0.2
+    if (has_friction_synthesis or high_human_intervention) and len(lines) < 6:
+        lines.append("纠偏沉淀：把本期最高频的人类补规则点转成下次自动触发的 rule / checklist。")
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for item in lines:
+        if item and item not in seen:
+            seen.add(item)
+            deduped.append(item)
+    return deduped[:6]
 
 def _priority_title(title: str, key: str, linked_deficits) -> str:
     if linked_deficits and linked_deficits[0].category == "missing-acceptance-criteria":

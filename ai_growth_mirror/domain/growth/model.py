@@ -249,6 +249,8 @@ class GrowthProfile:
     workflow_fingerprint_session_rate: float = 0.0
     workflow_reuse_depth: int = 0
     asset_authoring_session_rate: float = 0.0
+    human_intervention_session_count: int = 0
+    human_intervention_session_rate: float = 0.0
     agentic_system_score: float = 0.0
 
     # Prompt quality (informational — not scored, context-dependent)

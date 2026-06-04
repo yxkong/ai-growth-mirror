@@ -28,6 +28,8 @@ def priority_family(key: str) -> str:
         return "implementation_depth"
     if key in {"execution_driving", "workflow_composition_gap"}:
         return "execution_driving"
+    if key == "agentic_system":
+        return "agentic_system"
     return key
 
 
@@ -89,10 +91,30 @@ def rank_growth_priorities(
     if user_actionable / total_friction >= 0.25:
         candidates.append(RankedPriority("friction", 72.0, ("user_actionable_friction",)))
 
+    # Regression signals only matter if the capability is NOT already strong.
+    # If the current score is above the "safe" threshold, a temporary regression
+    # doesn't warrant a training priority — it belongs in the trajectory section.
+    _REGRESSION_SAFE_SCORE = 75.0
     for key in regression_axis_keys:
+        current = capability_scores.get(key, 0.0)
+        if current >= _REGRESSION_SAFE_SCORE:
+            continue
         candidates.append(RankedPriority(key, 96.0, ("latest_regression",)))
     for key in trend_axis_keys:
+        current = capability_scores.get(key, 0.0)
+        if current >= _REGRESSION_SAFE_SCORE:
+            continue
         candidates.append(RankedPriority(key, 88.0, ("trend_stall",)))
+
+    agentic_system_score = float(getattr(stats, "agentic_system_score", 0.0) or 0.0)
+    if agentic_system_score and agentic_system_score < 75.0:
+        candidates.append(
+            RankedPriority(
+                "agentic_system",
+                90.0 - agentic_system_score * 0.35,
+                ("agentic_system_gap",),
+            )
+        )
 
     deficit_priority_map = {
         "missing-context": ("prompt:context_provision", 95.0, "deficit_missing_context"),

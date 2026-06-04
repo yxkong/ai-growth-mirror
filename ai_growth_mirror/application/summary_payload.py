@@ -162,6 +162,7 @@ def _growth_plan_payload(view: PersonalReportView) -> dict[str, object]:
                 "week_1_actions": list(item.week_1_actions),
                 "week_2_actions": list(item.week_2_actions),
                 "practice_prompt": item.practice_prompt,
+                "action_contract": list(item.action_contract),
                 "success_signal": item.success_signal,
                 "stop_doing": item.stop_doing,
                 "linked_prompt_deficit_ids": list(item.linked_prompt_deficit_ids),

@@ -52,6 +52,14 @@ priorities:
     week_1_actions: []
     practice_prompt: "如果当前方向不对，请不要重复原路径。先说明：1. 哪里错了 2. 新证据是什么 3. 新的最小推进路径是什么。"
 
+  agentic_system:
+    title: "方法系统化"
+    why: "这项训练不是让你写更长 Prompt，而是把反复补充的评估口径沉到 rule / skill / workflow，让下一次自然语言任务默认走对路径。"
+    success_signal: "同类任务能自动触发正确 skill / rule / workflow，人工补边界和补验收的次数下降。"
+    stop_doing: "每次都靠临场补充原则、反例和验收口径来纠偏。"
+    week_1_actions: []
+    practice_prompt: "请先检查这个任务是否已有可复用 rule / skill / workflow。若没有，请在执行前给出一个最小 action contract：判断口径、反例边界、证据要求、交付形态、验收门禁。"
+
   friction:
     title: "纠偏表达"
     why: ""

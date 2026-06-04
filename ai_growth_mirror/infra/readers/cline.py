@@ -25,11 +25,13 @@ from ...domain.signals.tooling import compute_tier_counts
 from .base import (
     BaseSessionAdapter,
     EXEC_TOOL_NAMES,
+    SKILL_READ_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
     TEST_PATTERNS,
     WRITE_TOOL_NAMES,
     _max_mtime,
     detect_language,
+    extract_skill_name_from_path,
     parse_ts,
 )
 from .workspace_storage import appdata_path
@@ -293,6 +295,8 @@ class ClineFamilyTaskAdapter(BaseSessionAdapter):
         current_chain = 0
         pending_write = False
         last_timestamp: Optional[datetime] = None
+        skill_invocation_count = 0
+        unique_skills: set[str] = set()
 
         for message in messages:
             if not isinstance(message, dict):
@@ -368,6 +372,12 @@ class ClineFamilyTaskAdapter(BaseSessionAdapter):
                     uses_web_search = True
                 if "web_fetch" in normalized or "fetch" in normalized:
                     uses_web_fetch = True
+                # Skill fingerprint: agent read a SKILL.md from a skill folder
+                if file_path and normalized in SKILL_READ_TOOL_NAMES:
+                    skill_name = extract_skill_name_from_path(file_path)
+                    if skill_name:
+                        unique_skills.add(skill_name)
+                        skill_invocation_count += 1
 
                 if normalized in WRITE_TOOL_NAMES or any(
                     token in normalized for token in ("write", "replace", "edit")
@@ -417,6 +427,8 @@ class ClineFamilyTaskAdapter(BaseSessionAdapter):
             has_verification_behavior=has_verification,
             has_test_commands=has_test_commands,
             autonomous_chain_lengths=chain_lengths,
+            skill_invocation_count=skill_invocation_count,
+            unique_skills_used=sorted(unique_skills),
         )
 
     def _parse_ui_messages(

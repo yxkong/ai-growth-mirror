@@ -83,3 +83,30 @@ def test_growth_plan_collapses_friction_and_correction_quality_into_one_track():
     assert not (
         "friction" in keys and "prompt:correction_quality" in keys
     )
+
+
+def test_growth_plan_promotes_agentic_system_action_contract():
+    stats = GrowthProfile(
+        tool_name="codex",
+        pq_avg_dimensions={"request_specificity": 72.0},
+        friction_by_attribution={"user-actionable": 1, "ai-capability": 0, "environmental": 0},
+        agentic_system_score=44.0,
+        human_intervention_session_rate=0.25,
+    )
+
+    plan = build_growth_plan(
+        stats=stats,
+        capability_scores={
+            "intent_clarity": 70,
+            "execution_driving": 76,
+            "implementation_depth": 80,
+            "delivery_closure": 72,
+            "adaptive_recovery": 68,
+        },
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    priority = plan.priorities[0]
+    assert priority.key == "agentic_system"
+    assert priority.action_contract
+    assert any("rule" in item or "Rule" in item for item in priority.action_contract)

@@ -32,6 +32,10 @@
 - 对比报告（快照 compare）
 - 趋势分析（30 天轨迹线）
 - 缓存机制（session_read 不重复提取）
+- 三段式 LLM 诊断层（Rule 候选 → LLM grounded synthesis → Rule 排序）
+- Agentic Evidence Graph（task_intent / method_used / context_used / execution_path / closure_state / human_intervention 六维事实图）
+- Action Contract Generator（基于高频纠偏模式动态产出 rule/skill/workflow 草稿）
+- human_cost_reduction 趋势（SnapshotSource 持久化 + HumanCostTrend 跨快照对比）
 
 ### 当前问题
 1. **信息过载** — 报告 13 个 section，用户读不完
@@ -115,6 +119,12 @@
 | 测试覆盖 | P2 | prompt_coach 逻辑缺少端到端测试 |
 | session_read schema 迁移 | P2 | v1.0 → v1.1 的向后兼容性 |
 | 报告渲染引擎 | P3 | Jinja2 → React/Vue SSR（为 v0.5 交互化铺路） |
+
+## 当前完成里程碑（v0.4-patch1 — Agentic Architecture）
+- 三段式 LLM 诊断层：结构化 evidence packet 输入 + 强制 why_not_other_diagnosis 输出
+- Agentic Evidence Graph：六维会话事实图，随 CoreEvidence sidecar 持久化（schema 1.2）
+- Action Contract Generator 升级：动态 rule/skill/workflow/checklist 草稿，替换固定 5 条
+- human_cost_reduction 趋势：跨快照对比，improving/worsening/flat 三向显示
 
 ## 修订记录
 

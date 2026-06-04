@@ -487,6 +487,7 @@ class LevelEvidenceMetricView:
     status: str
     explanation: str
     raw_signal: str
+    kind: str = "axis"
 
 
 @dataclass
@@ -1692,6 +1693,66 @@ def _mirror_methodology(catalogs: ReportLabelCatalogs) -> tuple[str, list[str]]:
     return methodology.get("title", ""), methodology.get("lines", [])
 
 
+def _build_agentic_current_value(
+    *,
+    template: str,
+    score: int,
+    skill_usage_rate: int,
+    public_framework_rate: int,
+    local_method_rate: int,
+    workflow_fingerprint_rate: int,
+    workflow_reuse_depth: int,
+    asset_authoring_rate: int,
+    advanced_feature_rate: int,
+    has_asset_roots: bool,
+    raw_local_method_rate: float = 0.0,
+    raw_fingerprint_rate: float = 0.0,
+) -> str:
+    """Build the agentic system current-value string.
+
+    When fingerprint rates round to 0% but raw values are positive, show a
+    "< 1%" label instead of the misleading "未追踪" note. When truly 0 but
+    assets exist, show an explanatory note about detection mechanics.
+
+    The note text reflects the current detection mechanism: the reader watches
+    for ReadFile/Read calls to SKILL.md files inside skill directories. Old
+    cached sessions may not carry this signal until the cache is refreshed.
+    """
+    # Use raw rates for the conditional so that values like 0.36% don't trigger
+    # the "未追踪" branch just because they round to 0.
+    effective_fingerprint = raw_fingerprint_rate or raw_local_method_rate
+    if workflow_fingerprint_rate > 0 or local_method_rate > 0 or effective_fingerprint > 0:
+        # At least one signal is present; use clamped display values
+        display_local = local_method_rate if local_method_rate > 0 else ("<1" if raw_local_method_rate > 0 else "0")
+        display_fp = workflow_fingerprint_rate if workflow_fingerprint_rate > 0 else ("<1" if raw_fingerprint_rate > 0 else "0")
+        return (
+            f"系统分 {score} · skill/workflow 使用 {skill_usage_rate}%"
+            f" · 方法指纹 {display_fp}%（公开框架 {public_framework_rate}% / 本地方法 {display_local}%）"
+            f" · 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}%"
+            f" · 高杠杆功能 {advanced_feature_rate}%"
+        )
+    # Fingerprint is 0 but skills ARE used — detection gap (e.g., cached sessions
+    # parsed before skill-read detection was added; will improve after cache refresh)
+    if skill_usage_rate > 0 or has_asset_roots:
+        note = "方法指纹未追踪（检测依赖 ReadFile 读取 SKILL.md 的记录；历史会话缓存刷新后可见）"
+        return (
+            f"系统分 {score} · skill/workflow 使用 {skill_usage_rate}% · {note}"
+            f" · 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}%"
+            f" · 高杠杆功能 {advanced_feature_rate}%"
+        )
+    # Everything is 0 — no asset data at all
+    return template.format(
+        score=score,
+        skill_usage_rate=skill_usage_rate,
+        public_framework_rate=public_framework_rate,
+        local_method_rate=local_method_rate,
+        workflow_fingerprint_rate=workflow_fingerprint_rate,
+        workflow_reuse_depth=workflow_reuse_depth,
+        asset_authoring_rate=asset_authoring_rate,
+        advanced_feature_rate=advanced_feature_rate,
+    )
+
+
 def _build_level_axis_metrics(
     stats: GrowthProfile,
     target_level: str,
@@ -1719,8 +1780,10 @@ def _build_level_axis_metrics(
     tool_build_rate = round((getattr(stats, "tool_build_rate", 0.0) or 0.0) * 100)
     skill_usage_rate = round((getattr(stats, "skill_usage_session_rate", 0.0) or 0.0) * 100)
     public_framework_rate = round((getattr(stats, "public_framework_session_rate", 0.0) or 0.0) * 100)
-    local_method_rate = round((getattr(stats, "local_method_framework_session_rate", 0.0) or 0.0) * 100)
-    workflow_fingerprint_rate = round((getattr(stats, "workflow_fingerprint_session_rate", 0.0) or 0.0) * 100)
+    _raw_local_method_rate = (getattr(stats, "local_method_framework_session_rate", 0.0) or 0.0)
+    _raw_fingerprint_rate = (getattr(stats, "workflow_fingerprint_session_rate", 0.0) or 0.0)
+    local_method_rate = round(_raw_local_method_rate * 100)
+    workflow_fingerprint_rate = round(_raw_fingerprint_rate * 100)
     asset_authoring_rate = round((getattr(stats, "asset_authoring_session_rate", 0.0) or 0.0) * 100)
     agentic_system_score = round(getattr(stats, "agentic_system_score", 0.0) or 0.0)
     authored_assets = (
@@ -1770,7 +1833,8 @@ def _build_level_axis_metrics(
             tool_build_rate=tool_build_rate,
             authored_assets=authored_assets,
         ),
-        "agentic_system": current_value_templates.get("agentic_system", "").format(
+        "agentic_system": _build_agentic_current_value(
+            template=current_value_templates.get("agentic_system", ""),
             score=agentic_system_score,
             skill_usage_rate=skill_usage_rate,
             public_framework_rate=public_framework_rate,
@@ -1779,6 +1843,9 @@ def _build_level_axis_metrics(
             workflow_reuse_depth=getattr(stats, "workflow_reuse_depth", 0),
             asset_authoring_rate=asset_authoring_rate,
             advanced_feature_rate=round((getattr(stats, "advanced_feature_ratio", 0.0) or 0.0) * 100),
+            has_asset_roots=bool(getattr(stats, "agent_asset", None) and getattr(stats.agent_asset, "has_data", False)),
+            raw_local_method_rate=_raw_local_method_rate,
+            raw_fingerprint_rate=_raw_fingerprint_rate,
         ),
     }
     raw_signals = dict(current_values)
@@ -1813,6 +1880,7 @@ def _build_level_axis_metrics(
                 explanation=f"{explanations.get('agentic_system', '')} {system_profile.get('hint', '')}".strip(),
                 raw_signal=raw_signals["agentic_system"],
                 catalogs=catalogs,
+                kind="system_layer",
             )
         )
     return metrics
@@ -2170,6 +2238,7 @@ def _level_metric(
     raw_signal: str,
     *,
     catalogs: ReportLabelCatalogs,
+    kind: str = "axis",
 ) -> LevelEvidenceMetricView:
     ev = _view_i18n(catalogs).get("level_evidence", {})
     status_met = ev.get("status_met", "Met")
@@ -2181,6 +2250,7 @@ def _level_metric(
         status=status_met if passed else status_unmet,
         explanation=explanation,
         raw_signal=raw_signal,
+        kind=kind,
     )
 
 

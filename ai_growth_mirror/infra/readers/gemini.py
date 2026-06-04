@@ -44,9 +44,11 @@ from ...domain.session.model import SessionRecord, SessionRef
 from ...domain.signals.tooling import compute_tier_counts
 from .base import (
     BaseSessionAdapter,
+    SKILL_READ_TOOL_NAMES,
     _max_mtime,
     detect_authorship_path,
     detect_language,
+    extract_skill_name_from_path,
     parse_iso,
 )
 
@@ -212,6 +214,8 @@ class _GeminiAccumulator:
     hook_config_modified: bool = False
     mcp_server_authored: bool = False
     subagent_invocation_count: int = 0
+    skill_invocation_count: int = 0
+    unique_skills: set[str] = field(default_factory=set)
     user_message_timestamps: list[str] = field(default_factory=list)
     message_hours: list[int] = field(default_factory=list)
     autonomous_chain_lengths: list[int] = field(default_factory=list)
@@ -303,6 +307,12 @@ class _GeminiAccumulator:
                 self.hook_config_modified = True
             elif authorship == "mcp":
                 self.mcp_server_authored = True
+            # Skill fingerprint: agent read a SKILL.md from a skill folder
+            if normalized in SKILL_READ_TOOL_NAMES:
+                skill_name = extract_skill_name_from_path(p)
+                if skill_name:
+                    self.unique_skills.add(skill_name)
+                    self.skill_invocation_count += 1
 
     def finalize(self, tool_name: str) -> SessionRecord:
         if self._current_chain:
@@ -343,6 +353,8 @@ class _GeminiAccumulator:
             hook_config_modified=self.hook_config_modified,
             mcp_server_authored=self.mcp_server_authored,
             subagent_invocation_count=self.subagent_invocation_count,
+            skill_invocation_count=self.skill_invocation_count,
+            unique_skills_used=sorted(self.unique_skills),
             entrypoint="ide",
         )
         BaseSessionAdapter._enrich_prompt_signals(record)
