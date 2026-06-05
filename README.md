@@ -1,6 +1,6 @@
 ﻿# AI Growth Mirror
 
-**AI Growth Mirror**（个人成长镜）是一款**本地优先**的 AI 协作能力分析工具。从本机 AI 编码工具的日志目录读取历史会话（Cursor、Codex、Claude Code、Cline、Kilo Code、CodeBuddy、Trae、QCoder、Gemini 等 9 款），经统一适配、信号提取与五轴评分，生成可交互的个人成长报告。
+**AI Growth Mirror**（个人成长镜）是一款**本地优先**的 AI 协作能力分析工具。从本机 AI 编码工具的日志目录读取历史会话（Cursor、Codex、Claude Code、Cline、Kilo Code、CodeBuddy、Trae、QCoder、Gemini 等 9 款），经统一适配、信号提取与**五轴协作能力评分**（雷达与协作能力地图），并辅以 **Agentic 系统成熟度** 作为等级证据中的系统化能力层，生成可交互的个人成长报告。
 
 > **核心目标**：帮 AI 编码用户看清自己的协作模式、摩擦瓶颈与资产化程度，明确下一步最值得投入的成长方向。
 
@@ -16,7 +16,7 @@ flowchart TB
         direction TB
         subgraph tools_intl["tools_intl"]
             direction LR
-            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini] --- t_cline[Cline]
+            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini] --- t_cline[Cline] --- t_kilo[Kilo Code]
         end
         subgraph tools_cn["tools_cn"]
             direction LR
@@ -32,7 +32,7 @@ flowchart TB
     end
 
     subgraph L3["📈 成长评分"]
-        sc_radar[五轴雷达] --> sc_level[L1-L5 等级] --> sc_plan[摩擦 · 训练建议]
+        sc_radar[五轴雷达] --> sc_agentic[Agentic 系统成熟度] --> sc_level[L1-L5 等级] --> sc_plan[摩擦 · 训练建议]
     end
 
     subgraph L4["📄 报告渲染"]
@@ -54,7 +54,7 @@ flowchart TB
 
 **Step 2 — 信号提取**：`heuristic` 纯本地推导协作信号；`llm` 用 API Key 做语义深读。两种模式输出同一套成长信号（交付结果、Prompt 质量、摩擦点等）。
 
-**Step 3 — 成长评分**：聚合全部会话，生成五轴雷达与 L1–L5 等级，定位摩擦根因，给出下一阶段训练冲刺建议。
+**Step 3 — 成长评分**：聚合全部会话，生成五轴雷达与协作能力地图，计算 Agentic 系统成熟度（等级证据中的系统化能力层，不并入雷达），输出 L1–L5 等级、摩擦根因与下一阶段训练冲刺建议。
 
 **Step 4 — 报告渲染**：一键产出 HTML 主报告、JSON sidecar、对外分享卡，并归档快照——下次 generate 自动对比成长轨迹。
 
@@ -82,6 +82,8 @@ Growth Mirror 为每款 AI 编码工具配备独立 Adapter，但对外体验一
 | Codex | `CodexAdapter` |
 | Cursor | `CursorAdapter` |
 | Gemini | `GeminiAdapter` |
+| Cline | `ClineAdapter` |
+| Kilo Code | `KiloAdapter` |
 | CodeBuddy | `CodeBuddyAdapter` |
 | Trae | `TraeAdapter` |
 | QCoder | `QCoderAdapter` |
@@ -100,7 +102,7 @@ AI Growth Mirror 把分散在各 AI 编码工具里的会话历史，转成一�
 
 ![本期协作进化报告 Hero](docs/assets/images/growth_mirror.png)
 
-**成长信号总览** — 五轴雷达、短板排行与四维协作读数：
+**成长信号总览** — 五轴雷达、短板排行与协作能力地图（五轴读数）：
 
 ![成长信号总览](docs/assets/images/image.png)
 
@@ -110,8 +112,9 @@ AI Growth Mirror 把分散在各 AI 编码工具里的会话历史，转成一�
 |------|------|
 | **多工具聚合** | 国际主流（Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code）+ 国产（CodeBuddy、Trae、QCoder）共 9 款；`--tools all` 一次扫齐 |
 | **双模式分析** | `heuristic` 纯本地规则（零外部调用）/ `llm` 语义深度分析（需 API Key）/ `auto` 按 Key 自动切换 |
-| **五轴雷达评分** | 意图清晰度、执行驱动力、实施深度、交付闭环、适应恢复力 — 五个维度量化 AI 协作能力 |
-| **L1–L5 成长等级** | 从初学者到专家，阶梯式评估，每个等级有具体行为描述；等级同时参考真实使用、工具编排、验证闭环和方法资产回流 |
+| **五轴雷达评分** | 任务表达、协作驱动、实现下潜、交付收口、恢复推进 — 五个维度量化 AI 协作能力（报告内中文标签与 i18n 一致） |
+| **Agentic 系统成熟度** | 独立于五轴的系统化能力层：skill/workflow 使用、公开/本地方法指纹、重复复用、资产创作与高杠杆功能；出现在「阶段评估」，不画进雷达 |
+| **L1–L5 成长等级** | 从初学者到专家，阶梯式评估；等级证据 = 五轴 + Agentic 系统成熟度，综合真实使用、工具编排、验证闭环和方法资产回流 |
 | **个性化成长教练** | 只在有真实证据时生成改进建议、改写示例与下一问法；证据不足时明确留白，不用模板冒充你的当前状态 |
 | **摩擦根因分析** | 区分用户可行动阻力、AI 能力边界与环境阻力，定位成长瓶颈 |
 | **协作风格洞察** | 识别深度委托者、工具编排者、验证先行等高信号协作模式 |
@@ -133,25 +136,37 @@ AI Growth Mirror 把分散在各 AI 编码工具里的会话历史，转成一�
 
 ### 成长等级
 
-| 等级 | 分数 | 典型特征 |
-|------|------|----------|
-| **L1 · 初学者** | 0–37 | 刚接触 AI 编码，prompt 简短，以单次问答为主 |
-| **L2 · 成长中** | 38–55 | 开始尝试多轮协作，偶尔使用工具调用 |
-| **L3 · 较稳定** | 56–74 | 形成稳定协作节奏，能自主驱动中等复杂度任务 |
-| **L4 · 高水平** | 75–89 | 擅长拆解复杂任务，熟练运用工具链和子代理 |
-| **L5 · 专家** | 90–100 | 精通端到端 AI 协作，具备系统性资产建设能力 |
+判级边界以 `scorer._LEVEL_MIN_SCORE` 为唯一真源，与报告「协作等级说明」一致：
 
-> 会话数 < 5 不评分；< 8 封顶 L3；< 15 封顶 L4。建议积累 15+ 个会话以获得稳定评分。
+| 等级 | 分数（含上下界） | 报告标题 | 成长信号标签（另一语境） |
+|------|------------------|----------|--------------------------|
+| **L1** | 0–37 | 试探使用 | 起步观察期 |
+| **L2** | 38–55 | 形成习惯中 | 协作成型期 |
+| **L3** | 56–74 | 稳定协作者 | 稳定推进期 |
+| **L4** | 75–89 | 高杠杆操盘 | 高效闭环期 |
+| **L5** | 90–100 | 工作流设计者 | 放大复用期 |
 
-### 五轴雷达维度
+> **样本门槛**：有效 session read < 5 时不正式判级（显示「待评估」）。**置信封顶**：会话数 < 8 时协作指数最高 69 分（通常仍在 L3 内）；< 15 时最高 82 分（通常仍在 L4 内）。建议积累 15+ 个会话以获得稳定评分。
 
-| 维度 | 权重 | 衡量内容 |
-|------|------|----------|
-| **意图清晰度** | 20% | Prompt 的约束性、代码上下文丰富度、范围管理能力 |
-| **执行驱动力** | 22% | 自主工具链长度、子代理使用、工具层级多样性 |
-| **实施深度** | 22% | 文件修改量、token 消耗、代码验证率 |
-| **交付闭环** | 22% | 任务完成率、验证行为率、测试运行率、git 提交率 |
-| **适应恢复力** | 14% | 纠错质量、摩擦后的恢复速度、从失败中学习的能力 |
+### 评分体系：五轴 + 系统化能力层
+
+报告里有两层能力读数，不要混为一谈：
+
+| 层级 | 报告位置 | 维度数 | 说明 |
+|------|----------|--------|------|
+| **协作能力轴** | 成长信号总览 → 协作能力地图、五轴雷达 | 5 | 主雷达与能力卡片共用同一套轴 |
+| **系统化能力层** | 阶段评估 → Agentic 系统成熟度 | 1（独立） | 看 skill/workflow/方法指纹等系统资产是否被真实调用 |
+| **协作风格透镜**（附录） | 协作风格透镜 | 4 | 极性画像（启动/推进/收口/沉淀），与五轴评分模型不同 |
+
+### 五轴雷达维度（协作能力地图 / 雷达）
+
+| 维度（报告标签） | 内部 key | 权重 | 衡量内容 |
+|------------------|----------|------|----------|
+| **任务表达** | `intent_clarity` | 20% | Prompt 约束前置、代码上下文、范围与验收表达 |
+| **协作驱动** | `execution_driving` | 22% | 自主工具链长度、子代理、MCP 与推进节奏 |
+| **实现下潜** | `implementation_depth` | 22% | 文件修改量、token 体量、代码验证率 |
+| **交付收口** | `delivery_closure` | 22% | 任务完成率、验证行为率、测试运行率 |
+| **恢复推进** | `adaptive_recovery` | 14% | 纠偏质量、结构化恢复、摩擦后能否拉回正轨 |
 
 ### CLI 命令一览
 
@@ -264,7 +279,7 @@ ai-growth-mirror generate -v
 - **个性化内容不模板兜底**：`Prompt Coach` 里的 `下次可以这样问`、改写示例等，只在存在真实 `better_prompt` / grounded takeaway 时展示；没有就留空，不拿静态模板假装是你的当期状态。
 - **索引型 Prompt 不被歧视**：使用 `/skill`、`/delivery-workflow`、`@docs/` 等"指令式"Prompt 触发的简短会话，不会被判为低质量（plan 2.1）。
 - **高级特性识别**：自动识别 *Plan 模式 / Ask 模式 / 子 Agent 分发 / Skill 调用 / MCP 工具 / 多模型协作*，并在协作能力地图下方以芯片形式呈现（plan 4.1）。
-- **Agentic 系统成熟度**：等级不只看 Prompt 或文件库存，而是综合真实 skill/workflow 使用、workflow 指纹、工具编排、验证闭环、方法资产创作与后续复用；资产目录只做低权重上下文，不能单独把用户推到高等级。
+- **Agentic 系统成熟度**：作为「阶段评估」第 6 项证据单独展示，不并入五轴雷达。综合真实 skill/workflow 使用、公开/本地方法指纹、工具编排、验证闭环、方法资产创作与后续复用；资产目录只做低权重上下文，不能单独把用户推到高等级。方法指纹除 slash 命令外，也会从 Agent 读取 `SKILL.md` 的 ReadFile 记录中识别（历史缓存需刷新后才完整计入）。
 - **Action Contract 训练**：下一阶段训练不只给通用 Prompt 模板；当发现 Agentic 系统缺口或人工纠偏较多时，会提示应沉淀的 rule / skill / workflow 契约。
 - **趋势可比性降级**：历史快照若仍使用旧能力轴，成长轨迹会降为低置信，不把跨 schema 的变化包装成强趋势。
 
@@ -318,7 +333,7 @@ print(result.output_path, result.session_count, result.growth_level)
 |:---:|---|---|
 | — | **首屏摘要**（Hero + Usage 卡片） | 始终 |
 | 1 | **成长信号总览**（含五轴雷达与「协作能力地图」） | 始终 |
-| 2 | **阶段评估** | 始终 |
+| 2 | **阶段评估**（五轴 + Agentic 系统成熟度，共 6 项等级证据） | 始终 |
 | 3 | **协作等级说明**（L1–L5） | 始终 |
 | 4 | **Prompt 成长教练** | 有 PQ 信号时 |
 | 5 | **摩擦根因地图** | 始终 |
@@ -366,8 +381,8 @@ CLI `--tools` 可选：`all` | `cursor` | `codex` | `claude` | `codebuddy` | `ge
 
 ## Token / 成本 / 缓存（报告内）
 
-- 只统计 reader 能解析 **usage 字段**的会话（以 **Codex、Claude Code、Gemini** 为主）
-- Cursor / Trae / QCoder / CodeBuddy / Cline / Kilo 仍参与成长评分；无 usage 时 Hero 显示 `--`，不填 0（Cline/Kilo 若 `taskHistory.json` 含 tokens 会填入）
+- 只统计 reader 能解析 **usage / token 字段**的会话（当前以 **Codex、Claude Code、Cline** 为主）
+- Cursor / Gemini / Trae / QCoder / CodeBuddy / Kilo 仍参与成长评分；无 usage 时 Hero 显示 `--`，不填 0（Cline 的 `taskHistory.json` 含 tokens 时会填入）
 - `memory` 当前未采集，报告会标注
 
 ---
@@ -389,7 +404,7 @@ tools:
     enabled: true               # 需要 Claude Code 会话时打开
 ```
 
-`asset_roots` 会扫描本地 hub / `./skills` / prompts / rules 目录，提取 `SKILL.md` 父目录名、`*.prompt.md` 名称和 rules 所在目录名作为候选本地方法；`local_method_frameworks` 用于手动补齐目录不规范或别名不一致的私有方法。库存本身只作为上下文，只有这些方法在真实会话的 skill / slash 使用中被命中，才进入 `Agentic 系统成熟度` 与 L1-L5 等级证据。
+`asset_roots` 会扫描本地 hub / `./skills` / prompts / rules 目录，提取 `SKILL.md` 父目录名、`*.prompt.md` 名称和 rules 所在目录名作为候选本地方法；`local_method_frameworks` 用于手动补齐目录不规范或别名不一致的私有方法。库存本身只作为上下文，只有这些方法在真实会话中被识别为已使用（slash 命令、skill 调用，或 Agent ReadFile 读取 `SKILL.md`）时，才进入 `Agentic 系统成熟度` 与 L1-L5 等级证据。
 
 ---
 

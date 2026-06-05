@@ -17,7 +17,10 @@ from ..domain.growth.model import (
     RadarAxis,
 )
 from ..domain.growth.capability import compute_capability_scores
-from ..domain.growth.scorer import MIN_SESSION_READS_FOR_MIRROR_SCORE
+from ..domain.growth.scorer import (
+    MIN_SESSION_READS_FOR_MIRROR_SCORE,
+    format_growth_level_score_range,
+)
 from ..domain.growth.coaching import CoachingContent
 from ..domain.snapshots.model import SnapshotSource
 from ..domain.signals.collab import CollaborationStyleResult, compute_collaboration_style
@@ -1670,7 +1673,7 @@ def _build_level_guide(stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> L
         items.append(
             LevelGuideItemView(
                 level_key,
-                data.get("score_range", ""),
+                format_growth_level_score_range(level_key) or data.get("score_range", ""),
                 data.get("title", ""),
                 data.get("description", ""),
                 data.get("signals", []),

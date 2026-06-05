@@ -17,6 +17,35 @@ MIN_SESSIONS_HARD = 5
 MIN_SESSIONS_WARN = 15
 MIN_SESSION_READS_FOR_MIRROR_SCORE = 5
 
+# Canonical L1–L5 score boundaries (single source of truth for assignment + UI).
+_LEVEL_ORDER = ("L1", "L2", "L3", "L4", "L5")
+_LEVEL_MIN_SCORE: dict[str, int] = {
+    "L1": 0,
+    "L2": 38,
+    "L3": 56,
+    "L4": 75,
+    "L5": 90,
+}
+
+
+def growth_level_from_score(score: int) -> str:
+    """Map mirror_score to L1–L5 using canonical boundaries."""
+    bounded = max(0, min(100, int(score)))
+    for level in reversed(_LEVEL_ORDER):
+        if bounded >= _LEVEL_MIN_SCORE[level]:
+            return level
+    return "L1"
+
+
+def format_growth_level_score_range(level: str) -> str:
+    """Return inclusive score range string for a level, e.g. ``'56-74'`` for L3."""
+    if level not in _LEVEL_MIN_SCORE:
+        return ""
+    idx = _LEVEL_ORDER.index(level)
+    low = _LEVEL_MIN_SCORE[level]
+    high = (_LEVEL_MIN_SCORE[_LEVEL_ORDER[idx + 1]] - 1) if idx < len(_LEVEL_ORDER) - 1 else 100
+    return f"{low}-{high}"
+
 _CODE_LANGUAGES = frozenset(
     {
         "Python",
@@ -378,16 +407,7 @@ def _compute_growth_level(
     ):
         score = max(score, 75)
 
-    if score >= 90:
-        level = "L5"
-    elif score >= 75:
-        level = "L4"
-    elif score >= 56:
-        level = "L3"
-    elif score >= 38:
-        level = "L2"
-    else:
-        level = "L1"
+    level = growth_level_from_score(score)
 
     return level, score, {
         "intent_clarity": round(intent_clarity, 1),

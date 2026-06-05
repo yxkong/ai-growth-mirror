@@ -1,5 +1,11 @@
 from ai_growth_mirror.domain.growth.model import AgentAssetStats
-from ai_growth_mirror.domain.growth.scorer import _compute_growth_level, _apply_asset_floor, aggregate
+from ai_growth_mirror.domain.growth.scorer import (
+    _apply_asset_floor,
+    _compute_growth_level,
+    aggregate,
+    format_growth_level_score_range,
+    growth_level_from_score,
+)
 from ai_growth_mirror.domain.signals.model import SessionRead
 from tests.conftest import make_session
 
@@ -219,3 +225,17 @@ def test_agentic_system_counts_configured_local_methods_when_used():
         ("skill-engineering", 10),
     ]
     assert stats.workflow_reuse_depth >= 2
+
+
+def test_growth_level_boundaries_match_canonical_ranges():
+    assert growth_level_from_score(0) == "L1"
+    assert growth_level_from_score(37) == "L1"
+    assert growth_level_from_score(38) == "L2"
+    assert growth_level_from_score(55) == "L2"
+    assert growth_level_from_score(56) == "L3"
+    assert growth_level_from_score(74) == "L3"
+    assert growth_level_from_score(75) == "L4"
+    assert growth_level_from_score(89) == "L4"
+    assert growth_level_from_score(90) == "L5"
+    assert format_growth_level_score_range("L3") == "56-74"
+    assert format_growth_level_score_range("L4") == "75-89"
