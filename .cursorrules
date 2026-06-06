@@ -25,6 +25,7 @@ High-signal defaults only. Procedures and details belong in skills—see §技�
 - Prefer the **smallest effective change**; avoid scope creep; reuse before inventing.
 - For **non-trivial work**, align on goals, constraints, and acceptance before implementation.
 - Validate with the **smallest safe check**; no remote/deploy/production commands unless explicitly asked.
+- **Windows shell 强规则**：在 Windows 上执行命令时，默认**显式使用 `pwsh`（PowerShell 7+）**；只有在**刻意验证 `powershell.exe` / Windows PowerShell 5.1 兼容性**时，才允许退回旧宿主。不得因为本机终端默认配置与工具宿主不一致，就默认假设自己跑在 `pwsh` 上。
 - Do not fabricate tool output, private state, dates, or unavailable facts.
 - Pause before irreversible, expensive, destructive, or production-impacting actions.
 - When a change fails, find the root cause and land the lesson in reusable form.
@@ -87,6 +88,53 @@ High-signal defaults only. Procedures and details belong in skills—see §技�
 
 ## Agent 协作模型（摘要）
 
-- 高阶推理模型可将**机械落盘**派发给 **`composer-2.5-fast`**；**fast 模型不得再启子 Agent**。
-- 典型派发条件：写入 ≥ 2 个文件；或单文件预计 > 1500 输出 token；或任务路径与内容已完全确定。
-- 派发格式、子 Agent prompt、设计整合门细节 → **`delivery-workflow`**；skill 体量门禁 → **`skill-engineering`** + `scripts/check-skill-size`（分级见 `agent-hub-bootstrap` → `references/script_tiering.md`）。
+**两档分工（不写死模型版本号）**
+
+| 档位 | 职责 | 子 Agent（`Task`） |
+|------|------|-------------------|
+| **编排档** | 阶段门、方案、范围白名单、验收、汇总 | **默认禁止**；见下「仅编排档允许的派发」 |
+| **执行档** | 已锁定的机械落盘（多文件写入、大段生成、跑固定验证命令） | **禁止再启**子 Agent |
+
+- **执行档识别（随 Composer / Cursor 升级自动适用）**：派发 `Task` 时 `model` 的 slug **以 `-fast` 结尾**，或产品文档标明为 fast/执行档；**禁止**在规则正文绑定 `composer-2.x-fast` 等具体版本号。
+- **编排档识别**：当前主会话模型；若 slug 含 `-fast` 或用户选定执行档，则本段「编排档」约束不适用（且不得再派子 Agent）。
+
+**默认（编排档）**
+
+- 调查、读代码、单文件修改、评分/文档归纳、用户问答 → 在本会话用 Read/Grep/Glob/Shell **直接完成**。
+- **不得**为「看看目录结构」「找某文件」「通读 SKILL 列表」等可一次工具链完成的任务启 `explore` / `generalPurpose` 子 Agent。
+- 用户写明「不要子 Agent / 直接做 / 别后台跑」→ **零** `Task` 调用。
+
+**仅编排档允许的派发（执行档子任务）**
+
+同时满足方可 `Task`：
+
+1. 任务类型 = **机械落盘**（非探索、非方案权衡）；
+2. 路径/内容/验收已写清（或已有 Hub `prompts/share/agent-task/*.prompt.md`）；
+3. 命中硬触发之一：写入 **≥ 2** 个文件；或单文件预计 **> 1500** 输出 token；或 delivery 规定的批量机械任务。
+
+未齐清单或边界 → 编排档先澄清或自行摸底，**禁止**先派子 Agent。
+
+**与 `delivery-workflow` 的关系**
+
+- 硬触发、7 要素、Hub 任务 prompt → **`delivery-workflow`**（其 R2 要求执行档 slug 以 `-fast` 结尾，与上文一致）。
+- `delivery-workflow` 的「必须派发」**仅指执行档机械任务**，**不**授权用子 Agent 替代编排档调查。
+- skill 体量门禁 → **`skill-engineering`** + `scripts/check-skill-size`（分级见 `agent-hub-bootstrap` → `references/script_tiering.md`）。
+
+# AI Growth Mirror — 项目增量规则
+
+> 全局规则见 hub `rules/common/`（同步到仓内 `AGENTS.md`）。**本文仅写 ai-growth-mirror 增量。**
+
+## 技能路由
+
+| 场景 | 先读 |
+|------|------|
+| 本仓库功能 / 报告 / reader / CLI | hub `skills/projects/ai-growth-mirror/ai-growth-mirror-dev/SKILL.md` |
+| 研发节奏 | `delivery-workflow` |
+| 架构权威 | 仓内 `docs/design/ARCHITECTURE_PRINCIPLES.md` |
+
+## 增量硬约束
+
+- 报告主编排真源：`application/orchestrator.generate_report_artifacts`；禁止 CLI 双流水线。
+- 禁止未经用户确认删除 `docs/review/growth_mirror/REPORT_VALUE_RECOVERY_INVENTORY.md` 冻结能力。
+- **禁止**对 `ai-growth-mirror` 工作区执行 hub `sync-prompts`；不在仓内挂载 hub prompt 真源。
+- 开源：不提交个人 HTML/JSON、`config.yaml`、本机路径。

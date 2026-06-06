@@ -242,6 +242,9 @@ class GenerateReportRequest:
     on_session_read_progress: Callable[[int, int, int, int], None] | None = None
     write_manifest: bool = False
     run_id: str = ""
+    min_sessions: int | None = None
+    hide_wechat: bool = False
+    hide_email: bool = False
 
 
 @dataclass
@@ -337,10 +340,11 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
             if getattr(s, "_is_placeholder", False):
                 s.ensure_parsed(cache_for_iter)
 
-        if len(sessions) < MIN_SESSIONS_HARD:
+        min_sessions_threshold = request.min_sessions if request.min_sessions is not None else MIN_SESSIONS_HARD
+        if len(sessions) < min_sessions_threshold:
             raise InsufficientSessionsError(
                 count=len(sessions),
-                minimum=MIN_SESSIONS_HARD,
+                minimum=min_sessions_threshold,
                 filtered=scope_filters.has_filters,
             )
 
@@ -455,18 +459,19 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
         sources_summary = _build_sources_summary(sessions, all_session_reads)
         quality_eligible = eligible_count
 
-        if len(all_session_reads) < MIN_SESSIONS_HARD:
+        if len(all_session_reads) < min_sessions_threshold:
             raise InsufficientSessionsError(
                 count=len(all_session_reads),
-                minimum=MIN_SESSIONS_HARD,
+                minimum=min_sessions_threshold,
                 filtered=False,
                 reason="session_reads",
             )
 
-        if len(all_session_reads) < MIN_SESSION_READS_FOR_MIRROR_SCORE:
+        min_score_threshold = request.min_sessions if request.min_sessions is not None else MIN_SESSION_READS_FOR_MIRROR_SCORE
+        if len(all_session_reads) < min_score_threshold:
             progress(
                 f"[Warn] Only {len(all_session_reads)} session reads built - mirror score will be skipped "
-                f"(requires >={MIN_SESSION_READS_FOR_MIRROR_SCORE})."
+                f"(requires >={min_score_threshold})."
             )
 
         enrichment_roots: list[Path] = list(cfg.report.asset_roots or [])
@@ -519,6 +524,8 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
             llm=coaching_llm_client,
             session_read_mode=effective_session_read_mode,
             progress=progress,
+            hide_wechat=request.hide_wechat,
+            hide_email=request.hide_email,
         )
         progress(
             f"[Done] 报告已生成：{output_path}  "

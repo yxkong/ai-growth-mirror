@@ -150,12 +150,18 @@ def cli(ctx: click.Context) -> None:
               help="Skip writing the report.json evidence sidecar next to the HTML report.")
 @click.option("--redact", is_flag=True,
               help="Redact project names and internal identifiers for sharing with others")
+@click.option("--min-sessions", type=int, default=None,
+              help="Override minimum sessions limit (default: 5).")
 @click.option("--repo", "scope_repos", multiple=True, type=str,
               help="Limit sessions to repository name/origin matches. Repeat for OR matching.")
 @click.option("--dir", "scope_dirs", multiple=True, type=click.Path(path_type=Path),
               help="Limit sessions to project paths under this directory. Repeat for OR matching.")
 @click.option("--keyword", "scope_keywords", multiple=True, type=str,
               help="Limit sessions to prompt/metadata keyword matches. Repeat for OR matching.")
+@click.option("--hide-wechat", is_flag=True,
+              help="Hide WeChat/Official Account from the report footer")
+@click.option("--hide-email", is_flag=True,
+              help="Hide Email from the report footer")
 @click.option("--verbose", "-v", is_flag=True)
 def generate_cmd(
     tools,
@@ -178,9 +184,12 @@ def generate_cmd(
     workers,
     no_sidecar,
     redact,
+    min_sessions,
     scope_repos,
     scope_dirs,
     scope_keywords,
+    hide_wechat,
+    hide_email,
     verbose,
 ):
     """Generate AI Growth Mirror reports for AI coding sessions."""
@@ -327,6 +336,9 @@ def generate_cmd(
                 elapsed,
             )
 
+    effective_hide_wechat = hide_wechat or cfg.report.hide_wechat
+    effective_hide_email = hide_email or cfg.report.hide_email
+
     request = GenerateReportRequest(
         tools=selected_tool_names,
         output_path=Path(output or PRIMARY_REPORT_FILENAME),
@@ -353,6 +365,9 @@ def generate_cmd(
         on_session_read_progress=on_session_read_progress,
         write_manifest=True,
         run_id=run_id,
+        min_sessions=min_sessions,
+        hide_wechat=effective_hide_wechat,
+        hide_email=effective_hide_email,
     )
 
     _set_log_context(stage="collect")

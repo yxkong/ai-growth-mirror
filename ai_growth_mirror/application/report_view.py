@@ -565,6 +565,8 @@ class PersonalReportView:
     gap_rankings: list[GrowthGap] = field(default_factory=list)
     growth_stage: Optional[GrowthStage] = None
     labels: dict = field(default_factory=dict)
+    hide_wechat: bool = False
+    hide_email: bool = False
 
 
 def build_agent_asset_footprint(
@@ -611,6 +613,8 @@ def build_personal_report_view(
     session_read_mode: str = "heuristic",
     quality_eligible: int = 0,
     extraction_failed: int = 0,
+    hide_wechat: bool = False,
+    hide_email: bool = False,
 ) -> PersonalReportView:
     capability_scores = compute_capability_scores(stats)
     capability = _build_capability_section(capability_scores, catalogs, stats=stats)
@@ -765,6 +769,8 @@ def build_personal_report_view(
         gap_rankings=localized_gap_rankings,
         growth_stage=localized_growth_stage,
         labels=labels,
+        hide_wechat=hide_wechat,
+        hide_email=hide_email,
     )
 
 

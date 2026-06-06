@@ -11,13 +11,13 @@ updated_at: 2026-06-06
 
 ## 核心真源索引
 
-- **[ARCHITECTURE_PRINCIPLES.md](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/docs/design/ARCHITECTURE_PRINCIPLES.md)**：唯一架构真源，规范分层设计、资源归属、稳定性硬规范。
-- **[design/README.md](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/docs/design/README.md)**：设计文档目录索引，提供快速阅读导览。
-- **[OPEN_SOURCE_GOVERNANCE.md](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/docs/config/OPEN_SOURCE_GOVERNANCE.md)**：仓库治理说明，规范脱敏规范、许可协议及开源边界。
-- **[CONTRIBUTING.md](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/CONTRIBUTING.md)**：贡献指南，涵盖开发环境搭建、分支策略与提交规范。
+- **[ARCHITECTURE_PRINCIPLES.md](./design/ARCHITECTURE_PRINCIPLES.md)**：唯一架构真源，规范分层设计、资源归属、稳定性硬规范。
+- **[design/README.md](./design/README.md)**：设计文档目录索引，提供快速阅读导览。
+- **[OPEN_SOURCE_GOVERNANCE.md](./config/OPEN_SOURCE_GOVERNANCE.md)**：仓库治理说明，规范脱敏规范、许可协议及开源边界。
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)**：贡献指南，涵盖开发环境搭建、分支策略与提交规范。
 
 ## 阅读规则
 
-1. **架构先行**：在修改任何核心代码前，须先对齐 **[ARCHITECTURE_PRINCIPLES.md](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/docs/design/ARCHITECTURE_PRINCIPLES.md)**，特别是 `Section 14` 的四大研发架构硬规范。
+1. **架构先行**：在修改任何核心代码前，须先对齐 **[ARCHITECTURE_PRINCIPLES.md](./design/ARCHITECTURE_PRINCIPLES.md)**，特别是 `Section 14` 的四大研发架构硬规范。
 2. **真源原则**：活动区 canonical 文档以 `docs/design/` 和 `docs/config/` 为准；`docs/**/bak/` 为历史归档备份，不作为当前执行依据。
 3. **保持同步**：所有功能迭代在实现时，均需确保文档中的计算公式与接口契约同步更新，严禁出现文档与实现脱节。

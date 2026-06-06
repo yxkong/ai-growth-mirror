@@ -1426,3 +1426,40 @@ def test_snapshot_compare_html_escapes_untrusted_summary_fields(tmp_path: Path):
     assert "&lt;img" in html
     payload = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
     assert payload["current"]["next_focus"] == xss_focus
+
+
+def test_personal_report_hide_wechat_email():
+    from ai_growth_mirror.application.html_render import render_personal_report_html
+    sessions = [_make_session("s1", "D:/repo/demo-platform")]
+    facets = [_make_facets("s1")]
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    # Test hiding both
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+        hide_wechat=True,
+        hide_email=True,
+    )
+    html = render_personal_report_html(view=view, language="zh")
+    assert "公众号：5ycode" not in html
+    assert "5ycode@sina.com" not in html
+    assert "GitHub" in html
+
+    # Test showing both
+    view_show = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+        hide_wechat=False,
+        hide_email=False,
+    )
+    html_show = render_personal_report_html(view=view_show, language="zh")
+    assert "公众号：5ycode" in html_show
+    assert "5ycode@sina.com" in html_show
+    assert "GitHub" in html_show

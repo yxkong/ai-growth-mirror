@@ -157,6 +157,8 @@ class ReportConfig:
     scope_repos: list[str] = field(default_factory=list)
     scope_dirs: list[Path] = field(default_factory=list)
     scope_keywords: list[str] = field(default_factory=list)
+    hide_wechat: bool = False
+    hide_email: bool = False
 
 
 @dataclass
@@ -226,6 +228,10 @@ def _apply_yaml(cfg: GrowthMirrorConfig, data: dict) -> None:
             cfg.report.scope_dirs = [Path(item).expanduser() for item in report.get("scope_dirs", []) if item]
         if report.get("scope_keywords"):
             cfg.report.scope_keywords = [str(item).strip() for item in report.get("scope_keywords", []) if item]
+        if "hide_wechat" in report:
+            cfg.report.hide_wechat = bool(report["hide_wechat"])
+        if "hide_email" in report:
+            cfg.report.hide_email = bool(report["hide_email"])
     if "tools" in data:
         for tool_name, tool_data in data["tools"].items():
             tool_cfg = ToolConfig()
