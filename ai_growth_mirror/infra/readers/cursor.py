@@ -20,6 +20,7 @@ from .base import (
     SUBAGENT_TOOL_NAMES,
     TEST_PATTERNS,
     WRITE_TOOL_NAMES,
+    _common_prefix_path,
     content_revision_mtime,
     detect_authorship_path,
     detect_language,
@@ -445,16 +446,7 @@ class CursorAdapter(BaseSessionAdapter):
         return session
 
 
-def _common_prefix_path(paths: list[str]) -> str:
-    absolute_paths = [p for p in paths if p and Path(p).is_absolute()]
-    if not absolute_paths:
-        return ""
-    try:
-        if len(absolute_paths) == 1:
-            return str(Path(absolute_paths[0]).parent)
-        return os.path.commonpath(absolute_paths)
-    except Exception:
-        return ""
+
 
 
 def _project_slug_to_hint(jsonl_path: Path) -> str:

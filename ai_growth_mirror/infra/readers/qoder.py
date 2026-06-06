@@ -25,6 +25,7 @@ from .base import (
     SUBAGENT_TOOL_NAMES,
     TEST_PATTERNS,
     WRITE_TOOL_NAMES,
+    _common_prefix_path,
     _max_mtime,
     detect_authorship_path,
     detect_language,
@@ -254,7 +255,7 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
             # Extract workspace path
             project_path = self._extract_project_path(cursor)
             if not project_path and file_paths:
-                project_path = self._common_prefix_path(list(file_paths))
+                project_path = _common_prefix_path(list(file_paths))
 
             # Detect tool usage patterns from input text
             for input_item in input_history:
@@ -415,15 +416,4 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
             pass
         return {}
 
-    @staticmethod
-    def _common_prefix_path(paths: list[str]) -> str:
-        """Find common prefix path."""
-        absolute_paths = [p for p in paths if p and Path(p).is_absolute()]
-        if not absolute_paths:
-            return ""
-        try:
-            if len(absolute_paths) == 1:
-                return str(Path(absolute_paths[0]).parent)
-            return os.path.commonpath(absolute_paths)
-        except Exception:
-            return ""
+

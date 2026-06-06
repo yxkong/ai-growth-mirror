@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 
 from ai_growth_mirror.domain.session.model import SessionRecord
@@ -1187,7 +1187,7 @@ def test_cursor_adapter_reads_beta_db(monkeypatch, tmp_path: Path):
     assert parsed.session_id == "c1"
     assert parsed.files_modified == 2
     assert parsed.models_used == ["gpt-4.1"]
-    assert parsed.project_path == "D:\\repo"
+    assert parsed.project_path.replace("\\", "/") == "D:/repo"
 
 
 def test_cursor_adapter_reads_agent_transcripts(tmp_path: Path):
