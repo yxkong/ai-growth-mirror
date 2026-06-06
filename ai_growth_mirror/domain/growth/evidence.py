@@ -45,8 +45,95 @@ def _truncate_text(value: str, max_len: int) -> str:
     return text if len(text) <= max_len else text[: max_len - 3] + "..."
 
 
+def clean_project_name(project_path: str) -> str:
+    if not project_path:
+        return ""
+    
+    # Normalize separators
+    normalized = project_path.replace("\\", "/").strip()
+    if normalized.startswith("//?/"):
+        normalized = normalized[4:]
+    normalized = normalized.rstrip("/")
+    if not normalized:
+        return ""
+
+    # Check if there is a slash
+    is_flat = "/" not in normalized
+    if is_flat:
+        parts = [p for p in normalized.split("-") if p]
+    else:
+        parts = [p for p in normalized.split("/") if p]
+
+    # Helper to clean/strip path prefixes
+    if parts:
+        # Strip Windows drive letter (e.g. 'C:', 'c')
+        first = parts[0]
+        if (len(first) == 2 and first[1] == ':' and first[0].isalpha()) or (len(first) == 1 and first.isalpha()):
+            parts = parts[1:]
+
+    # Strip 'users' or 'home' and the immediately following element (which is the username)
+    for i, part in enumerate(parts):
+        if part.lower() in ("users", "home"):
+            if i + 1 < len(parts):
+                parts = parts[i + 2:]
+            else:
+                parts = parts[i + 1:]
+            break
+
+    # Reconstruct the display name
+    if is_flat:
+        display = "-".join(parts)
+        
+        # If the flat string ends with the current project name, return the current project name
+        try:
+            current_project = Path.cwd().name
+            if current_project:
+                display_lower = display.lower()
+                current_lower = current_project.lower()
+                if display_lower == current_lower or display_lower.endswith("-" + current_lower):
+                    return current_project
+        except Exception:
+            pass
+    else:
+        # Slashed paths are always resolved to the last directory component
+        display = parts[-1] if parts else ""
+
+    if not display:
+        return "project"
+
+    display_lower = display.lower()
+    
+    # Redact any UUID or hash-like suffixes or pure hex values if they are the sole name
+    import re
+    if re.match(r"^[0-9a-f\-]{8,}$", display_lower) or re.match(r"^\d+$", display_lower):
+        return "project"
+
+    if display_lower in ("users", "home", ""):
+        return "project"
+
+    if any(k in normalized.lower() for k in ("empty-window", "var-folders", "tmp-folders")):
+        return "project"
+
+    # Final guard: case-insensitive check against local username if available
+    try:
+        import getpass
+        username = getpass.getuser()
+    except Exception:
+        import os
+        username = os.environ.get("USER") or os.environ.get("USERNAME") or os.environ.get("LOGNAME") or ""
+        
+    if username and username.lower() in display_lower:
+        display = re.sub(re.escape(username), "project", display, flags=re.IGNORECASE)
+        display = re.sub(r"-+", "-", display).strip("-")
+        if not display or display.lower() == "project":
+            return "project"
+
+    return display
+
+
+
 def _project_name(project_path: str) -> str:
-    return Path(project_path).name if project_path else ""
+    return clean_project_name(project_path)
 
 
 def _observed_date_range(sessions: Iterable[SessionRecord]) -> str:
@@ -70,7 +157,7 @@ def _scope_payload(scope: SessionScope, *, redact: bool) -> dict[str, Any]:
 
 
 def _stats_payload(stats: GrowthProfile, *, redact: bool) -> dict[str, Any]:
-    top_projects = [] if redact else stats.top_projects
+    top_projects = [] if redact else [(_project_name(name), count) for name, count in stats.top_projects]
     return {
         "session_count": stats.session_count,
         "total_user_messages": stats.total_user_messages,

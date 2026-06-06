@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json as _json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment, FileSystemLoader
 
 from ..assets import ASSETS_DIR, TEMPLATES_DIR
+from .summary_payload import build_personal_summary_payload
 
 if TYPE_CHECKING:
     from .report_view import PersonalReportView
@@ -30,12 +32,15 @@ def render_personal_report_html(
 ) -> str:
     env = _jinja_env()
     tmpl = env.get_template("report.html.j2")
+    summary_payload = build_personal_summary_payload(view)
+    report_data_json = _json.dumps(summary_payload, ensure_ascii=False)
     return tmpl.render(
         view=view,
         now=now or datetime.now(),
         language=language,
         redact=redact,
         theme_variant="personal",
+        report_data_json=report_data_json,
     )
 
 
