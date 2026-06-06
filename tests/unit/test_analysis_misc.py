@@ -93,3 +93,32 @@ def test_infer_model_tier_alias():
     assert infer_tool_tier("opus-4") == ModelCapabilityTier.TIER_3_PRO
     assert infer_tool_tier("claude-3-5-sonnet") == ModelCapabilityTier.TIER_2_STANDARD
     assert infer_tool_tier("gpt-4o-mini") == ModelCapabilityTier.TIER_1_QUICK
+
+
+def test_clean_project_name():
+    from ai_growth_mirror.domain.growth.evidence import clean_project_name
+
+    assert clean_project_name("") == ""
+    assert clean_project_name("Users-yxk-workspace-projects-github-ai-growth-mirror") == "ai-growth-mirror"
+    assert clean_project_name("/Users/yxk/workspace/projects/github/ai-growth-mirror") == "ai-growth-mirror"
+    assert clean_project_name("C:\\Users\\john\\workspace\\my-project") == "my-project"
+    assert clean_project_name("c-users-john-workspace-my-project") == "workspace-my-project"
+    assert clean_project_name("/home/john/projects/cool-app") == "cool-app"
+    assert clean_project_name("/tmp/test-project") == "test-project"
+    assert clean_project_name("var-folders-pl-3g3sb8p13-336k36z-dk9kj00000gn-T-ec63f630-d187-4e3a-b94a-0dabda75d8ee") == "project"
+    assert clean_project_name("empty-window") == "project"
+    assert clean_project_name("1780744555943") == "project"
+
+    # Windows custom workspace path (without current directory match in test context)
+    assert clean_project_name("d-Workspace-John-Projects-my-project") == "Workspace-John-Projects-my-project"
+    # Linux custom path
+    assert clean_project_name("home-ubuntu-git-cool-app") == "git-cool-app"
+    assert clean_project_name("home-ubuntu-repos-cool-app") == "repos-cool-app"
+    # Slash paths on other platforms
+    assert clean_project_name("D:/Projects/CustomUser/repos/another-project") == "another-project"
+    # Project with github prefix
+    assert clean_project_name("Users-john-github-action-test") == "github-action-test"
+
+
+
+

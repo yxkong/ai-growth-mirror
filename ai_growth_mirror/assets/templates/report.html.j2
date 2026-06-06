@@ -3,6 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    (function() {
+      let storedTheme = null;
+      try {
+        storedTheme = localStorage.getItem('growth-mirror-theme');
+      } catch (e) {
+        console.warn('localStorage access failed, using In-Memory fallback.');
+      }
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      let activeTheme = 'dark';
+      if (storedTheme === 'dark' || storedTheme === 'light') {
+        activeTheme = storedTheme;
+      } else {
+        activeTheme = prefersDark ? 'dark' : 'light';
+      }
+      if (activeTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
+      }
+      window.__theme = activeTheme;
+    })();
+  </script>
   <title>{{ view.report_title }} - {{ view.tool_display_name }}</title>
   <style>
     {% include 'partials/report_theme.css.j2' %}
@@ -387,6 +412,14 @@
       border: 1px solid var(--note-border);
       margin-bottom: 16px;
     }
+    .note--warn {
+      background: var(--note-warn-bg);
+      border-color: var(--note-warn-border);
+    }
+    .note--growth {
+      background: var(--note-growth-bg);
+      border-color: var(--note-growth-border);
+    }
     .code {
       background: var(--code-bg);
       color: var(--code-fg);
@@ -421,6 +454,11 @@
       border-radius: 999px;
       cursor: pointer;
       font-weight: 600;
+    }
+    .tab-btn:hover:not(.active) {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent-strong);
     }
     .tab-btn.active {
       background: var(--accent);
@@ -486,7 +524,7 @@
       background: var(--hero-nav-active-bg);
       border-color: var(--hero-nav-active-border);
       color: var(--hero-nav-active-ink);
-      box-shadow: 0 8px 18px rgba(124, 58, 237, 0.18);
+      box-shadow: 0 8px 18px hsla(var(--h-primary), 70%, 50%, 0.18);
     }
     .overview-band {
       display: grid;
@@ -513,7 +551,7 @@
     .overview-card--focus h3 { color: var(--friction); }
     .overview-card--method {
       background: var(--overview-method-bg);
-      border-color: rgba(124, 58, 237, 0.26);
+      border-color: color-mix(in srgb, var(--accent) 26%, transparent);
     }
     .overview-card--method h3 { color: var(--accent-strong); }
     .overview-card h3 {
@@ -725,7 +763,7 @@
       height: 1.1em;
       border-radius: 999px;
       background: var(--section-accent);
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+      box-shadow: 0 0 0 3px hsla(var(--h-primary), 70%, 50%, 0.1);
     }
     .data-num {
       font-size: 1.6rem;
@@ -798,9 +836,10 @@
     }
     .evidence-divider span {
       padding: 2px 8px;
-      border: 1px solid var(--separator);
+      border: 1px solid var(--accent-soft);
       border-radius: 999px;
-      background: rgba(124, 58, 237, 0.05);
+      background: var(--accent-soft);
+      color: var(--accent);
     }
     .evidence-divider::after {
       content: "";
@@ -809,15 +848,15 @@
       background: var(--separator);
     }
     .evidence-divider--system span {
-      color: var(--accent);
-      background: rgba(14, 165, 233, 0.08);
-      border-color: rgba(14, 165, 233, 0.35);
+      color: var(--system-text);
+      background: var(--system-bg);
+      border-color: var(--system-border);
     }
     .evidence-row--system_layer {
-      background: rgba(14, 165, 233, 0.04);
+      background: var(--system-bg);
       border-radius: 10px;
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+      padding: 12px;
+      border: 1px solid var(--system-border);
     }
     .coach-card {
       background: var(--card-bg);
@@ -972,9 +1011,103 @@
     .section-toggle > :not(summary) {
       margin-top: 14px;
     }
+    @keyframes gold-ripple {
+      0% {
+        border-color: #fbbf24;
+        box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7), 0 16px 34px rgba(99, 102, 241, 0.08);
+      }
+      50% {
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 12px rgba(251, 191, 36, 0), 0 16px 34px rgba(99, 102, 241, 0.12);
+      }
+      100% {
+        border-color: var(--card-border);
+        box-shadow: 0 0 0 0px rgba(251, 191, 36, 0), 0 6px 18px rgba(0, 0, 0, 0.2);
+      }
+    }
+    .card-highlight {
+      animation: gold-ripple 1.5s ease-out;
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2) !important;
+      transition: all 0.3s ease;
+    }
+    .radar-hover-zone {
+      fill: transparent;
+      transition: fill 0.2s ease;
+    }
+    .radar-hover-zone:hover {
+      fill: hsla(var(--h-primary), 70%, 50%, 0.08);
+    }
+    .radar-tooltip {
+      background: var(--card-bg);
+      border: 1px solid var(--border-active, var(--card-border));
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      color: var(--ink);
+      font-size: 0.82rem;
+      max-width: 240px;
+      line-height: 1.5;
+      backdrop-filter: blur(8px);
+      transition: opacity 0.15s ease;
+      opacity: 0;
+    }
+    .radar-tooltip-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .radar-tooltip-score {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+    .radar-tooltip-reason {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: var(--sidebar-link-bg);
+      border: 1px solid var(--sidebar-link-border);
+      color: var(--sidebar-link-ink);
+      font-size: 0.86rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
+    }
+    .theme-toggle-btn:hover {
+      background: var(--sidebar-link-border);
+      border-color: var(--border-active);
+      color: var(--ink);
+    }
+    .jump-link {
+      cursor: pointer;
+      text-decoration: underline;
+      color: var(--link);
+      transition: color 0.18s ease;
+    }
+    .jump-link:hover {
+      color: var(--accent-strong);
+    }
   </style>
 </head>
 <body>
+  <div id="radar-tooltip" class="radar-tooltip" style="display: none; position: absolute; pointer-events: none; z-index: 1000;"></div>
   <div class="page">
     <div class="page-shell">
     <aside class="report-sidebar" aria-label="报告导航">
@@ -994,6 +1127,12 @@
           <a class="sidebar-nav-link" href="#{{ section.id }}">{{ section.label }}</a>
           {% endfor %}
         </nav>
+        <div class="sidebar-theme-toggle" style="margin-top: 16px; padding: 0 4px;">
+          <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="切换主题">
+            <span class="theme-toggle-icon">🌓</span>
+            <span class="theme-toggle-label">{{ view.labels.get('label_theme_toggle', '主题模式') }}: <span id="theme-toggle-status">Auto</span></span>
+          </button>
+        </div>
       </div>
     </aside>
     <div class="page-main">
@@ -1004,10 +1143,13 @@
             <div class="hero-brand-compact-mark">
               {% include 'logo/ai-growth-mirror-logo-primary.svg' %}
             </div>
-            <div>
+            <div style="flex: 1;">
               <p class="hero-brand-compact-name">AI Growth Mirror</p>
               <p class="hero-brand-compact-caption">AI 成长镜</p>
             </div>
+            <button id="mobile-theme-toggle" class="theme-toggle-btn" style="width: auto; padding: 8px 12px; margin-left: auto;" aria-label="切换主题">
+              <span>🌓</span>
+            </button>
           </div>
           <p class="hero-eyebrow">{{ view.summary.subtitle }}</p>
           <h1>{{ view.summary.title }}</h1>
@@ -1125,6 +1267,9 @@
               {% for item in view.radar_chart.label_positions %}
               <text x="{{ item.x }}" y="{{ item.y }}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">{{ item.label }}</text>
               {% endfor %}
+              {% for zone in view.radar_chart.hover_zones %}
+              <polygon class="radar-hover-zone" data-key="{{ zone.key }}" data-label="{{ zone.label }}" data-score="{{ '%.1f'|format(zone.score) }}" data-reason="{{ zone.short_reason }}" points="{{ zone.points }}"></polygon>
+              {% endfor %}
             </svg>
           </div>
           {% endif %}
@@ -1135,7 +1280,7 @@
             {% for gap in view.gap_rankings[:3] %}
             <div style="padding:10px 0; border-bottom:1px solid var(--separator);">
               <div style="display:flex; justify-content:space-between; gap:12px;">
-                <strong>{{ gap.label }}</strong>
+                <strong class="jump-link" data-target="{{ gap.key }}">{{ gap.label }}</strong>
                 <span class="pill">Top {{ gap.rank }}</span>
               </div>
               <p class="meta-text">{{ gap.evidence_summary }}</p>
@@ -1149,7 +1294,7 @@
         <h3>{{ view.labels['label_your_5_axes'] }}</h3>
         <div class="note">{{ view.labels['label_strongest_dim_prefix'] }}{{ view.capability.strongest_label }} · {{ view.labels['label_weakest_dim_prefix'] }}{{ view.capability.weakest_label }}</div>
         {% for dim in view.capability.dimensions %}
-        <div class="metric">
+        <div class="metric" id="{{ dim.key }}">
           <div class="metric-head">
             <strong>{{ dim.label }}</strong>
             <span class="score-value">{% if dim.has_data %}{{ '%.1f'|format(dim.score) }}{% else %}&mdash;{% endif %}</span>
@@ -1202,7 +1347,7 @@
         </div>
       </div>
       {% if view.level_evidence.blockers %}
-      <div class="note">
+      <div class="note note--warn">
         <strong>{{ view.level_evidence.blocker_title or view.labels['label_evidence_blockers_default'] }}</strong>
         <ul class="list" style="margin-top:8px">
           {% for blocker in view.level_evidence.blockers %}
@@ -1270,7 +1415,7 @@
             </div>
             <div>
               <p class="small"><strong>{{ view.labels['label_how_to_move_up'] }}</strong></p>
-              <div class="note">{{ item.next_step }}</div>
+              <div class="note note--growth">{{ item.next_step }}</div>
             </div>
           </div>
         </div>
@@ -1320,7 +1465,7 @@
             <text x="0" y="{{ tick.y + 4 }}" font-size="10" fill="rgba(100,116,139,0.86)">{{ tick.value }}</text>
             {% endfor %}
             {% if view.growth_trajectory.trend.score_series.area_path %}
-            <path d="{{ view.growth_trajectory.trend.score_series.area_path }}" fill="rgba(124, 58, 237, 0.12)"></path>
+             <path d="{{ view.growth_trajectory.trend.score_series.area_path }}" fill="hsla(var(--h-primary), 70%, 50%, 0.12)"></path>
             {% endif %}
             <polyline fill="none" stroke="var(--accent)" stroke-width="3" points="{{ view.growth_trajectory.trend.score_series.polyline }}"></polyline>
             {% for point in view.growth_trajectory.trend.score_series.points %}
@@ -1440,7 +1585,7 @@
         <div class="card">
           <h3>{{ view.labels.get('label_top_deficits', view.labels['label_frequent_deficits']) }}</h3>
           {% for deficit in view.prompt_coach.top_deficits[:2] %}
-          <div class="metric">
+          <div class="metric" id="{{ deficit.id }}">
             <div class="metric-head">
               <strong>{{ deficit.label }}</strong>
               <span>{{ deficit.confidence }}</span>
@@ -1456,7 +1601,7 @@
       <div class="card" style="margin-top:18px">
         <h3>{{ view.labels.get('label_friction_synthesis', '提需求摩擦综合判断') }}</h3>
         {% for item in view.prompt_coach.friction_synthesis[:2] %}
-        <div class="metric" style="margin-top:12px">
+        <div class="metric" style="margin-top:12px" id="{{ item.id }}">
           <p><strong>{{ item.label }}</strong></p>
           <p class="small">{{ item.explanation }}</p>
           <p class="small muted"><strong>{{ view.labels.get('label_next_actions', '下一步') }}：</strong>{{ item.next_action }}</p>
@@ -1469,7 +1614,7 @@
       {% if real_rewrite_cards %}
       <div class="grid-2" style="margin-top:18px">
         {% for card in real_rewrite_cards[:2] %}
-        <div class="coach-card">
+        <div class="coach-card" id="{{ card.id }}">
           <h3>{{ view.labels.get('label_scene', '场景') }} · {{ card.scene }}</h3>
           {% if card.original %}
           <p class="small"><strong>{{ view.labels.get('label_original_prompt', '原始提法') }}</strong></p>
@@ -1502,7 +1647,7 @@
           <p class="small muted"><strong>{{ view.labels.get('label_missing_closure', '当前更适合补：') }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
           {% endif %}
           {% if view.prompt_coach.recommended_training_inputs %}
-          <div class="note" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
+          <div class="note note--growth" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
           {% endif %}
         </div>
       </div>
@@ -1518,7 +1663,7 @@
         <p class="small muted"><strong>{{ view.labels.get('label_missing_closure', '当前更适合补：') }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
         {% endif %}
         {% if view.prompt_coach.recommended_training_inputs %}
-        <div class="note" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
+        <div class="note note--growth" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
         {% endif %}
       </div>
       {% endif %}
@@ -1554,7 +1699,11 @@
         {% if priority.linked_prompt_deficit_ids or priority.linked_template_ids or priority.linked_rewrite_card_ids or priority.linked_growth_trend_refs or priority.linked_closure_guidance_ids %}
         <p class="small muted">
           <strong>{{ view.labels.get('label_linked_sources', '关联来源：') }}</strong>
-          {{ (priority.linked_prompt_deficit_ids + priority.linked_template_ids + priority.linked_rewrite_card_ids + priority.linked_growth_trend_refs + priority.linked_closure_guidance_ids) | join(' / ') }}
+          {% set linked_ids = priority.linked_prompt_deficit_ids + priority.linked_template_ids + priority.linked_rewrite_card_ids + priority.linked_growth_trend_refs + priority.linked_closure_guidance_ids %}
+          {% for lid in linked_ids %}
+            <span class="jump-link" data-target="{{ lid }}">{{ lid }}</span>
+            {% if not loop.last %} / {% endif %}
+          {% endfor %}
         </p>
         {% endif %}
         <div class="grid-2">
@@ -1731,7 +1880,7 @@
           <h3>{{ win.title }}</h3>
           <p class="small"><strong>{{ view.labels['label_evidence'] }}</strong>{{ win.evidence }}</p>
           <p class="small"><strong>{{ view.labels['label_why_matters'] }}</strong>{{ win.why_it_matters }}</p>
-          <div class="note">{{ view.labels['label_scale_it'] }}{{ win.next_action }}</div>
+          <div class="note note--growth">{{ view.labels['label_scale_it'] }}{{ win.next_action }}</div>
         </div>
         {% endfor %}
       </div>
@@ -1833,8 +1982,31 @@
     </div>
     </div>
   </div>
+  <script id="report-data" type="application/json">
+    {{ report_data_json | safe }}
+  </script>
   <script>
     (function () {
+      // 1. DTO parsing and defensive fallback
+      function parseData() {
+        const el = document.getElementById('report-data');
+        if (!el) return { radar_axes: [], gap_rankings: [] };
+        try {
+          const data = JSON.parse(el.textContent || '{}');
+          return {
+            radar_axes: data?.scorecard?.radar_axes || [],
+            gap_rankings: data?.growth_signals?.gap_rankings || [],
+            ...data
+          };
+        } catch (e) {
+          console.error("Failed to parse report-data", e);
+          return { radar_axes: [], gap_rankings: [] };
+        }
+      }
+      
+      const { radar_axes = [], gap_rankings = [] } = parseData();
+
+      // 2. Tabs logic
       const buttons = Array.from(document.querySelectorAll('[data-tab-target]'));
       const panels = Array.from(document.querySelectorAll('.tab-panel'));
       if (buttons.length && panels.length) {
@@ -1853,6 +2025,7 @@
         });
       }
 
+      // 3. Navigation and IntersectionObserver Scroll Spy
       const navLinks = Array.from(document.querySelectorAll('.sidebar-nav-link, .section-nav-link'));
       const sectionIds = [...new Set(
         navLinks
@@ -1864,10 +2037,7 @@
         .filter(Boolean)
         .sort((a, b) => a.offsetTop - b.offsetTop);
 
-      if (!navLinks.length || !sections.length) return;
-
       let suppressScrollSpyUntil = 0;
-      const scrollOffset = 96;
 
       const setActiveLink = (activeId) => {
         navLinks.forEach((link) => {
@@ -1877,54 +2047,209 @@
         });
       };
 
-      const resolveActiveSection = () => {
-        let active = sections[0];
-        for (const section of sections) {
-          const top = section.getBoundingClientRect().top;
-          if (top <= scrollOffset) {
-            active = section;
+      if (navLinks.length && sections.length) {
+        setActiveLink(sections[0].id);
+
+        navLinks.forEach((link) => {
+          link.addEventListener('click', (event) => {
+            const targetId = (link.getAttribute('href') || '').replace('#', '');
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (!target) return;
+            event.preventDefault();
+            suppressScrollSpyUntil = Date.now() + 1000;
+            setActiveLink(targetId);
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', `#${targetId}`);
+            }
+          });
+        });
+
+        // IntersectionObserver configuration
+        const intersectingSections = new Map();
+        const observerOptions = {
+          root: null,
+          rootMargin: '-15% 0px -60% 0px',
+          threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              intersectingSections.set(entry.target.id, entry.target);
+            } else {
+              intersectingSections.delete(entry.target.id);
+            }
+          });
+
+          if (Date.now() < suppressScrollSpyUntil) return;
+
+          if (intersectingSections.size > 0) {
+            let closest = null;
+            let minTopAbs = Infinity;
+
+            intersectingSections.forEach((el) => {
+              const rect = el.getBoundingClientRect();
+              const topAbs = Math.abs(rect.top - 100);
+              if (topAbs < minTopAbs) {
+                minTopAbs = topAbs;
+                closest = el.id;
+              }
+            });
+
+            if (closest) {
+              setActiveLink(closest);
+            }
           }
-        }
-        return active.id;
-      };
+        }, observerOptions);
 
-      const updateActiveFromScroll = () => {
-        if (Date.now() < suppressScrollSpyUntil) return;
-        setActiveLink(resolveActiveSection());
-      };
+        sections.forEach(s => observer.observe(s));
+      }
 
-      setActiveLink(sections[0].id);
-
-      navLinks.forEach((link) => {
-        link.addEventListener('click', (event) => {
-          const targetId = (link.getAttribute('href') || '').replace('#', '');
-          const target = targetId ? document.getElementById(targetId) : null;
-          if (!target) return;
-          event.preventDefault();
-          suppressScrollSpyUntil = Date.now() + 1000;
-          setActiveLink(targetId);
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, '', `#${targetId}`);
+      // 4. Jump Links smooth scroll and gold highlight animation
+      document.querySelectorAll('.jump-link').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          const targetId = link.getAttribute('data-target');
+          const targetEl = targetId ? document.getElementById(targetId) : null;
+          if (targetEl) {
+            e.preventDefault();
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            targetEl.classList.remove('card-highlight');
+            void targetEl.offsetWidth; // Trigger reflow
+            targetEl.classList.add('card-highlight');
+            
+            const removeHighlight = () => {
+              targetEl.classList.remove('card-highlight');
+              targetEl.removeEventListener('animationend', removeHighlight);
+            };
+            targetEl.addEventListener('animationend', removeHighlight);
           }
         });
       });
 
-      let scrollTicking = false;
-      window.addEventListener(
-        'scroll',
-        () => {
-          if (scrollTicking) return;
-          scrollTicking = true;
-          window.requestAnimationFrame(() => {
-            updateActiveFromScroll();
-            scrollTicking = false;
+      // 5. SVG Radar hover Tooltip positioning and bounding clamp
+      const tooltip = document.getElementById('radar-tooltip');
+      const hoverZones = document.querySelectorAll('.radar-hover-zone');
+      if (tooltip && hoverZones.length) {
+        hoverZones.forEach(zone => {
+          zone.addEventListener('mouseenter', () => {
+            const label = zone.getAttribute('data-label');
+            const score = zone.getAttribute('data-score');
+            const reason = zone.getAttribute('data-reason');
+            
+            tooltip.innerHTML = `
+              <div class="radar-tooltip-title">
+                <span>${label}</span>
+                <span class="radar-tooltip-score">${score}</span>
+              </div>
+              <div class="radar-tooltip-reason">${reason}</div>
+            `;
+            tooltip.style.display = 'block';
+            void tooltip.offsetWidth;
+            tooltip.style.opacity = '1';
           });
-        },
-        { passive: true }
-      );
-      window.addEventListener('resize', updateActiveFromScroll, { passive: true });
-      updateActiveFromScroll();
+          
+          zone.addEventListener('mousemove', (e) => {
+            const tooltipWidth = tooltip.offsetWidth;
+            const tooltipHeight = tooltip.offsetHeight;
+            let x = e.pageX + 15;
+            let y = e.pageY + 15;
+            
+            if (x + tooltipWidth > window.innerWidth + window.scrollX) {
+              x = e.pageX - tooltipWidth - 15;
+            }
+            if (y + tooltipHeight > window.innerHeight + window.scrollY) {
+              y = e.pageY - tooltipHeight - 15;
+            }
+            
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+          });
+          
+          zone.addEventListener('mouseleave', () => {
+            tooltip.style.opacity = '0';
+            const hideTooltip = () => {
+              if (tooltip.style.opacity === '0') {
+                tooltip.style.display = 'none';
+              }
+              tooltip.removeEventListener('transitionend', hideTooltip);
+            };
+            tooltip.addEventListener('transitionend', hideTooltip);
+          });
+        });
+      }
+
+      // 6. Manual three-state theme toggler with localstorage safety sandbox
+      const updateThemeUI = (theme, mode) => {
+        const statusEl = document.getElementById('theme-toggle-status');
+        if (statusEl) {
+          statusEl.textContent = mode === 'auto' ? `Auto (${theme})` : (theme === 'dark' ? 'Dark' : 'Light');
+        }
+      };
+
+      const setTheme = (theme, mode) => {
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        } else {
+          document.documentElement.classList.add('light');
+          document.documentElement.classList.remove('dark');
+        }
+        window.__theme = theme;
+        updateThemeUI(theme, mode);
+        try {
+          if (mode === 'auto') {
+            localStorage.removeItem('growth-mirror-theme');
+          } else {
+            localStorage.setItem('growth-mirror-theme', theme);
+          }
+        } catch (e) {
+          console.warn('localStorage write failed:', e);
+        }
+      };
+
+      let storedTheme = null;
+      try {
+        storedTheme = localStorage.getItem('growth-mirror-theme');
+      } catch (e) {}
+
+      let initialMode = storedTheme ? 'manual' : 'auto';
+      updateThemeUI(window.__theme, initialMode);
+
+      const toggleTheme = () => {
+        let currentStored = null;
+        try {
+          currentStored = localStorage.getItem('growth-mirror-theme');
+        } catch (e) {}
+
+        if (!currentStored) {
+          const next = window.__theme === 'dark' ? 'light' : 'dark';
+          setTheme(next, 'manual');
+        } else {
+          if (currentStored === 'light') {
+            setTheme('dark', 'manual');
+          } else if (currentStored === 'dark') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            setTheme(prefersDark ? 'dark' : 'light', 'auto');
+          }
+        }
+      };
+
+      const btn = document.getElementById('theme-toggle-btn');
+      const mobileBtn = document.getElementById('mobile-theme-toggle');
+      if (btn) btn.addEventListener('click', toggleTheme);
+      if (mobileBtn) mobileBtn.addEventListener('click', toggleTheme);
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        let currentStored = null;
+        try {
+          currentStored = localStorage.getItem('growth-mirror-theme');
+        } catch (e) {}
+        if (!currentStored) {
+          setTheme(e.matches ? 'dark' : 'light', 'auto');
+        }
+      });
     })();
   </script>
 </body>

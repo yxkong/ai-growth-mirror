@@ -22,6 +22,7 @@ from ..domain.growth.scorer import (
     format_growth_level_score_range,
 )
 from ..domain.growth.coaching import CoachingContent
+from ..domain.growth.evidence import clean_project_name
 from ..domain.snapshots.model import SnapshotSource
 from ..domain.signals.collab import CollaborationStyleResult, compute_collaboration_style
 from ..domain.growth.highlights import Exemplar, pattern_label, surface_highlights
@@ -164,6 +165,27 @@ def _build_radar_chart(axes: list[RadarAxis]) -> RadarChartView:
             for index, axis in enumerate(axes)
         )
     )
+
+    hover_zones: list[dict] = []
+    hover_radius = outer_radius + 15
+    for index, axis in enumerate(axes):
+        angle_prev = (-math.pi / 2) + (2 * math.pi * (index - 0.5) / count)
+        angle_next = (-math.pi / 2) + (2 * math.pi * (index + 0.5) / count)
+        
+        x1 = center + hover_radius * math.cos(angle_prev)
+        y1 = center + hover_radius * math.sin(angle_prev)
+        x2 = center + hover_radius * math.cos(angle_next)
+        y2 = center + hover_radius * math.sin(angle_next)
+        
+        pts = f"{center},{center} {round(x1, 1)},{round(y1, 1)} {round(x2, 1)},{round(y2, 1)}"
+        hover_zones.append({
+            "key": axis.key,
+            "label": axis.label,
+            "score": axis.score,
+            "short_reason": axis.short_reason,
+            "points": pts
+        })
+
     return RadarChartView(
         size=size,
         center=center,
@@ -172,6 +194,7 @@ def _build_radar_chart(axes: list[RadarAxis]) -> RadarChartView:
         axis_lines=axis_lines,
         label_positions=label_positions,
         polygon_points=polygon_points,
+        hover_zones=hover_zones,
     )
 
 
@@ -536,6 +559,7 @@ class RadarChartView:
     axis_lines: list[str] = field(default_factory=list)
     label_positions: list[dict] = field(default_factory=list)
     polygon_points: str = ""
+    hover_zones: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -915,7 +939,7 @@ def _build_summary(
         PersonalStatChip(chips_i18n.get("code_sessions", "Code sessions"), str(stats.code_session_count or stats.session_count)),
         PersonalStatChip(delivery_label, f"{completion_pct}%"),
     ]
-    projects = [] if redact else [name for name, _ in stats.top_projects[:3]]
+    projects = [] if redact else [_display_project_name(name) for name, _ in stats.top_projects[:3]]
     share_i18n = s_i18n.get("share_lines", {})
     share_fmt = {
         "session_count": stats.session_count,
@@ -2106,18 +2130,7 @@ def _goal_label(name: str, catalogs: ReportLabelCatalogs) -> str:
 
 
 def _display_project_name(name: str) -> str:
-    raw = (name or "").strip().replace("\\", "/")
-    if raw.startswith("//?/"):
-        raw = raw[4:]
-    raw = raw.rstrip("/")
-    if not raw:
-        return ""
-    display = raw.rsplit("/", 1)[-1]
-    if "/" not in raw and "\\" not in raw:
-        parts = [part for part in display.split("-") if part]
-        if len(parts) >= 4 and len(parts[0]) == 1:
-            display = "-".join(parts[-2:])
-    return display
+    return clean_project_name(name)
 
 
 def _display_tool_name(name: str, catalogs: ReportLabelCatalogs) -> str:
