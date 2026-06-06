@@ -42,18 +42,17 @@
 
 ## 3. 已完成里程碑
 
-### 3.1 v0.4.2 (基于 Schema 1.2) — 性能与评分规范重构
-* **指标动态归一化**：在 Cursor/Trae 无 Token 指标时，在 [scorer.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/domain/growth/scorer.py) 中动态剔除 Token 权重，并重分配其余指标权重，解决零值惩罚的缺口。
-* **Per-Session DB Revision**：利用 AI 聊天核心行哈希，防止因无关的 IDE 状态修改导致缓存颠簸失效。
-* **多机器物理隔离**：支持 `(source_machine, session_id)` 双重唯一去重，并在缓存中按机器子目录物理隔离。
-* **惰性 Placeholder 解析**：初扫描阶段仅提取 project_path 构建 Placeholder 会话，过滤采样后再深度解析，吞吐率提升百倍。
-
-### 3.2 v0.4.0 (基于 Schema 1.1) — Agentic 诊断底座
+### 3.1 v0.4.0 (基于 Schema 1.1) — Agentic 诊断底座
 * **三段式 LLM 诊断层**：Stage-1 候选生成 -> Stage-2 LLM 深度诊断与反例校验 -> Stage-3 规则重排过滤。
 * **Agentic Evidence Graph**：六维会话事实图（任务意图、使用方法、上下文、执行路径、收口状态、人工干预）落地，并写入 Sidecar 归档。
 * **Action Contract Generator**：动态规则产出个性化 Rule/Skill/Workflow 起草建议，替代原有的固定文字卡片。
 * **人工纠偏成本趋势**：追踪快照中 `human_intervention_session_rate` 的 Improving/Worsening/Flat 趋势并对比。
 
+### 3.2 v0.4.2 (基于 Schema 1.2) — 性能与评分规范重构
+* **指标动态归一化**：在 Cursor/Trae 无 Token 指标时，在 [scorer.py](./ai_growth_mirror/domain/growth/scorer.py) 中动态剔除 Token 权重，并重分配其余指标权重，解决零值惩罚的缺口。
+* **Per-Session DB Revision**：利用 AI 聊天核心行哈希，防止因无关的 IDE 状态修改导致缓存颠簸失效。
+* **多机器物理隔离**：支持 `(source_machine, session_id)` 双重唯一去重，并在缓存中按机器子目录物理隔离。
+* **惰性 Placeholder 解析**：初扫描阶段仅提取 project_path 构建 Placeholder 会话，过滤采样后再深度解析，吞吐率提升百倍。
 ---
 
 ## 4. 中期规划 (v0.5.0 ~ v0.7.0)

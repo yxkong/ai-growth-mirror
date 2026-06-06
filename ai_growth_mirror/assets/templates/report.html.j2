@@ -162,11 +162,11 @@
       gap: 14px;
       padding: 20px;
       border-radius: 22px;
-      background: linear-gradient(160deg, rgba(255,255,255,0.82) 0%, rgba(238,242,255,0.94) 72%, rgba(224,242,254,0.92) 100%);
-      border: 1px solid rgba(167, 139, 250, 0.42);
+      background: var(--card-bg);
+      border: 1px solid var(--border-active, rgba(167, 139, 250, 0.42));
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.75),
-        0 16px 30px rgba(124, 58, 237, 0.14);
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 16px 34px rgba(0, 0, 0, 0.3);
     }
     .hero-badge-main {
       display: flex;
@@ -348,8 +348,8 @@
       padding: 18px;
       background: var(--card-bg);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.78),
-        0 6px 18px rgba(15, 23, 42, 0.04);
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 6px 18px rgba(0, 0, 0, 0.2);
     }
     .metric {
       margin-top: 14px;
@@ -415,7 +415,7 @@
     }
     .tab-btn {
       border: 1px solid var(--line);
-      background: #fff;
+      background: var(--sidebar-link-bg, #fff);
       color: var(--ink);
       padding: 10px 14px;
       border-radius: 999px;
@@ -646,7 +646,7 @@
       margin-bottom: 16px;
     }
     .evidence-summary .card {
-      background: linear-gradient(180deg, #ffffff 0%, #f7faff 52%, #f1f5ff 100%);
+      background: linear-gradient(180deg, var(--card-bg) 0%, hsla(var(--h-neutral, 220), 30%, 10%, 0.8) 100%);
     }
     .summary-kicker {
       font-size: 0.75rem;
@@ -809,9 +809,9 @@
       background: var(--separator);
     }
     .evidence-divider--system span {
+      color: var(--accent);
       background: rgba(14, 165, 233, 0.08);
       border-color: rgba(14, 165, 233, 0.35);
-      color: #0369a1;
     }
     .evidence-row--system_layer {
       background: rgba(14, 165, 233, 0.04);
@@ -820,13 +820,13 @@
       border-bottom: 1px solid rgba(14, 165, 233, 0.15);
     }
     .coach-card {
-      background: linear-gradient(180deg, #ffffff 0%, #f9fbff 55%, #f2f7ff 100%);
-      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      border: 1px solid var(--border-active, var(--card-border));
       border-radius: 18px;
       padding: 18px;
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.8),
-        0 6px 18px rgba(124, 58, 237, 0.05);
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 6px 18px rgba(0, 0, 0, 0.2);
     }
     .coach-headline {
       font-size: 1rem;
@@ -889,16 +889,16 @@
       gap: 6px;
       padding: 5px 12px;
       border-radius: 999px;
-      background: white;
-      border: 1px solid rgba(124, 58, 237, 0.22);
+      background: var(--pill-bg);
+      border: 1px solid var(--border-active, rgba(124, 58, 237, 0.22));
       font-size: 0.82rem;
-      color: var(--accent-strong, #6d28d9);
+      color: var(--pill-fg);
       font-weight: 600;
     }
     .advanced-feature-chip em {
       font-style: normal;
       font-weight: 700;
-      color: var(--accent, #7c3aed);
+      color: var(--accent);
     }
     .priority-why {
       margin: 0 0 14px;
@@ -929,10 +929,11 @@
       margin-top: 14px;
       padding-top: 0;
       border-top: none;
-      background: linear-gradient(180deg, #f9fbff 0%, #f3f7ff 100%);
-      border: 1px solid var(--card-border);
+      background: var(--section-bg);
+      border: 1px solid var(--section-border);
       border-radius: 18px;
       padding: 10px 12px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     }
     .section-toggle > summary {
       display: flex;
@@ -942,12 +943,14 @@
       width: 100%;
       padding: 12px 14px;
       border-radius: 14px;
-      background: linear-gradient(180deg, #f5f8ff 0%, #eef3ff 100%);
-      border: 1px solid var(--note-border);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      cursor: pointer;
     }
     .section-toggle > summary:hover {
-      background: linear-gradient(180deg, #eef4ff 0%, #e7efff 100%);
+      background: var(--sidebar-link-border);
+      border-color: var(--border-active);
     }
     .section-toggle > summary::after {
       content: "+";
@@ -1120,7 +1123,7 @@
               <circle cx="{{ xy[0] }}" cy="{{ xy[1] }}" r="3.5" style="fill: var(--chart-stroke);"></circle>
               {% endfor %}
               {% for item in view.radar_chart.label_positions %}
-              <text x="{{ item.x }}" y="{{ item.y }}" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(15,23,42,0.84)">{{ item.label }}</text>
+              <text x="{{ item.x }}" y="{{ item.y }}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">{{ item.label }}</text>
               {% endfor %}
             </svg>
           </div>
@@ -1817,10 +1820,14 @@
       <div>{{ view.report_title }} · {{ view.tool_display_name }} · {{ view.generated_at }}</div>
       <div class="footer-meta">
         <a href="{{ view.labels.get('footer_github_url', 'https://github.com/yxkong/ai-growth-mirror') }}" target="_blank" rel="noopener noreferrer">{{ view.labels.get('footer_github_label', 'GitHub') }}</a>
+        {% if not view.hide_wechat %}
         <span class="footer-sep">·</span>
-        <span>{{ view.labels.get('footer_author', 'yxkong') }}</span>
+        <span>{{ view.labels.get('footer_wechat', '公众号：5ycode') }}</span>
+        {% endif %}
+        {% if not view.hide_email %}
         <span class="footer-sep">·</span>
         <a href="mailto:{{ view.labels.get('footer_email', '5ycode@sina.com') }}">{{ view.labels.get('footer_email', '5ycode@sina.com') }}</a>
+        {% endif %}
       </div>
     </div>
     </div>

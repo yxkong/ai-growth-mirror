@@ -32,86 +32,109 @@
   --warn: #b45309;
 }
 {% else %}
-{# Public Wrapped: light canvas + Enterprise Reflection semantics (private/org/code/reflection-enterprise-snapshot) #}
+{# Cyber Dark Theme: dark slate canvas + Glassmorphism properties #}
 :root {
-  --bg: #f5f3ff;
-  --paper: #ffffff;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --line: #e0e7ff;
-  --separator: #ede9fe;
-  /* Reflection layer */
-  --accent: #7c3aed;
-  --accent-strong: #6d28d9;
-  --accent-soft: #eef2ff;
-  --accent-light: #3b82f6;
-  --accent-warm: #a78bfa;
+  /* HSL Core Hues */
+  --h-primary: 250;      /* Cyber Indigo */
+  --h-growth: 150;       /* Emerald Green (Positive Signals) */
+  --h-friction: 35;      /* Amber Yellow (Blockers/Friction) */
+  --h-neutral: 220;      /* Deep Slate Blue (Canvas Base) */
+
+  /* Dark Theme Palette */
+  --bg: hsl(var(--h-neutral), 35%, 6%);
+  --paper: hsla(var(--h-neutral), 30%, 10%, 0.65);
+  --ink: hsl(var(--h-neutral), 20%, 95%);
+  --muted: hsl(var(--h-neutral), 12%, 72%);
+  --line: hsla(var(--h-neutral), 20%, 80%, 0.08);
+  --separator: hsla(var(--h-neutral), 20%, 80%, 0.06);
+
+  /* Reflection Layer & Accent colors */
+  --accent: hsl(var(--h-primary), 75%, 65%);
+  --accent-strong: hsl(var(--h-primary), 80%, 75%);
+  --accent-soft: hsla(var(--h-primary), 70%, 50%, 0.16);
+  --accent-light: hsl(200, 85%, 60%);
+  --accent-warm: hsl(var(--h-primary), 70%, 80%);
+
   /* Growth & friction semantics */
-  --growth: #10b981;
-  --growth-soft: rgba(16, 185, 129, 0.1);
-  --friction: #f59e0b;
-  --friction-soft: rgba(245, 158, 11, 0.1);
-  --warm: #f59e0b;
-  --warm-soft: #fff7ed;
-  --link: #7c3aed;
-  --shadow: 0 22px 50px rgba(124, 58, 237, 0.12);
-  --bar-track: #ede9fe;
-  --bar-end: #3b82f6;
-  --badge: linear-gradient(135deg, #7c3aed 0%, #a78bfa 55%, #3b82f6 100%);
-  --code-bg: #1e293b;
-  --code-fg: #e2e8f0;
-  --pill-bg: #f3e8ff;
-  --pill-fg: #6d28d9;
-  --evidence-met: #10b981;
-  --evidence-unmet: #94a3b8;
-  --note-border: #ddd6fe;
+  --growth: hsl(var(--h-growth), 70%, 50%);
+  --growth-soft: hsla(var(--h-growth), 70%, 50%, 0.12);
+  --friction: hsl(var(--h-friction), 80%, 55%);
+  --friction-soft: hsla(var(--h-friction), 80%, 55%, 0.12);
+  --warm: hsl(var(--h-friction), 80%, 55%);
+  --warm-soft: hsla(var(--h-friction), 80%, 55%, 0.08);
+  --link: hsl(var(--h-primary), 75%, 68%);
+
+  /* Shadow & indicators */
+  --shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+  --bar-track: hsla(var(--h-neutral), 20%, 80%, 0.08);
+  --bar-end: hsl(var(--h-primary), 75%, 65%);
+  --badge: linear-gradient(135deg, hsl(var(--h-primary), 75%, 60%) 0%, hsl(var(--h-primary), 60%, 50%) 55%, hsl(200, 80%, 55%) 100%);
+  --code-bg: hsl(var(--h-neutral), 30%, 8%);
+  --code-fg: hsl(var(--h-neutral), 15%, 88%);
+  --pill-bg: hsla(var(--h-primary), 70%, 50%, 0.14);
+  --pill-fg: hsl(var(--h-primary), 75%, 75%);
+  --evidence-met: hsl(var(--h-growth), 70%, 50%);
+  --evidence-unmet: hsl(var(--h-neutral), 10%, 48%);
+  --note-border: hsla(var(--h-primary), 70%, 50%, 0.22);
   --good: var(--growth);
   --warn: var(--friction);
+
+  /* Deep space radial glow page background */
   --page-bg:
-    radial-gradient(ellipse 70% 55% at 8% -8%, rgba(124, 58, 237, 0.2), transparent 58%),
-    radial-gradient(ellipse 55% 45% at 92% 4%, rgba(59, 130, 246, 0.18), transparent 52%),
-    radial-gradient(ellipse 45% 35% at 72% 96%, rgba(167, 139, 250, 0.12), transparent 55%),
-    linear-gradient(180deg, #faf8ff 0%, #f3f6ff 48%, #eef4ff 100%);
-  --sidebar-bg: rgba(255, 255, 255, 0.88);
-  --sidebar-border: rgba(199, 210, 254, 0.9);
-  --sidebar-link-bg: rgba(255, 255, 255, 0.72);
-  --sidebar-link-border: #e0e7ff;
-  --sidebar-link-ink: #334155;
+    radial-gradient(ellipse 70% 55% at 8% -8%, hsla(var(--h-primary), 65%, 45%, 0.18), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 92% 4%, hsla(200, 80%, 50%, 0.12), transparent 52%),
+    radial-gradient(ellipse 45% 35% at 72% 96%, hsla(var(--h-primary), 70%, 50%, 0.08), transparent 55%),
+    linear-gradient(180deg, hsl(var(--h-neutral), 35%, 6%) 0%, hsl(var(--h-neutral), 30%, 8%) 48%, hsl(var(--h-neutral), 35%, 5%) 100%);
+
+  /* Sidebar styling */
+  --sidebar-bg: hsla(var(--h-neutral), 30%, 9%, 0.75);
+  --sidebar-border: hsla(var(--h-neutral), 20%, 80%, 0.06);
+  --sidebar-link-bg: hsla(var(--h-neutral), 20%, 80%, 0.03);
+  --sidebar-link-border: hsla(var(--h-neutral), 20%, 80%, 0.04);
+  --sidebar-link-ink: hsl(var(--h-neutral), 12%, 80%);
+
+  /* Hero styling */
   --hero-surface:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.97) 0%, rgba(238, 242, 255, 0.94) 42%, rgba(224, 242, 254, 0.92) 100%);
-  --hero-border: rgba(199, 210, 254, 0.95);
-  --hero-ink: #0f172a;
-  --hero-muted: #64748b;
-  --hero-accent-line: linear-gradient(90deg, #7c3aed, #a78bfa, #3b82f6);
-  --hero-glass: rgba(255, 255, 255, 0.82);
-  --hero-glass-border: rgba(199, 210, 254, 0.85);
-  --hero-card-shadow: 0 10px 28px rgba(124, 58, 237, 0.1);
-  --hero-chip-bg: linear-gradient(135deg, rgba(238, 242, 255, 0.95), rgba(224, 242, 254, 0.95));
-  --hero-chip-border: rgba(165, 180, 252, 0.9);
-  --hero-chip-ink: #6d28d9;
-  --hero-strip-bg: linear-gradient(90deg, rgba(238, 242, 255, 0.95), rgba(224, 242, 254, 0.92));
-  --hero-strip-border: rgba(165, 180, 252, 0.75);
-  --hero-num-gradient: linear-gradient(135deg, #6d28d9 0%, #7c3aed 38%, #3b82f6 100%);
-  --hero-level-gradient: linear-gradient(135deg, #7c3aed 0%, #a78bfa 45%, #3b82f6 100%);
-  --hero-nav-bg: rgba(255, 255, 255, 0.9);
-  --hero-nav-border: #c7d2fe;
-  --hero-nav-ink: #475569;
-  --hero-nav-active-bg: linear-gradient(135deg, #7c3aed, #a78bfa);
+    linear-gradient(145deg, hsla(var(--h-neutral), 30%, 11%, 0.72) 0%, hsla(var(--h-neutral), 25%, 10%, 0.65) 42%, hsla(var(--h-neutral), 30%, 9%, 0.62) 100%);
+  --hero-border: hsla(var(--h-neutral), 20%, 80%, 0.08);
+  --hero-ink: hsl(var(--h-neutral), 20%, 96%);
+  --hero-muted: hsl(var(--h-neutral), 12%, 75%);
+  --hero-accent-line: linear-gradient(90deg, hsl(var(--h-primary), 75%, 65%), hsl(var(--h-primary), 60%, 55%), hsl(200, 85%, 60%));
+  --hero-glass: hsla(var(--h-neutral), 20%, 80%, 0.03);
+  --hero-glass-border: hsla(var(--h-neutral), 20%, 80%, 0.05);
+  --hero-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  --hero-chip-bg: linear-gradient(135deg, hsla(var(--h-neutral), 20%, 80%, 0.04), hsla(var(--h-neutral), 20%, 80%, 0.02));
+  --hero-chip-border: hsla(var(--h-neutral), 20%, 80%, 0.06);
+  --hero-chip-ink: hsl(var(--h-primary), 75%, 78%);
+  --hero-strip-bg: linear-gradient(90deg, hsla(var(--h-neutral), 20%, 80%, 0.04), hsla(var(--h-neutral), 20%, 80%, 0.02));
+  --hero-strip-border: hsla(var(--h-neutral), 20%, 80%, 0.05);
+  
+  --hero-num-gradient: linear-gradient(135deg, hsl(var(--h-primary), 80%, 75%) 0%, hsl(var(--h-primary), 70%, 65%) 38%, hsl(200, 85%, 60%) 100%);
+  --hero-level-gradient: linear-gradient(135deg, hsl(var(--h-primary), 80%, 70%) 0%, hsl(var(--h-primary), 70%, 65%) 45%, hsl(200, 85%, 60%) 100%);
+  
+  --hero-nav-bg: hsla(var(--h-neutral), 30%, 8%, 0.6);
+  --hero-nav-border: hsla(var(--h-neutral), 20%, 80%, 0.05);
+  --hero-nav-ink: hsl(var(--h-neutral), 12%, 75%);
+  --hero-nav-active-bg: linear-gradient(135deg, hsl(var(--h-primary), 70%, 60%), hsl(var(--h-primary), 60%, 50%));
   --hero-nav-active-border: transparent;
   --hero-nav-active-ink: #ffffff;
-  --overview-signal-bg: linear-gradient(160deg, #ffffff 0%, rgba(16, 185, 129, 0.08) 100%);
-  --overview-focus-bg: linear-gradient(160deg, #ffffff 0%, rgba(245, 158, 11, 0.1) 100%);
-  --overview-method-bg: linear-gradient(160deg, #ffffff 0%, rgba(124, 58, 237, 0.08) 100%);
-  --section-bg: rgba(255, 255, 255, 0.92);
-  --section-border: rgba(199, 210, 254, 0.85);
-  --section-accent: linear-gradient(90deg, #7c3aed, #a78bfa, #3b82f6);
-  --card-bg: #ffffff;
-  --card-border: #e0e7ff;
-  --note-bg: linear-gradient(180deg, #faf8ff 0%, #f5f3ff 100%);
-  --chart-grid: rgba(124, 58, 237, 0.12);
-  --chart-line: rgba(124, 58, 237, 0.2);
-  --chart-fill: rgba(124, 58, 237, 0.18);
-  --chart-stroke: rgba(124, 58, 237, 0.95);
+
+  --overview-signal-bg: linear-gradient(160deg, hsla(var(--h-neutral), 30%, 10%, 0.6) 0%, hsla(var(--h-growth), 70%, 50%, 0.05) 100%);
+  --overview-focus-bg: linear-gradient(160deg, hsla(var(--h-neutral), 30%, 10%, 0.6) 0%, hsla(var(--h-friction), 80%, 55%, 0.05) 100%);
+  --overview-method-bg: linear-gradient(160deg, hsla(var(--h-neutral), 30%, 10%, 0.6) 0%, hsla(var(--h-primary), 70%, 50%, 0.05) 100%);
+
+  --section-bg: hsla(var(--h-neutral), 30%, 9%, 0.7);
+  --section-border: hsla(var(--h-neutral), 20%, 80%, 0.06);
+  --section-accent: linear-gradient(90deg, hsl(var(--h-primary), 75%, 65%), hsl(var(--h-primary), 60%, 55%), hsl(200, 85%, 60%));
+  
+  --card-bg: hsla(var(--h-neutral), 30%, 10%, 0.65);
+  --card-border: hsla(var(--h-neutral), 20%, 80%, 0.06);
+  --note-bg: linear-gradient(180deg, hsla(var(--h-neutral), 30%, 10%, 0.5) 0%, hsla(var(--h-neutral), 30%, 8%, 0.5) 100%);
+  
+  --chart-grid: hsla(var(--h-neutral), 20%, 80%, 0.06);
+  --chart-line: hsla(var(--h-primary), 70%, 50%, 0.15);
+  --chart-fill: hsla(var(--h-primary), 70%, 50%, 0.12);
+  --chart-stroke: hsl(var(--h-primary), 75%, 65%);
 }
 {% endif %}
 
@@ -171,3 +194,18 @@ details summary,
 .theme-link {
   color: var(--link);
 }
+
+/* Premium Micro-animations & Monospace Pairing */
+.card, .hero-usage-card, .hero-usage-inline-item, .hero-kpi, .sidebar-card, .sidebar-nav-link, .tab-btn {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card:hover, .hero-usage-card:hover, .hero-usage-inline-item:hover, .hero-kpi:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-active, hsl(var(--h-primary, 250), 75%, 65%));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 20px hsla(var(--h-primary, 250), 70%, 50%, 0.14);
+}
+.data-num, .hero-kpi-num, .hero-usage-inline-value, .hero-usage-value, .hero-badge-level, .hero-score, .badge-level {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", "Fira Code", monospace;
+  letter-spacing: -0.03em;
+}
+

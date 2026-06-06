@@ -51,6 +51,8 @@ def generate_personal_report(
     llm: Optional["LlmGateway"] = None,
     session_read_mode: str = "heuristic",
     progress: Callable[[str], None] | None = None,
+    hide_wechat: bool = False,
+    hide_email: bool = False,
 ) -> None:
     capability_scores = compute_capability_scores(stats)
     catalogs = load_report_label_catalogs(language)
@@ -102,6 +104,8 @@ def generate_personal_report(
         quality_eligible=quality_eligible or 0,
         extraction_failed=extraction_failed,
         catalogs=catalogs,
+        hide_wechat=hide_wechat,
+        hide_email=hide_email,
     )
     html = render_personal_report_html(view=view, language=language, redact=redact)
 
