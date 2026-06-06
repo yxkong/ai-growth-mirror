@@ -35,6 +35,7 @@ from .base import (
     SUBAGENT_TOOL_NAMES,
     TEST_PATTERNS,
     WRITE_TOOL_NAMES,
+    _common_prefix_path,
     _max_mtime,
     detect_authorship_path,
     detect_language,
@@ -553,17 +554,7 @@ class CodeBuddyAdapter(BaseSessionAdapter):
 
 # ── shared utilities ──────────────────────────────────────────────────────
 
-def _common_prefix_path(paths: list[str]) -> str:
-    """Find the common parent directory of a set of absolute paths."""
-    absolute_paths = [p for p in paths if p and Path(p).is_absolute()]
-    if not absolute_paths:
-        return ""
-    try:
-        if len(absolute_paths) == 1:
-            return str(Path(absolute_paths[0]).parent)
-        return os.path.commonpath(absolute_paths)
-    except Exception:
-        return ""
+
 
 
 def _project_hash_to_hint(jsonl_path: Path) -> str:

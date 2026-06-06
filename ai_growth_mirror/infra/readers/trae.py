@@ -17,6 +17,7 @@ from ...domain.signals.tooling import compute_tier_counts
 from .base import (
     SUBAGENT_TOOL_NAMES,
     TEST_PATTERNS,
+    _common_prefix_path,
     _max_mtime,
     detect_authorship_path,
     detect_language,
@@ -290,7 +291,7 @@ class TraeAdapter(WorkspaceStorageChatAdapter):
             current_session_id = session_metadata.get("currentSessionId", "")
             project_path = self._extract_project_path(cursor)
             if not project_path and file_paths:
-                project_path = self._common_prefix_path(list(file_paths))
+                project_path = _common_prefix_path(list(file_paths))
 
             for input_item in input_history:
                 input_text = input_item.get("inputText", "")
@@ -442,14 +443,4 @@ class TraeAdapter(WorkspaceStorageChatAdapter):
             pass
         return {}
 
-    @staticmethod
-    def _common_prefix_path(paths: list[str]) -> str:
-        absolute_paths = [p for p in paths if p and Path(p).is_absolute()]
-        if not absolute_paths:
-            return ""
-        try:
-            if len(absolute_paths) == 1:
-                return str(Path(absolute_paths[0]).parent)
-            return os.path.commonpath(absolute_paths)
-        except Exception:
-            return ""
+

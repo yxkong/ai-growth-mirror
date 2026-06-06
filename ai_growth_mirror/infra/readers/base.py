@@ -311,3 +311,28 @@ def extract_skill_name_from_path(file_path: str) -> Optional[str]:
         return None
     name = m.group(1).strip()
     return name if name and name.lower() not in (".", "skills", "skills-cursor") else None
+
+
+def is_absolute_path(p: str) -> bool:
+    if not p:
+        return False
+    # POSIX absolute or Windows absolute (UNC or drive letter)
+    if p.startswith("/") or p.startswith("\\"):
+        return True
+    if len(p) >= 3 and p[1] == ":" and p[2] in ("/", "\\"):
+        return True
+    return False
+
+
+def _common_prefix_path(paths: list[str]) -> str:
+    import os
+    absolute_paths = [p for p in paths if p and is_absolute_path(p)]
+    if not absolute_paths:
+        return ""
+    try:
+        if len(absolute_paths) == 1:
+            return str(Path(absolute_paths[0]).parent)
+        return os.path.commonpath(absolute_paths)
+    except Exception:
+        return ""
+
