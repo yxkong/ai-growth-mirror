@@ -1,4 +1,12 @@
-"""Cost policy for token-based session accounting."""
+"""Cost policy for token-based session accounting.
+
+Token counts for tools that do not embed real usage in their logs (e.g. Gemini
+Antigravity) are *estimated* from content length. Estimated costs should be
+displayed with a leading ``~`` in the UI.
+
+Built-in fallback prices are provided via ``MODEL_PRICING``. Users can override
+them per-model-family in ``config.yaml`` under the ``pricing`` key.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -47,22 +55,46 @@ class TokenUsage:
         )
 
 
+# ── built-in fallback prices (USD per 1 M tokens) ────────────────────────────
+# These are used when no user-defined pricing is found in config.yaml.
+# Prices change frequently — configure your own under `pricing:` in config.yaml.
 DEFAULT_PRICING = TokenPricing(2.50, 10.00)
 MODEL_PRICING: tuple[tuple[str, TokenPricing], ...] = (
-    ("opus", TokenPricing(15.00, 75.00, 18.75, 1.50)),
-    ("sonnet", TokenPricing(3.00, 15.00, 3.75, 0.30)),
-    ("claude", TokenPricing(3.00, 15.00, 3.75, 0.30)),
-    ("haiku", TokenPricing(0.80, 4.00, 1.00, 0.08)),
+    ("opus",    TokenPricing(15.00, 75.00, 18.75, 1.50)),
+    ("sonnet",  TokenPricing(3.00,  15.00,  3.75, 0.30)),
+    ("claude",  TokenPricing(3.00,  15.00,  3.75, 0.30)),
+    ("haiku",   TokenPricing(0.80,   4.00,  1.00, 0.08)),
+    ("gemini",  TokenPricing(1.25,   5.00)),
+    ("deepseek", TokenPricing(0.27,  1.10)),
+    ("gpt",     TokenPricing(2.50,  10.00)),
 )
 
 
-def resolve_pricing(models_used: list[str] | None) -> TokenPricing:
-    """Resolve session pricing from the highest-signal model family."""
+def resolve_pricing(
+    models_used: list[str] | None,
+    *,
+    user_pricing: dict[str, TokenPricing] | None = None,
+) -> TokenPricing:
+    """Resolve session pricing from the highest-signal model family.
 
+    Lookup order:
+    1. ``user_pricing`` dict (from config.yaml ``pricing`` section)
+    2. Built-in ``MODEL_PRICING`` fallback table
+    3. ``DEFAULT_PRICING``
+    """
     combined = " ".join(models_used or []).lower()
+
+    # User-configured prices take priority
+    if user_pricing:
+        for token, pricing in user_pricing.items():
+            if token.lower() in combined:
+                return pricing
+
+    # Built-in fallback
     for token, pricing in MODEL_PRICING:
         if token in combined:
             return pricing
+
     return DEFAULT_PRICING
 
 
@@ -72,8 +104,14 @@ def estimate_cost(
     cache_read_tokens: Optional[int] = None,
     cache_write_tokens: Optional[int] = None,
     models_used: Optional[list[str]] = None,
+    *,
+    user_pricing: dict[str, "TokenPricing"] | None = None,
 ) -> Optional[float]:
-    """Return estimated USD cost, or None if no token data is available."""
+    """Return estimated USD cost, or None if no token data is available.
+
+    When ``user_pricing`` is provided (loaded from config.yaml), it takes
+    precedence over the built-in fallback table.
+    """
     usage = TokenUsage(
         input_tokens=input_tokens or 0,
         output_tokens=output_tokens or 0,
@@ -82,7 +120,7 @@ def estimate_cost(
     )
     if not usage.has_billable_usage:
         return None
-    return resolve_pricing(models_used).estimate(usage)
+    return resolve_pricing(models_used, user_pricing=user_pricing).estimate(usage)
 
 
 def cache_hit_rate(

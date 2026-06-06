@@ -1,5 +1,4 @@
-"""Google Gemini provider adapter."""
-from __future__ import annotations
+import logging
 
 from ....config import resolve_provider_api_key
 from ....domain.common.contracts import LlmCallRequest
@@ -15,6 +14,7 @@ class GeminiContentAdapter(ProviderAdapter):
         genai.configure(api_key=api_key or resolve_provider_api_key("gemini") or "")
         self.model = model
         self.model_obj = genai.GenerativeModel(model)
+        self.last_usage = None
 
     def complete(self, request: LlmCallRequest) -> str:
         merged_system = (
@@ -27,4 +27,23 @@ class GeminiContentAdapter(ProviderAdapter):
             content,
             generation_config={"max_output_tokens": request.max_tokens},
         )
+        
+        # Extract and log usage
+        usage = getattr(response, "usage_metadata", None)
+        if usage:
+            prompt_tokens = getattr(usage, "prompt_token_count", 0)
+            candidates_tokens = getattr(usage, "candidates_token_count", 0)
+            total_tokens = getattr(usage, "total_token_count", 0)
+            self.last_usage = {
+                "prompt_tokens": prompt_tokens,
+                "candidates_tokens": candidates_tokens,
+                "total_tokens": total_tokens,
+            }
+            logging.info(
+                f"Gemini API Usage for model {self.model}: "
+                f"prompt_tokens={prompt_tokens}, "
+                f"candidates_tokens={candidates_tokens}, "
+                f"total_tokens={total_tokens}"
+            )
+            
         return response.text

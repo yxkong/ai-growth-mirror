@@ -1463,3 +1463,85 @@ def test_personal_report_hide_wechat_email():
     assert "公众号：5ycode" in html_show
     assert "5ycode@sina.com" in html_show
     assert "GitHub" in html_show
+
+
+def test_active_clarification_heuristic_detection():
+    from ai_growth_mirror.infra.extractors.heuristic import build_heuristic_session_read_for_session
+    s = _make_session("s1", "D:/repo/demo")
+    s.user_message_count = 3
+    s.top_user_messages = ["实现登录", "不要使用第三方库", "好的谢谢"]
+    
+    read = build_heuristic_session_read_for_session(s)
+    assert read.active_clarification is True
+
+    s2 = _make_session("s2", "D:/repo/demo")
+    s2.user_message_count = 2
+    s2.top_user_messages = ["实现登录", "不要使用第三方库"]
+    read2 = build_heuristic_session_read_for_session(s2)
+    assert read2.active_clarification is False
+
+
+def test_active_clarification_scorer_boost():
+    sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/b")]
+    facets = [_make_facets("s1"), _make_facets("s2")]
+    facets[0].active_clarification = True
+    facets[1].active_clarification = False
+
+    stats = aggregate(sessions, facets, tool_name="codex")
+    assert stats.active_clarification_count == 1
+    assert stats.active_clarification_rate == 0.5
+    
+    # Verify boost was applied (max boost +8)
+    # 0.5 rate is >= 20%, so it should trigger full +8 boost
+    assert stats.agentic_sub_scores["intent_clarity"] > 0
+
+
+def test_action_contract_outcome_evaluation():
+    from ai_growth_mirror.domain.snapshots.comparison import compare_snapshot_sources
+    from ai_growth_mirror.domain.snapshots.model import SnapshotSource, SnapshotCoverage
+
+    prev = SnapshotSource(
+        snapshot_id="v1",
+        created_at="2026-06-01 10:00:00",
+        mirror_score=60,
+        axis_scores={"intent_clarity": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        coverage=SnapshotCoverage(session_count=10, session_read_count=10),
+        action_contracts=[{"axis_key": "intent_clarity", "title": "提升意图表达"}]
+    )
+    
+    curr_improved = SnapshotSource(
+        snapshot_id="v2",
+        created_at="2026-06-08 10:00:00",
+        mirror_score=66,
+        axis_scores={"intent_clarity": 56.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        coverage=SnapshotCoverage(session_count=10, session_read_count=10),
+    )
+
+    comp = compare_snapshot_sources(prev, curr_improved)
+    assert len(comp.contract_outcomes) == 1
+    assert comp.contract_outcomes[0].status == "improved"
+    assert comp.contract_outcomes[0].delta == 6.0
+
+    curr_partial = SnapshotSource(
+        snapshot_id="v2",
+        created_at="2026-06-08 10:00:00",
+        mirror_score=62,
+        axis_scores={"intent_clarity": 52.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        coverage=SnapshotCoverage(session_count=10, session_read_count=10),
+    )
+    comp_partial = compare_snapshot_sources(prev, curr_partial)
+    assert comp_partial.contract_outcomes[0].status == "partial"
+
+    # Test confidence downgrade (session count < 8)
+    prev_small = SnapshotSource(
+        snapshot_id="v1",
+        created_at="2026-06-01 10:00:00",
+        mirror_score=60,
+        axis_scores={"intent_clarity": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        coverage=SnapshotCoverage(session_count=5, session_read_count=5),
+        action_contracts=[{"axis_key": "intent_clarity", "title": "提升意图表达"}]
+    )
+    comp_small = compare_snapshot_sources(prev_small, curr_improved)
+    assert comp_small.confidence.level == "low"
+    assert comp_small.contract_outcomes[0].confidence == "low"
+

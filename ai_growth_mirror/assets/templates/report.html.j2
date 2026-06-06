@@ -1272,6 +1272,61 @@
               {% endfor %}
             </svg>
           </div>
+          {% if view.growth_trajectory and view.growth_trajectory.available and view.growth_trajectory.trend and view.growth_trajectory.trend.score_series %}
+            {% set series = view.growth_trajectory.trend.score_series %}
+            <div class="trend-section" style="margin-top: 16px; border-top: 1px solid var(--separator); padding-top: 16px; width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.95em; font-weight: bold; color: var(--ink);">{{ view.labels.get('label_score_trend', 'Mirror Score 近期趋势') }}</span>
+                {% set delta = view.growth_trajectory.data.score_delta %}
+                <span class="trend-badge {% if delta > 0 %}trend-up{% elif delta < 0 %}trend-down{% else %}trend-flat{% endif %}" 
+                      style="font-size: 0.85em; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; 
+                             background-color: {% if delta > 0 %}rgba(16,185,129,0.1){% elif delta < 0 %}rgba(239,68,68,0.1){% else %}rgba(156,163,175,0.1){% endif %};
+                             color: {% if delta > 0 %}var(--success, #10b981){% elif delta < 0 %}var(--danger, #ef4444){% else %}var(--text-muted, #6b7280){% endif %};">
+                  {% if delta > 0 %}
+                    <span style="font-size: 1.1em;">↑</span> {{ delta | round(0) }} 分
+                  {% elif delta < 0 %}
+                    <span style="font-size: 1.1em;">↓</span> {{ delta | round(0) }} 分
+                  {% else %}
+                    <span style="font-size: 1.1em;">→</span> 持平
+                  {% endif %}
+                </span>
+              </div>
+              <div style="position: relative; display: flex; justify-content: center; width: 100%;">
+                <svg width="300" height="120" viewBox="0 0 300 120" style="overflow: visible;">
+                  <defs>
+                    <linearGradient id="trend-area-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="var(--accent, #4f46e5)"></stop>
+                      <stop offset="100%" stop-color="var(--accent, #4f46e5)" stop-opacity="0"></stop>
+                    </linearGradient>
+                  </defs>
+                  {% for tick in series.y_ticks %}
+                  <line x1="12" y1="{{ tick.y }}" x2="288" y2="{{ tick.y }}" style="stroke: var(--chart-grid, #e5e7eb);" stroke-dasharray="3,3" stroke-width="1"></line>
+                  <text x="0" y="{{ tick.y + 3 }}" font-size="8" fill="var(--text-muted, #9ca3af)">{{ tick.value | round(0) }}</text>
+                  {% endfor %}
+                  {% if series.area_path %}
+                  <path d="{{ series.area_path }}" fill="url(#trend-area-grad)" opacity="0.15"></path>
+                  {% endif %}
+                  {% if series.polyline %}
+                  <path d="M {{ series.polyline }}" fill="none" stroke="var(--accent, #4f46e5)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  {% endif %}
+                  {% set last_points = series.points[-10:] %}
+                  {% for pt in last_points %}
+                  <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="4" class="trend-point" 
+                          data-date="{{ pt.date }}" data-val="{{ pt.value }}"
+                          style="fill: var(--accent, #4f46e5); stroke: var(--bg, #ffffff); stroke-width: 2; cursor: pointer;"></circle>
+                  {% endfor %}
+                </svg>
+                <div class="trend-tooltip" style="display: none; position: absolute; pointer-events: none; z-index: 1001; 
+                                                 background: rgba(15, 23, 42, 0.9); color: #fff; padding: 6px 10px; border-radius: 4px; 
+                                                 font-size: 10px; font-family: monospace; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted, #9ca3af); margin-top: 6px; padding: 0 12px;">
+                <span>{{ series.start_label }}</span>
+                <span>{{ series.end_label }}</span>
+              </div>
+            </div>
+          {% endif %}
           {% endif %}
         </div>
         <div class="grid-1" style="display:grid; gap:16px;">
@@ -1750,6 +1805,46 @@
         </div>
       </div>
       {% endfor %}
+
+      <!-- 上期训练回看折叠区块 -->
+      <details class="section-toggle" style="margin-top:16px" {% if view.growth_trajectory and view.growth_trajectory.available %}open{% endif %}>
+        <summary>
+          <span style="font-size:1.1em; font-weight:bold; cursor:pointer;">
+            {{ view.labels.get('label_prior_contract_review', '上期训练回看 (Prior Contract Review)') }}
+          </span>
+        </summary>
+        <div style="margin-top: 12px;">
+          {% if view.growth_trajectory and view.growth_trajectory.available and view.growth_trajectory.data.latest_vs_previous.contract_outcomes %}
+            {% for outcome in view.growth_trajectory.data.latest_vs_previous.contract_outcomes %}
+            <div class="card" style="margin-bottom:12px; border-left: 4px solid {% if outcome.status == 'improved' %}var(--success, #10b981){% elif outcome.status == 'partial' %}var(--warning, #f59e0b){% else %}var(--muted, #9ca3af){% endif %};">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                <h4 style="margin:0; font-size:1.05em;">{{ outcome.title }}</h4>
+                <span class="pill" style="font-size:0.85em; background-color:{% if outcome.status == 'improved' %}rgba(16,185,129,0.1){% elif outcome.status == 'partial' %}rgba(245,158,11,0.1){% else %}rgba(156,163,175,0.1){% endif %}; color:{% if outcome.status == 'improved' %}var(--success, #10b981){% elif outcome.status == 'partial' %}var(--warning, #f59e0b){% else %}var(--text-muted, #6b7280){% endif %};">
+                  {% if outcome.status == 'improved' %}已改善 (Improved)
+                  {% elif outcome.status == 'partial' %}部分改善 (Partial)
+                  {% elif outcome.status == 'unchanged' %}未见明显变化 (Unchanged)
+                  {% elif outcome.status == 'no_data' %}数据不足 (No Data)
+                  {% else %}评估不匹配 (Mismatch)
+                  {% endif %}
+                </span>
+              </div>
+              <p style="margin:4px 0; font-size:0.95em;">{{ outcome.explanation }}</p>
+              <div style="display:flex; gap:16px; margin-top:8px; font-size:0.85em; color:var(--text-muted, #6b7280); flex-wrap:wrap;">
+                <span>目标轴: {{ outcome.axis_label }}</span>
+                {% if outcome.previous_score is not None and outcome.current_score is not None %}
+                <span>轴分对比: {{ outcome.previous_score | round(1) }} → {{ outcome.current_score | round(1) }} ({% if outcome.delta >= 0 %}+{% endif %}{{ outcome.delta | round(1) }})</span>
+                {% endif %}
+                <span>置信度: {% if outcome.confidence == 'high' %}高 (High){% elif outcome.confidence == 'medium' %}中 (Medium){% else %}低 (Low){% endif %}</span>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="card" style="padding:16px; text-align:center; color:var(--text-muted, #6b7280);">
+              {{ view.labels.get('label_prior_contract_empty', '首次生成，暂无回看 (No historical contracts available)') }}
+            </div>
+          {% endif %}
+        </div>
+      </details>
     </section>
 
     <section class="section" id="section-friction">
@@ -2176,6 +2271,37 @@
               tooltip.removeEventListener('transitionend', hideTooltip);
             };
             tooltip.addEventListener('transitionend', hideTooltip);
+          });
+        });
+      }
+
+      // 5b. SVG Trend hover Tooltip positioning
+      const trendTooltip = document.querySelector('.trend-tooltip');
+      const trendPoints = document.querySelectorAll('.trend-point');
+      if (trendTooltip && trendPoints.length) {
+        trendPoints.forEach(point => {
+          point.addEventListener('mouseenter', () => {
+            const date = point.getAttribute('data-date');
+            const val = point.getAttribute('data-val');
+            trendTooltip.innerHTML = `<strong>${date}</strong>: ${val}`;
+            trendTooltip.style.display = 'block';
+            trendTooltip.style.opacity = '1';
+          });
+          
+          point.addEventListener('mousemove', (e) => {
+            const container = point.closest('.trend-section');
+            if (container) {
+              const rect = container.getBoundingClientRect();
+              const x = e.clientX - rect.left + 15;
+              const y = e.clientY - rect.top + 15;
+              trendTooltip.style.left = `${x}px`;
+              trendTooltip.style.top = `${y}px`;
+            }
+          });
+          
+          point.addEventListener('mouseleave', () => {
+            trendTooltip.style.display = 'none';
+            trendTooltip.style.opacity = '0';
           });
         });
       }

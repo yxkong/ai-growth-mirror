@@ -66,11 +66,14 @@ class SessionRecord:
     tool_error_categories: dict[str, int] = field(default_factory=dict)
 
     # Tokens (None means unavailable for this tool)
+    # tokens_estimated=True means the values are heuristic estimates (e.g. Gemini),
+    # not real API usage. Such sessions are excluded from token/cost aggregation.
     input_tokens: Optional[int] = None
     output_tokens: Optional[int] = None
     cache_read_tokens: Optional[int] = None
     cache_write_tokens: Optional[int] = None
     total_cost_usd: Optional[float] = None
+    tokens_estimated: bool = False
 
     # Code changes
     lines_added: int = 0

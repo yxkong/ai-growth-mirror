@@ -254,6 +254,7 @@ def _compute_growth_level(
     workflow_reuse_depth: int = 0,
     asset_authoring_session_rate: float = 0.0,
     has_token_data: bool = True,
+    active_clarification_rate: float = 0.0,
 ) -> tuple[str, int, dict[str, float]]:
     prompt_dimensions = prompt_dimensions or {}
     friction_by_attribution = friction_by_attribution or {}
@@ -264,7 +265,7 @@ def _compute_growth_level(
     user_actionable_ratio = user_actionable / friction_total if friction_total else 0.0
     files_per_session = total_files_modified / max(session_count, 1)
 
-    intent_clarity = _bounded_average(
+    intent_clarity_raw = _bounded_average(
         (constraint_prompt_rate * 100.0, 0.28),
         (code_context_rate * 100.0, 0.24),
         (prompt_dimensions.get("request_specificity", 50.0), 0.26),
@@ -277,6 +278,10 @@ def _compute_growth_level(
             0.22,
         ),
     )
+    boost = 0.0
+    if active_clarification_rate > 0.0:
+        boost = min(8.0, (active_clarification_rate / 0.20) * 8.0)
+    intent_clarity = min(100.0, intent_clarity_raw + boost)
     execution_driving = _bounded_average(
         (_soft_threshold(avg_chain, 1.5, 8.0, 100.0), 0.32),
         (_soft_threshold(heavy_session_rate, 0.10, 0.40, 100.0), 0.18),
@@ -592,6 +597,13 @@ def _populate_time_signals(stats: GrowthProfile, sessions: list[SessionRecord]) 
 
 def _populate_read_signals(stats: GrowthProfile, session_reads: list[SessionRead]) -> None:
     valid_reads = [read for read in session_reads if not getattr(read, "extraction_failed", False)]
+    active_count = sum(1 for read in valid_reads if getattr(read, "active_clarification", False))
+    stats.active_clarification_count = active_count
+    if valid_reads:
+        stats.active_clarification_rate = round(active_count / len(valid_reads), 4)
+    else:
+        stats.active_clarification_rate = 0.0
+
     for read in valid_reads:
         for category, count in read.work_intent_mix.items():
             _increment_map(stats.goal_category_counts, category, count)
@@ -615,25 +627,28 @@ def _populate_session_friction(stats: GrowthProfile, sessions: list[SessionRecor
 
 
 def _populate_costs_and_cache(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
+    # Only include sessions with real (non-estimated) token data in cost/token aggregation.
+    real_sessions = [s for s in sessions if not getattr(s, "tokens_estimated", False)]
+
     total_cost = sum(
-        session.total_cost_usd for session in sessions if session.total_cost_usd is not None
+        session.total_cost_usd for session in real_sessions if session.total_cost_usd is not None
     )
     stats.total_cost_usd = round(total_cost, 4)
-    sessions_with_cost = sum(1 for session in sessions if session.total_cost_usd is not None)
+    sessions_with_cost = sum(1 for session in real_sessions if session.total_cost_usd is not None)
     if sessions_with_cost:
         stats.avg_cost_per_session = round(total_cost / sessions_with_cost, 4)
 
     stats.total_input_tokens = sum(
-        session.input_tokens for session in sessions if session.input_tokens is not None
+        session.input_tokens for session in real_sessions if session.input_tokens is not None
     )
     stats.total_output_tokens = sum(
-        session.output_tokens for session in sessions if session.output_tokens is not None
+        session.output_tokens for session in real_sessions if session.output_tokens is not None
     )
     stats.total_cache_read_tokens = sum(
-        session.cache_read_tokens for session in sessions if session.cache_read_tokens is not None
+        session.cache_read_tokens for session in real_sessions if session.cache_read_tokens is not None
     )
     stats.total_cache_write_tokens = sum(
-        session.cache_write_tokens for session in sessions if session.cache_write_tokens is not None
+        session.cache_write_tokens for session in real_sessions if session.cache_write_tokens is not None
     )
 
     hit_rates = [
@@ -642,7 +657,7 @@ def _populate_costs_and_cache(stats: GrowthProfile, sessions: list[SessionRecord
             session.input_tokens,
             session.cache_write_tokens,
         )
-        for session in sessions
+        for session in real_sessions
         if session.cache_read_tokens and session.input_tokens
     ]
     usable_hit_rates = [value for value in hit_rates if value is not None]
@@ -989,6 +1004,7 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
         workflow_reuse_depth=stats.workflow_reuse_depth,
         asset_authoring_session_rate=stats.asset_authoring_session_rate,
         has_token_data=has_token_data,
+        active_clarification_rate=stats.active_clarification_rate,
     )
     stats.agentic_system_score = round(stats.agentic_sub_scores.get("agentic_system", 0.0), 1)
     stats.radar_axes = _build_radar_axes(stats)

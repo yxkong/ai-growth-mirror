@@ -77,6 +77,32 @@ def compare_snapshot_sources(
     friction = _build_friction_delta(previous, current, axis_deltas)
     method_assets = _build_method_asset_delta(previous, current)
     confidence = _build_confidence(previous, current, prompt_quality)
+    
+    # Compute TrendSummary
+    score_delta = current.mirror_score - previous.mirror_score
+    if score_delta >= 4:
+        trend_direction = "improving"
+    elif score_delta <= -4:
+        trend_direction = "declining"
+    else:
+        trend_direction = "flat"
+
+    if previous.coverage.session_count < 8 or current.coverage.session_count < 8:
+        trend_confidence = "low"
+        confidence.level = "low"
+    else:
+        trend_confidence = confidence.level
+
+    from .model import TrendSummary
+    trend_summary = TrendSummary(
+        direction=trend_direction,
+        confidence=trend_confidence,
+        score_delta=float(score_delta),
+    )
+
+    # Evaluate Action Contracts
+    contract_outcomes = _evaluate_action_contracts(previous, current, confidence.level)
+
     evidence_cards = _build_evidence_cards(previous, current, axis_deltas, friction, method_assets)
     next_priorities = _build_priorities(current, axis_deltas, friction, prompt_quality, method_assets)
     human_cost_trend = _build_human_cost_trend(previous, current)
@@ -96,6 +122,8 @@ def compare_snapshot_sources(
         confidence=confidence,
         next_priorities=next_priorities,
         human_cost_trend=human_cost_trend,
+        trend_summary=trend_summary,
+        contract_outcomes=contract_outcomes,
     )
 
 
@@ -148,6 +176,76 @@ def _build_human_cost_trend(
     )
 
 
+def _axis_direction(delta: float) -> str:
+    if delta > 0:
+        return "improving"
+    if delta < 0:
+        return "declining"
+    return "flat"
+
+
+def _evaluate_action_contracts(
+    previous: SnapshotSource,
+    current: SnapshotSource,
+    confidence_level: str,
+) -> list[ContractOutcome]:
+    outcomes = []
+    prev_contracts = getattr(previous, "action_contracts", []) or []
+
+    if previous.coverage.session_count < 8 or current.coverage.session_count < 8:
+        contract_confidence = "low"
+    else:
+        contract_confidence = confidence_level
+
+    for contract in prev_contracts:
+        axis_key = contract.get("axis_key", "")
+        if not axis_key:
+            continue
+
+        title = contract.get("title", "")
+        has_schema = is_current_axis_schema(previous.axis_scores) and is_current_axis_schema(current.axis_scores)
+
+        if not has_schema:
+            status = "schema_mismatch"
+            prev_score = None
+            curr_score = None
+            delta = None
+        else:
+            prev_score = previous.axis_scores.get(axis_key)
+            curr_score = current.axis_scores.get(axis_key)
+
+            if prev_score is None or curr_score is None:
+                status = "no_data"
+                delta = None
+            else:
+                prev_score = float(prev_score)
+                curr_score = float(curr_score)
+                delta = round(curr_score - prev_score, 1)
+
+                if delta >= 5.0:
+                    status = "improved"
+                elif delta > 0.2:
+                    status = "partial"
+                else:
+                    status = "unchanged"
+
+        from .model import ContractOutcome
+        outcomes.append(
+            ContractOutcome(
+                axis_key=axis_key,
+                axis_label="",
+                title=title,
+                previous_score=prev_score,
+                current_score=curr_score,
+                delta=delta,
+                status=status,
+                confidence=contract_confidence,
+                explanation="",
+            )
+        )
+    return outcomes
+
+
 def _build_axis_deltas(previous: SnapshotSource, current: SnapshotSource) -> list[AxisDelta]:
     rows: list[AxisDelta] = []
     # When either snapshot does not carry the current five-axis schema, the
@@ -167,7 +265,7 @@ def _build_axis_deltas(previous: SnapshotSource, current: SnapshotSource) -> lis
                 previous=prev_value,
                 current=curr_value,
                 delta=delta,
-                direction=_direction(delta),
+                direction=_axis_direction(delta),
                 weight=AXIS_WEIGHTS.get(key, 0.0),
                 weighted_contribution=round(delta * AXIS_WEIGHTS.get(key, 0.0), 1),
                 magnitude=_magnitude(delta),
