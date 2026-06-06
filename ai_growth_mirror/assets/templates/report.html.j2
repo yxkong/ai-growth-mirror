@@ -208,6 +208,21 @@
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+    .hero-badge-score {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      line-height: 1;
+      font-weight: 800;
+      color: var(--hero-ink);
+      padding-bottom: 0.15em;
+    }
+    .hero-badge-score-unit {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--hero-muted);
+      letter-spacing: 0.02em;
+    }
     .hero-badge-note {
       margin-top: 12px;
       font-size: 0.86rem;
@@ -1177,6 +1192,10 @@
           <div>
             <div class="hero-badge-main">
               <div class="hero-badge-level">{{ view.summary.growth_level }}</div>
+              <div class="hero-badge-score" aria-label="{{ view.labels['label_score'] }}">
+                {{ view.summary.score_display or view.summary.mirror_score }}
+                <span class="hero-badge-score-unit">{{ view.labels['label_score'] }}</span>
+              </div>
             </div>
             <p class="hero-badge-note">{{ view.summary.headline }}</p>
           </div>
@@ -1277,7 +1296,7 @@
             <div class="trend-section" style="margin-top: 16px; border-top: 1px solid var(--separator); padding-top: 16px; width: 100%;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="font-size: 0.95em; font-weight: bold; color: var(--ink);">{{ view.labels.get('label_score_trend', 'Mirror Score 近期趋势') }}</span>
-                {% set delta = view.growth_trajectory.data.score_delta %}
+                {% set delta = series.latest_delta %}
                 <span class="trend-badge {% if delta > 0 %}trend-up{% elif delta < 0 %}trend-down{% else %}trend-flat{% endif %}" 
                       style="font-size: 0.85em; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; 
                              background-color: {% if delta > 0 %}rgba(16,185,129,0.1){% elif delta < 0 %}rgba(239,68,68,0.1){% else %}rgba(156,163,175,0.1){% endif %};
@@ -1820,21 +1839,16 @@
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
                 <h4 style="margin:0; font-size:1.05em;">{{ outcome.title }}</h4>
                 <span class="pill" style="font-size:0.85em; background-color:{% if outcome.status == 'improved' %}rgba(16,185,129,0.1){% elif outcome.status == 'partial' %}rgba(245,158,11,0.1){% else %}rgba(156,163,175,0.1){% endif %}; color:{% if outcome.status == 'improved' %}var(--success, #10b981){% elif outcome.status == 'partial' %}var(--warning, #f59e0b){% else %}var(--text-muted, #6b7280){% endif %};">
-                  {% if outcome.status == 'improved' %}已改善 (Improved)
-                  {% elif outcome.status == 'partial' %}部分改善 (Partial)
-                  {% elif outcome.status == 'unchanged' %}未见明显变化 (Unchanged)
-                  {% elif outcome.status == 'no_data' %}数据不足 (No Data)
-                  {% else %}评估不匹配 (Mismatch)
-                  {% endif %}
+                  {{ view.labels.get('label_contract_status_' ~ outcome.status, outcome.status) }}
                 </span>
               </div>
               <p style="margin:4px 0; font-size:0.95em;">{{ outcome.explanation }}</p>
               <div style="display:flex; gap:16px; margin-top:8px; font-size:0.85em; color:var(--text-muted, #6b7280); flex-wrap:wrap;">
-                <span>目标轴: {{ outcome.axis_label }}</span>
-                {% if outcome.previous_score is not None and outcome.current_score is not None %}
-                <span>轴分对比: {{ outcome.previous_score | round(1) }} → {{ outcome.current_score | round(1) }} ({% if outcome.delta >= 0 %}+{% endif %}{{ outcome.delta | round(1) }})</span>
+                <span>{{ view.labels.get('label_contract_axis', '目标轴') }}: {{ outcome.axis_label }}</span>
+                {% if outcome.previous_score is not none and outcome.current_score is not none %}
+                <span>{{ view.labels.get('label_contract_axis_delta', '轴分对比') }}: {{ outcome.previous_score | round(1) }} → {{ outcome.current_score | round(1) }} ({% if outcome.delta >= 0 %}+{% endif %}{{ outcome.delta | round(1) }})</span>
                 {% endif %}
-                <span>置信度: {% if outcome.confidence == 'high' %}高 (High){% elif outcome.confidence == 'medium' %}中 (Medium){% else %}低 (Low){% endif %}</span>
+                <span>{{ view.labels.get('label_confidence', '置信度') }}: {{ view.labels.get('label_confidence_' ~ outcome.confidence, outcome.confidence) }}</span>
               </div>
             </div>
             {% endfor %}

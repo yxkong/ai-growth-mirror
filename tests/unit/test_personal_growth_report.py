@@ -1545,3 +1545,48 @@ def test_action_contract_outcome_evaluation():
     assert comp_small.confidence.level == "low"
     assert comp_small.contract_outcomes[0].confidence == "low"
 
+
+def test_render_personal_report_html_with_prior_snapshot_contract_outcomes():
+    """Regression: growth trajectory + contract outcomes must render without Jinja errors."""
+    sessions = [_make_session(f"s{i}", "D:/repo/a") for i in range(1, 5)]
+    facets = [_make_facets(f"s{i}") for i in range(1, 5)]
+    stats = aggregate(sessions, facets, tool_name="gemini")
+    catalogs = load_report_label_catalogs("zh")
+
+    previous = SnapshotSource(
+        snapshot_id="prev-snapshot",
+        created_at="2026-05-01 10:00:00",
+        growth_level="L2",
+        mirror_score=55,
+        axis_scores={
+            "intent_clarity": 50.0,
+            "execution_driving": 55.0,
+            "implementation_depth": 52.0,
+            "delivery_closure": 48.0,
+            "adaptive_recovery": 45.0,
+        },
+        coverage=SnapshotCoverage(session_count=10, session_read_count=10, has_usage_data=True),
+        sample_count=10,
+        action_contracts=[{"axis_key": "intent_clarity", "title": "提升意图表达"}],
+    )
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Gemini",
+        catalogs=catalogs,
+        previous_snapshot=previous,
+        historical_snapshots=[previous],
+    )
+
+    assert view.growth_trajectory is not None
+    assert view.growth_trajectory.available is True
+    assert view.growth_trajectory.trend is not None
+    assert view.growth_trajectory.trend.score_series is not None
+
+    html = render_personal_report_html(view=view, language="zh", redact=False)
+    assert "上期训练回看" in html
+    assert "hero-badge-score" in html
+    assert "提升意图表达" in html
+
