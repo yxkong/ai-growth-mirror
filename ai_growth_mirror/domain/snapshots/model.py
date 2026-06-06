@@ -50,6 +50,15 @@ class SnapshotIndexEntry:
 
 
 @dataclass
+class SnapshotMeta:
+    snapshot_id: str
+    created_at: str
+    tool_display_name: str
+    report_title: str
+    date_range: str
+
+
+@dataclass
 class SnapshotCoverage:
     session_count: int = 0
     session_read_count: int = 0
@@ -106,6 +115,7 @@ class SnapshotSource:
     point_confidence: str = "low"
     # human cost signal: rate of sessions requiring ≥2 user corrections
     human_intervention_session_rate: float | None = None
+    action_contracts: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -289,6 +299,26 @@ class HumanCostTrend:
 
 
 @dataclass
+class TrendSummary:
+    direction: str = "flat"  # "improving" | "declining" | "flat"
+    confidence: str = "low"  # "high" | "medium" | "low"
+    score_delta: float = 0.0
+
+
+@dataclass
+class ContractOutcome:
+    axis_key: str
+    axis_label: str
+    title: str
+    previous_score: float | None
+    current_score: float | None
+    delta: float | None
+    status: str              # "improved" | "partial" | "unchanged" | "no_data" | "schema_mismatch"
+    confidence: str          # "high" | "medium" | "low"
+    explanation: str
+
+
+@dataclass
 class SnapshotComparison:
     previous: SnapshotSource
     current: SnapshotSource
@@ -305,3 +335,5 @@ class SnapshotComparison:
     confidence: ConfidenceAssessment = field(default_factory=ConfidenceAssessment)
     next_priorities: list[TrainingPriority] = field(default_factory=list)
     human_cost_trend: HumanCostTrend = field(default_factory=HumanCostTrend)
+    trend_summary: TrendSummary = field(default_factory=TrendSummary)
+    contract_outcomes: list[ContractOutcome] = field(default_factory=list)

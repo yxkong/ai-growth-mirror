@@ -121,6 +121,9 @@ class GrowthProfile:
     # Ordered improve-first then reinforce, then by descending impact.
     pq_top_takeaways: list = field(default_factory=list)
 
+    active_clarification_count: int = 0
+    active_clarification_rate: float = 0.0
+
     # ── Enhanced behavioral metrics ──────────────────────────────────────────
 
     # Cost (dollar estimate — may be inaccurate for non-Claude tools)

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from .product import DEFAULT_HOME_DIR, PRODUCT_RUNTIME_DIRNAME
+from .domain.growth.costs import TokenPricing
 
 DEFAULT_CONFIG_PATH = DEFAULT_HOME_DIR / "config.yaml"
 LOCAL_CONFIG_BASENAME = "config.yaml"
@@ -162,11 +163,38 @@ class ReportConfig:
 
 
 @dataclass
+class PricingConfig:
+    """User-configurable model pricing (USD per 1 M tokens).
+
+    Populated from ``pricing`` section of config.yaml. Keys are model-family
+    substrings (e.g. ``gemini``, ``claude``, ``sonnet``) matched case-insensitively
+    against the ``models_used`` list recorded per session.
+
+    Example config.yaml::
+
+        pricing:
+          gemini:
+            input_per_million: 1.25
+            output_per_million: 5.00
+          claude-sonnet:
+            input_per_million: 3.00
+            output_per_million: 15.00
+    """
+    # model-family-key -> TokenPricing
+    models: dict[str, TokenPricing] = field(default_factory=dict)
+
+    def as_user_pricing(self) -> dict[str, TokenPricing]:
+        """Return dict suitable for costs.estimate_cost(user_pricing=...)."""
+        return dict(self.models)
+
+
+@dataclass
 class GrowthMirrorConfig:
     tools: dict[str, ToolConfig] = field(default_factory=dict)
     llm: LLMConfig = field(default_factory=LLMConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
     report: ReportConfig = field(default_factory=ReportConfig)
+    pricing: PricingConfig = field(default_factory=PricingConfig)
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> "GrowthMirrorConfig":
@@ -240,3 +268,17 @@ def _apply_yaml(cfg: GrowthMirrorConfig, data: dict) -> None:
                 if tool_data.get("data_root"):
                     tool_cfg.data_root = Path(tool_data["data_root"]).expanduser()
             cfg.tools[tool_name] = tool_cfg
+    if "pricing" in data:
+        pricing_data = data["pricing"] or {}
+        for model_key, price_data in pricing_data.items():
+            if not isinstance(price_data, dict):
+                continue
+            try:
+                cfg.pricing.models[str(model_key).lower()] = TokenPricing(
+                    input_per_million=float(price_data.get("input_per_million", 0)),
+                    output_per_million=float(price_data.get("output_per_million", 0)),
+                    cache_write_per_million=float(price_data.get("cache_write_per_million", 0)),
+                    cache_read_per_million=float(price_data.get("cache_read_per_million", 0)),
+                )
+            except (TypeError, ValueError):
+                pass

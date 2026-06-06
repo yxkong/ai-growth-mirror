@@ -140,6 +140,7 @@ class SessionRead:
     capability_focus: str = "none"          # one of CAPABILITY_FOCUS_AREAS
     capability_depth: str = "incidental"    # one of CAPABILITY_DEPTH_LEVELS
     work_style: str = "freeform"            # one of WORK_STYLE_VALUES
+    active_clarification: bool = False
 
     # When LLM extraction failed (rate-limit retry exhausted, JSON parse failed,
     # …) we return a stub read so the run doesn't abort, but ALL its fields are
@@ -185,6 +186,8 @@ class SessionRead:
             d["capability_depth"] = "incidental"
         if d.get("work_style") not in WORK_STYLE_VALUES:
             d["work_style"] = "freeform"
+        if "active_clarification" not in d:
+            d["active_clarification"] = False
         return cls(**d)
 
 

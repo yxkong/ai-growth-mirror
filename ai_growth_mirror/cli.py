@@ -450,6 +450,19 @@ def compare_cmd(
     click.echo(f"Comparison written to {out.resolve()} (JSON: {out.with_suffix('.json').resolve()})")
 
 
+@cli.command("status")
+@click.option("--config", "-c", type=click.Path(), default=None,
+              help="Config YAML path (default: ./config.yaml if present, else ~/.ai-growth-mirror/config.yaml)")
+@click.option("--language", type=click.Choice(["en", "zh"]), default=None,
+              help="Report language (overrides config)")
+def status_cmd(config: str | None, language: str | None) -> None:
+    """Show status of weekly sessions and prior action contract."""
+    from .application.status_view import print_status_view
+
+    cfg = GrowthMirrorConfig.load(Path(config) if config else None)
+    print_status_view(cfg, language)
+
+
 @cli.group("cache")
 def cache_group() -> None:
     """Inspect / maintain the analysis cache."""

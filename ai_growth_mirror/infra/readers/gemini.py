@@ -33,7 +33,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator, Optional
-
 from ...domain.session.heuristics import (
     EXEC_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
@@ -51,6 +50,7 @@ from .base import (
     extract_skill_name_from_path,
     parse_iso,
 )
+
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
@@ -219,6 +219,10 @@ class _GeminiAccumulator:
     user_message_timestamps: list[str] = field(default_factory=list)
     message_hours: list[int] = field(default_factory=list)
     autonomous_chain_lengths: list[int] = field(default_factory=list)
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    cache_read_tokens: Optional[int] = None
+    cache_write_tokens: Optional[int] = None
     _seen_paths: set[str] = field(default_factory=set)
     _last_timestamp: Optional[datetime] = None
     _current_chain: int = 0
@@ -337,6 +341,16 @@ class _GeminiAccumulator:
             assistant_message_count=self.assistant_message_count,
             tool_counts=self.tool_counts,
             tool_tier_counts=compute_tier_counts(self.tool_counts),
+            # Gemini transcript.jsonl does not embed API usage data.
+            # Token counts would only be character-based estimates, which are
+            # unreliable. Set all token/cost fields to None and mark as estimated
+            # so the report layer excludes them from aggregation and display.
+            input_tokens=None,
+            output_tokens=None,
+            cache_read_tokens=None,
+            cache_write_tokens=None,
+            total_cost_usd=None,
+            tokens_estimated=True,
             files_modified=self.files_modified,
             languages=self.languages,
             message_hours=self.message_hours,
@@ -356,6 +370,7 @@ class _GeminiAccumulator:
             skill_invocation_count=self.skill_invocation_count,
             unique_skills_used=sorted(self.unique_skills),
             entrypoint="ide",
+            models_used=["gemini"],
         )
         BaseSessionAdapter._enrich_prompt_signals(record)
         BaseSessionAdapter._enrich_agentic_signals(record)
@@ -488,8 +503,11 @@ class GeminiAdapter(BaseSessionAdapter):
 
             # ── model turn ────────────────────────────────────────────────
             if step_type == "PLANNER_RESPONSE" and source == "MODEL":
+                content = obj.get("content", "")
                 tool_calls = obj.get("tool_calls")
                 if not isinstance(tool_calls, list):
+                    if content:
+                        state.assistant_message_count += 1
                     continue
                 state.assistant_message_count += 1
                 for tc in tool_calls:

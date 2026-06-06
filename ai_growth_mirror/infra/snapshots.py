@@ -19,6 +19,7 @@ from ..domain.snapshots.model import (
     SnapshotMethodAssets,
     SnapshotPromptQuality,
     SnapshotSource,
+    SnapshotMeta,
 )
 from ..domain.snapshots.trajectory import assess_snapshot_point_confidence
 from ..product import CLI_NAME, LEGACY_SNAPSHOT_ARCHIVE_DIRNAMES, SNAPSHOT_ARCHIVE_DIRNAME
@@ -243,8 +244,6 @@ def load_snapshot_source(snapshot_dir: Path) -> SnapshotSource:
     if not source.snapshot_id:
         source.snapshot_id = snapshot_dir.name
     return source
-
-
 def load_snapshot_index(archive_root: Path) -> list[SnapshotIndexEntry]:
     index_path = archive_root / INDEX_FILENAME
     if not index_path.exists():
@@ -257,6 +256,20 @@ def load_snapshot_index(archive_root: Path) -> list[SnapshotIndexEntry]:
         except TypeError:
             continue
     return entries
+
+
+def load_latest_snapshot_meta(archive_root: Path) -> SnapshotMeta | None:
+    index = load_snapshot_index(archive_root)
+    if not index:
+        return None
+    latest = index[0]
+    return SnapshotMeta(
+        snapshot_id=latest.snapshot_id,
+        created_at=latest.created_at,
+        tool_display_name=latest.tool_display_name,
+        report_title=latest.report_title,
+        date_range=latest.date_range,
+    )
 
 
 def _snapshot_source_from_payloads(
@@ -290,6 +303,21 @@ def _snapshot_source_from_payloads(
         pq_deficits=dict(stats.get("pq_deficit_counts", {}) or {}),
         friction_type_counts=dict(stats.get("friction_type_counts", {}) or {}),
     )
+
+    action_contracts = []
+    growth_plan_data = profile.get("growth_plan", {})
+    if isinstance(growth_plan_data, dict):
+        priorities = growth_plan_data.get("priorities", [])
+        if isinstance(priorities, list):
+            for p in priorities:
+                if isinstance(p, dict) and p.get("key"):
+                    action_contracts.append({
+                        "axis_key": p.get("key"),
+                        "title": p.get("title", ""),
+                        "success_signal": p.get("success_signal", ""),
+                        "week_1_actions": p.get("week_1_actions", []),
+                        "week_2_actions": p.get("week_2_actions", []),
+                    })
     snapshot_source = SnapshotSource(
         snapshot_id=str(summary.get("snapshot_id", "")),
         created_at=str(summary.get("created_at", "")),
@@ -340,6 +368,7 @@ def _snapshot_source_from_payloads(
         ),
         sample_count=int(coverage.get("session_read_count", coverage.get("session_count", stats.get("session_count", 0))) or 0),
         human_intervention_session_rate=_as_float(stats.get("human_intervention_session_rate")),
+        action_contracts=action_contracts,
     )
     snapshot_source.point_confidence = assess_snapshot_point_confidence(snapshot_source)
     return snapshot_source

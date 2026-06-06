@@ -375,6 +375,39 @@ def _build_latest_vs_previous_view_from_comparison(
     gt_i18n = catalogs.view_model.get("growth_trajectory", {})
     summary_i18n = gt_i18n.get("summary_cards", {})
     confidence_note = _confidence_note(comparison, gt_i18n)
+
+    # Localize contract outcomes
+    language = getattr(catalogs, "language", "zh")
+    for outcome in getattr(comparison, "contract_outcomes", []) or []:
+        axis_label = capability_meta.get(outcome.axis_key, {}).get("label", outcome.axis_key)
+        outcome.axis_label = axis_label
+        if outcome.status == "schema_mismatch":
+            if language == "zh":
+                outcome.explanation = "上期与本期评估维度不一致，维度发生变更，无法进行环比对比。"
+            else:
+                outcome.explanation = "Evaluation schemas do not match between cycles; cannot evaluate."
+        elif outcome.status == "no_data":
+            if language == "zh":
+                outcome.explanation = f"本期未检测到目标轴【{axis_label}】的充足样本，改善效果暂无法评估。"
+            else:
+                outcome.explanation = f"Insufficient data for target axis [{axis_label}] to evaluate outcome."
+        else:
+            delta_val = outcome.delta or 0.0
+            if outcome.status == "improved":
+                if language == "zh":
+                    outcome.explanation = f"目标轴【{axis_label}】得分提升 {delta_val:+.1f} 分，达到了设定目标，改善效果显著。"
+                else:
+                    outcome.explanation = f"Target axis [{axis_label}] score improved by {delta_val:+.1f} pts. Clear improvement."
+            elif outcome.status == "partial":
+                if language == "zh":
+                    outcome.explanation = f"目标轴【{axis_label}】得分微幅提升 {delta_val:+.1f} 分，已见初步改善，建议继续巩固练习。"
+                else:
+                    outcome.explanation = f"Target axis [{axis_label}] score slightly improved by {delta_val:+.1f} pts. Initial progress made."
+            else:
+                if language == "zh":
+                    outcome.explanation = f"目标轴【{axis_label}】得分无明显提升（{delta_val:+.1f} 分），需要针对瓶颈调整练习方法。"
+                else:
+                    outcome.explanation = f"Target axis [{axis_label}] score showed no significant change ({delta_val:+.1f} pts)."
     # axis_deltas is empty when the two snapshots use incomparable axis schemas;
     # fall back to a schema-honest placeholder instead of indexing [0].
     strongest_gain = (
@@ -732,6 +765,20 @@ def _latest_vs_previous_dict(comparison) -> dict[str, object]:
             }
             for item in comparison.axis_deltas
         ],
+        "contract_outcomes": [
+            {
+                "axis_key": item.axis_key,
+                "axis_label": item.axis_label,
+                "title": item.title,
+                "previous_score": item.previous_score,
+                "current_score": item.current_score,
+                "delta": item.delta,
+                "status": item.status,
+                "confidence": item.confidence,
+                "explanation": item.explanation,
+            }
+            for item in comparison.contract_outcomes
+        ] if hasattr(comparison, "contract_outcomes") else [],
     }
 
 

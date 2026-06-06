@@ -116,6 +116,17 @@ def build_heuristic_session_read_for_session(
     creation_mode, creation_depth = _creation_mode(session)
     project_name = _Path(session.project_path).name if session.project_path else ""
 
+    active_clarification = False
+    if session.user_message_count >= 3 and len(session.top_user_messages) >= 2:
+        check_messages = session.top_user_messages[1:3]
+        from ...domain.session.heuristics import CONSTRAINT_WORDS
+        for msg in check_messages:
+            if msg:
+                msg_lower = msg.lower()
+                if any(word in msg_lower for word in CONSTRAINT_WORDS):
+                    active_clarification = True
+                    break
+
     return SessionRead(
         session_id=session.session_id,
         tool_name=session.tool_name,
@@ -141,6 +152,7 @@ def build_heuristic_session_read_for_session(
         capability_depth=creation_depth,
         work_style=workflow_style,
         extraction_failed=False,
+        active_clarification=active_clarification,
     )
 
 
