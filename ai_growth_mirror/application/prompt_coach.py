@@ -517,6 +517,9 @@ def _legacy_takeaways(
     actions = catalogs.view_model.get("prompt_coach", {}).get("takeaway_actions", {})
     rows: list[PromptCoachTakeawayView] = []
     for item in list(getattr(stats, "pq_top_takeaways", []) or [])[:2]:
+        better_prompt = item.better_prompt or ""
+        if _looks_like_placeholder_prompt(better_prompt):
+            better_prompt = ""
         rows.append(
             PromptCoachTakeawayView(
                 label=item.label or item.category or "",
@@ -524,7 +527,7 @@ def _legacy_takeaways(
                 evidence=item.original or item.message_ref or "",
                 message=item.why or "",
                 action=actions.get("improve", ""),
-                better_prompt=item.better_prompt,
+                better_prompt=better_prompt,
             )
         )
     if not rows:

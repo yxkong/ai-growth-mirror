@@ -273,6 +273,11 @@ def build_runtime_snapshot_source(
         ),
         friction_type_counts=dict(stats.friction_type_counts),
         friction_by_attribution=dict(stats.friction_by_attribution),
+        human_intervention_session_rate=(
+            float(stats.human_intervention_session_rate)
+            if stats.session_count
+            else None
+        ),
         method_assets=SnapshotMethodAssets(
             skill_files=agent_asset.skill_count if agent_asset else 0,
             prompt_files=agent_asset.prompt_count if agent_asset else 0,
@@ -370,8 +375,18 @@ def _build_latest_vs_previous_view_from_comparison(
     gt_i18n = catalogs.view_model.get("growth_trajectory", {})
     summary_i18n = gt_i18n.get("summary_cards", {})
     confidence_note = _confidence_note(comparison, gt_i18n)
-    strongest_gain = next((item for item in comparison.axis_deltas if item.delta > 0), comparison.axis_deltas[0])
-    weakest_axis = min(comparison.axis_deltas, key=lambda item: item.current)
+    # axis_deltas is empty when the two snapshots use incomparable axis schemas;
+    # fall back to a schema-honest placeholder instead of indexing [0].
+    strongest_gain = (
+        next((item for item in comparison.axis_deltas if item.delta > 0), None)
+        or (comparison.axis_deltas[0] if comparison.axis_deltas else None)
+    )
+    weakest_axis = (
+        min(comparison.axis_deltas, key=lambda item: item.current)
+        if comparison.axis_deltas
+        else None
+    )
+    _not_comparable = summary_i18n.get("not_comparable", "schema changed")
     summary_cards = [
         GrowthTrajectorySummaryCardView(
             label=summary_i18n.get("stage", "Current stage"),
@@ -387,15 +402,27 @@ def _build_latest_vs_previous_view_from_comparison(
         ),
         GrowthTrajectorySummaryCardView(
             label=summary_i18n.get("strongest_gain", "Largest gain"),
-            value=capability_meta.get(strongest_gain.key, {}).get("label", strongest_gain.key),
-            caption=_signed(strongest_gain.delta),
-            tone=strongest_gain.direction,
+            value=(
+                capability_meta.get(strongest_gain.key, {}).get("label", strongest_gain.key)
+                if strongest_gain is not None
+                else _not_comparable
+            ),
+            caption=_signed(strongest_gain.delta) if strongest_gain is not None else "--",
+            tone=strongest_gain.direction if strongest_gain is not None else "flat",
         ),
         GrowthTrajectorySummaryCardView(
             label=summary_i18n.get("primary_gap", "Primary gap"),
-            value=capability_meta.get(weakest_axis.key, {}).get("label", weakest_axis.key),
-            caption=_signed(weakest_axis.delta),
-            tone=weakest_axis.direction if weakest_axis.direction != "flat" else "down",
+            value=(
+                capability_meta.get(weakest_axis.key, {}).get("label", weakest_axis.key)
+                if weakest_axis is not None
+                else _not_comparable
+            ),
+            caption=_signed(weakest_axis.delta) if weakest_axis is not None else "--",
+            tone=(
+                (weakest_axis.direction if weakest_axis.direction != "flat" else "down")
+                if weakest_axis is not None
+                else "flat"
+            ),
         ),
         GrowthTrajectorySummaryCardView(
             label=summary_i18n.get("confidence", "Confidence"),
@@ -484,6 +511,11 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
         )
         for point in trajectory_window.daily_points
     ]
+    _comparable_axis_points = [
+        point
+        for point in trajectory_window.daily_points
+        if bool(getattr(point, "comparable", True))
+    ]
     summary_label = trend_i18n.get("labels", {}).get(trajectory_window.trend_summary.label, trajectory_window.trend_summary.label)
     summary_text = trend_i18n.get("explanations", {}).get(
         trajectory_window.trend_summary.explanation,
@@ -517,8 +549,10 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
                 key=axis_key,
                 label=catalogs.view_model.get("capability_meta", {}).get(axis_key, {}).get("label", axis_key),
                 color=color,
-                values=[point.axes.get(axis_key, 0.0) for point in trajectory_window.daily_points],
-                points=trajectory_window.daily_points,
+                # Only comparable (current-schema) points carry the five axes;
+                # legacy points would default to 0.0 and draw a fake crash to zero.
+                values=[point.axes.get(axis_key, 0.0) for point in _comparable_axis_points],
+                points=_comparable_axis_points,
                 value_mode="axis",
             )
             for axis_key, color in (
@@ -948,8 +982,16 @@ def _push(rows: dict[str, list[str]], key: str, value: str) -> None:
 
 def _overall_text(comparison, gt_i18n: dict, capability_meta: dict) -> str:
     overall_i18n = gt_i18n.get("overall", {})
-    strongest_gain = next((item for item in comparison.axis_deltas if item.delta > 0), comparison.axis_deltas[0])
-    label = capability_meta.get(strongest_gain.key, {}).get("label", strongest_gain.key)
+    # axis_deltas can be empty when axis schemas are incomparable.
+    strongest_gain = (
+        next((item for item in comparison.axis_deltas if item.delta > 0), None)
+        or (comparison.axis_deltas[0] if comparison.axis_deltas else None)
+    )
+    label = (
+        capability_meta.get(strongest_gain.key, {}).get("label", strongest_gain.key)
+        if strongest_gain is not None
+        else "--"
+    )
     return overall_i18n.get(comparison.overall_code, overall_i18n.get("stable", "")).format(
         previous=comparison.previous.growth_level or "--",
         current=comparison.current.growth_level or "--",

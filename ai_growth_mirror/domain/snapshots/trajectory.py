@@ -137,6 +137,18 @@ def _collapse_same_day(points: list[TrajectoryPoint]) -> list[TrajectoryPoint]:
 
 
 def _build_trend_summary(points: list[TrajectoryPoint]) -> TrajectorySummary:
+    # Check schema comparability first: a mixed-schema window must surface the
+    # schema mismatch (the real reason the trend is unreliable) instead of the
+    # generic "not enough points" message, even when there are only 1-2 points.
+    comparable_points = [point for point in points if point.comparable]
+    if points and len(comparable_points) < len(points):
+        return TrajectorySummary(
+            label="data_insufficient",
+            explanation="schema_mismatch",
+            confidence="low",
+            data_sufficiency=f"points={len(points)} comparable={len(comparable_points)}",
+            recent_signal="schema_mismatch",
+        )
     if len(points) < 3:
         return TrajectorySummary(
             label="data_insufficient",
@@ -144,15 +156,6 @@ def _build_trend_summary(points: list[TrajectoryPoint]) -> TrajectorySummary:
             confidence="low",
             data_sufficiency=f"points={len(points)}",
             recent_signal="insufficient",
-        )
-    comparable_points = [point for point in points if point.comparable]
-    if len(comparable_points) < len(points):
-        return TrajectorySummary(
-            label="data_insufficient",
-            explanation="schema_mismatch",
-            confidence="low",
-            data_sufficiency=f"points={len(points)} comparable={len(comparable_points)}",
-            recent_signal="schema_mismatch",
         )
 
     scores = [point.mirror_score for point in points]

@@ -1698,7 +1698,7 @@ def _mirror_methodology(catalogs: ReportLabelCatalogs) -> tuple[str, list[str]]:
 
 def _build_agentic_current_value(
     *,
-    template: str,
+    templates: dict,
     score: int,
     skill_usage_rate: int,
     public_framework_rate: int,
@@ -1711,40 +1711,52 @@ def _build_agentic_current_value(
     raw_local_method_rate: float = 0.0,
     raw_fingerprint_rate: float = 0.0,
 ) -> str:
-    """Build the agentic system current-value string.
+    """Build the agentic system current-value string (i18n-driven).
 
     When fingerprint rates round to 0% but raw values are positive, show a
-    "< 1%" label instead of the misleading "未追踪" note. When truly 0 but
-    assets exist, show an explanatory note about detection mechanics.
+    "< 1%" label instead of the misleading detection-gap note. When truly 0 but
+    assets exist, show an explanatory note about detection mechanics. All
+    user-facing text comes from the i18n catalog so EN reports stay in English.
 
     The note text reflects the current detection mechanism: the reader watches
     for ReadFile/Read calls to SKILL.md files inside skill directories. Old
     cached sessions may not carry this signal until the cache is refreshed.
     """
+    base_template = templates.get("agentic_system", "")
+    fingerprint_template = templates.get("agentic_system_with_fingerprint", base_template)
+    detection_gap_template = templates.get("agentic_system_detection_gap", base_template)
+    detection_note = templates.get("agentic_detection_note", "")
+
     # Use raw rates for the conditional so that values like 0.36% don't trigger
-    # the "未追踪" branch just because they round to 0.
+    # the detection-gap branch just because they round to 0.
     effective_fingerprint = raw_fingerprint_rate or raw_local_method_rate
     if workflow_fingerprint_rate > 0 or local_method_rate > 0 or effective_fingerprint > 0:
-        # At least one signal is present; use clamped display values
+        # At least one signal is present; use clamped display values.
         display_local = local_method_rate if local_method_rate > 0 else ("<1" if raw_local_method_rate > 0 else "0")
         display_fp = workflow_fingerprint_rate if workflow_fingerprint_rate > 0 else ("<1" if raw_fingerprint_rate > 0 else "0")
-        return (
-            f"系统分 {score} · skill/workflow 使用 {skill_usage_rate}%"
-            f" · 方法指纹 {display_fp}%（公开框架 {public_framework_rate}% / 本地方法 {display_local}%）"
-            f" · 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}%"
-            f" · 高杠杆功能 {advanced_feature_rate}%"
+        return fingerprint_template.format(
+            score=score,
+            skill_usage_rate=skill_usage_rate,
+            public_framework_rate=public_framework_rate,
+            local_method_rate=display_local,
+            workflow_fingerprint_rate=display_fp,
+            workflow_reuse_depth=workflow_reuse_depth,
+            asset_authoring_rate=asset_authoring_rate,
+            advanced_feature_rate=advanced_feature_rate,
         )
     # Fingerprint is 0 but skills ARE used — detection gap (e.g., cached sessions
     # parsed before skill-read detection was added; will improve after cache refresh)
     if skill_usage_rate > 0 or has_asset_roots:
-        note = "方法指纹未追踪（检测依赖 ReadFile 读取 SKILL.md 的记录；历史会话缓存刷新后可见）"
-        return (
-            f"系统分 {score} · skill/workflow 使用 {skill_usage_rate}% · {note}"
-            f" · 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}%"
-            f" · 高杠杆功能 {advanced_feature_rate}%"
+        return detection_gap_template.format(
+            score=score,
+            skill_usage_rate=skill_usage_rate,
+            note=detection_note,
+            workflow_reuse_depth=workflow_reuse_depth,
+            asset_authoring_rate=asset_authoring_rate,
+            advanced_feature_rate=advanced_feature_rate,
         )
     # Everything is 0 — no asset data at all
-    return template.format(
+    return base_template.format(
         score=score,
         skill_usage_rate=skill_usage_rate,
         public_framework_rate=public_framework_rate,
@@ -1837,7 +1849,7 @@ def _build_level_axis_metrics(
             authored_assets=authored_assets,
         ),
         "agentic_system": _build_agentic_current_value(
-            template=current_value_templates.get("agentic_system", ""),
+            templates=current_value_templates,
             score=agentic_system_score,
             skill_usage_rate=skill_usage_rate,
             public_framework_rate=public_framework_rate,

@@ -971,6 +971,9 @@ level_axis_metrics:
     delivery_closure: "轴分 {score} · 加权完成率 {completion_rate}% · 验证率 {verification_rate}% · 测试率 {test_rate}%"
     adaptive_recovery: "轴分 {score} · 纠偏质量 {correction_quality}% · 结构化占比 {structured_rate_pct}% · 用户侧摩擦 {user_actionable_ratio_pct}% · 资产信号 {authored_assets}"
     agentic_system: "系统分 {score} · skill/workflow 使用 {skill_usage_rate}% · 方法指纹 {workflow_fingerprint_rate}%（公开框架 {public_framework_rate}% / 本地方法 {local_method_rate}%）· 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}% · 高杠杆功能 {advanced_feature_rate}%"
+    agentic_system_with_fingerprint: "系统分 {score} · skill/workflow 使用 {skill_usage_rate}% · 方法指纹 {workflow_fingerprint_rate}%（公开框架 {public_framework_rate}% / 本地方法 {local_method_rate}%）· 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}% · 高杠杆功能 {advanced_feature_rate}%"
+    agentic_system_detection_gap: "系统分 {score} · skill/workflow 使用 {skill_usage_rate}% · {note} · 重复复用 {workflow_reuse_depth} 个 · 资产创作 {asset_authoring_rate}% · 高杠杆功能 {advanced_feature_rate}%"
+    agentic_detection_note: "方法指纹未追踪（检测依赖 ReadFile 读取 SKILL.md 的记录；历史会话缓存刷新后可见）"
   thresholds:
     L2:
       intent_clarity: 42
