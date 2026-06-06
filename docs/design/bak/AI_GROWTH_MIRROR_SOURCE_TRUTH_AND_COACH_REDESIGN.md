@@ -9,9 +9,11 @@ supersedes: docs/plan/plan.md, docs/plan/需求.md
 
 # AI Growth Mirror — 来源真相与教练重构设计 + 排期
 
+> [!NOTE]
+> **[版本落地说明]**：本重构排期计划已全部落地。P0-P1 重构随产品版本 **v0.4.0** (Schema 1.1) 发布；P2-P3 重构随产品版本 **v0.4.1** (Schema 1.1) 发布。随后置的性能、评分归一化及缓存防颠簸优化于 **v0.4.2** (Schema 1.2) 中完成。
 > 本文是本轮"来源真相 / Prompt 教练 / 摩擦综合判断 / 报告决策化"改造的设计与排期真源。
-> 取代 `docs/plan/plan.md`、`docs/plan/需求.md`（二者内容重复、文件路径引用错误，待确认后归档）。
-> 架构边界以 `docs/design/ARCHITECTURE_PRINCIPLES.md` 为准；产品语义以 `AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md` 为准。
+> 取代 `docs/plan/plan.md`、`docs/plan/需求.md`（二者已确认为重复过程稿，保留于 `bak/` 归档）。
+> 架构边界以 **[ARCHITECTURE_PRINCIPLES.md](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/docs/design/ARCHITECTURE_PRINCIPLES.md)** 为准；产品语义以 **[AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/docs/design/AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md)** 为准。
 
 ## 0. 背景与根因
 
@@ -136,7 +138,7 @@ LLM 输出的 `evidence_refs` 必须命中真实 findings；缺证据降级规�
 ### P1
 - `domain/signals/model.py`：`PromptLensScores` 加 `evaluation_status`，`coverage` 增 `none`，保留内部 `source_engine`。
 - `infra/extractors/{prompt_quality,heuristic,llm}.py`：按 短会话/失败/无LLM 落不同 `evaluation_status`。
-- `domain/cache_schema.py`：`CACHE_SCHEMA_VERSION → "1.1"`。
+- `domain/cache_schema.py`：`CACHE_SCHEMA_VERSION` 升级（P1 期间为 `"1.1"`；v0.4.2 性能与评分优化重构时升级为 `"1.2"` 以触发多设备隔离与防颠簸重刷）。
 - `domain/growth/scorer.py`：按 status 聚合计数。
 - `application/{prompt_coach,report_view,summary_payload}.py` + 模板 + compare：切新 source_summary（run_mode + 各 status count + user_facing_note）。
 - 验收：短会话计入 insufficient 而非 heuristic；pytest 通过。

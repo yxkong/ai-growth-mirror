@@ -1,134 +1,103 @@
-# AI Growth Mirror — 产品长期规划
+# AI Growth Mirror — 产品长期规划与路线图
 
-> 本文档定义产品的核心定位、当前阶段、中长期路线图。
+> 本文档定义 AI 成长镜（AI Growth Mirror）的核心定位、当前阶段以及中长期产品演进路线图。
 
-## 1. 产品定位
+---
 
-**一句话**：帮助 AI coding 用户发现自己的使用短板，并给出可执行的训练方案。
+## 1. 产品定位与核心价值
 
-**目标用户**：使用 Cursor / Claude Code / Codex / Copilot 等 AI 编程工具的中高级程序员，希望：
-- 知道自己是否"用对了" AI
-- 发现提需求的盲区（而非代码本身的问题）
-- 获得具体的、可练习的改进路径
+**一句话定义**：帮助 AI coding 用户看见并改进与 AI 协作时的行为盲区，提供可执行的成长训练方案。
 
-**核心价值**：
-1. **诊断** — 你的 Prompt 哪里弱？（不是代码弱，是"提需求"弱）
-2. **训练** — 给一个两周可执行的练习方案
-3. **追踪** — 下次再跑，看看你有没有进步
+* **诊断**：我的 Prompt 哪里弱？（聚焦于提需求与协作逻辑，而非代码质量）
+* **训练**：如何改进？（每次生成给出 2 项清晰、可落地的两周训练计划与 Action Contract 契约）
+* **追踪**：我有进步吗？（自动追踪 30 天成长轨迹，显示对比分析与人工纠偏成本趋势）
 
-**不是什么**：
-- 不是代码质量检查工具
-- 不是 AI 工具的使用教程
-- 不是通用的编程能力评估
+**产品设计六大原则**：
+1. **诊断先于评分**：用户最关心的是“我如何提升”，而非抽象的 65 分还是 70 分。
+2. **可执行先于全面**：每次仅建议 2 个核心训练点，避免信息轰炸。
+3. **如实披露**：清晰标识分析的置信度边界，弱化代理分析，不伪装 LLM 深度智能。
+4. **程序员审美**：高信息密度，去除花哨的视觉光晕，倡导精致、紧凑的数据呈现。
+5. **数据自主**：所有数据全本地运行解析，不上传至任何中心化服务器，保障隐私安全。
+6. **增量演进**：核心版本专注解决 1-2 个使用与协作体验缺口。
 
-## 2. 当前状态（v0.3）
+---
 
-### 已完成
-- 多工具 session 采集（Cursor / Claude Code / Codex / QCoder / CodeBuddy）
-- LLM + Heuristic 双通道 session read 提取
-- 五轴能力评分（intent_clarity / execution_driving / implementation_depth / delivery_closure / adaptive_recovery）
-- Prompt Quality 五维评分（context_provision / request_specificity / information_timing / scope_management / correction_quality）
-- 成长教练：deficit 诊断 + 改写卡片 + friction_synthesis
-- 对比报告（快照 compare）
-- 趋势分析（30 天轨迹线）
-- 缓存机制（session_read 不重复提取）
-- 三段式 LLM 诊断层（Rule 候选 → LLM grounded synthesis → Rule 排序）
-- Agentic Evidence Graph（task_intent / method_used / context_used / execution_path / closure_state / human_intervention 六维事实图）
-- Action Contract Generator（基于高频纠偏模式动态产出 rule/skill/workflow 草稿）
-- human_cost_reduction 趋势（SnapshotSource 持久化 + HumanCostTrend 跨快照对比）
+## 2. 版本管理体系
 
-### 当前问题
-1. **信息过载** — 报告 13 个 section，用户读不完
-2. **UI 过度设计** — 适合营销页，不适合数据报告
-3. **核心价值被稀释** — "你的问题在哪 + 怎么练"被埋在大量辅助信息里
-4. **indexed_prompt 用户误判** — 使用 skill 触发词的高级用户被错误标为"缺上下文"
+为保障核心业务的持续迭代与数据库/缓存的稳定性，项目采用解耦的版本架构：
 
-## 3. 短期规划（v0.4 — 当前迭代）
+* **产品版本 (Product Version)**：遵循 SemVer 语义化规范。代表用户直接体验到的功能、交互及 CLI 命令升级。
+* **缓存 Schema 版本 (Cache Schema Version)**：指示 `SessionRead` / `CoreEvidence` 序列化在缓存底座中的兼容性，独立版本升级会触发旧缓存的自动迁移与重新解析。
 
-### 目标：精简 + 闭环 + 程序员审美
+| 产品版本 (Product Version) | 缓存 Schema 版本 | 核心关注点 | 状态 |
+|----------------------------|-----------------|-----------|------|
+| **v0.4.0** | 1.1 | Agentic 核心诊断架构与证据事实图 | ✅ 已发布 |
+| **v0.4.2** | 1.2 | 缺失型指标归一化、防颠簸缓存与多端隔离 | ✅ 已发布 |
+| **v0.5.0** | 1.2 | 免部署单文件交互式报告 (Scroll Spy / Deficit 联动) | 🏃 进行中 |
+| **v0.6.0** | 1.2 / 1.3 | 训练回看与环比增量闭环 (Practice Feedback Loop) | 📅 规划中 |
+| **v0.7.0** | 1.3 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
+| **v1.0.0+** | 2.0 | 插件市场与开放平台 API | 📅 长期规划 |
 
-| 改动 | 状态 | 说明 |
-|------|------|------|
-| deficit 排序考虑 prompt_style | ✅ done | indexed_prompt 用户的 missing-context 降权 |
-| deficit label override | ✅ done | 对索引用户显示"任务变量未前置"而非"缺少必要上下文" |
-| 报告 section 重排 | ✅ done | Prompt Coach + Growth Plan 前置到最高位 |
-| Hero 区精简 | ✅ done | 去掉 overview-band 三卡片，改为单行摘要 |
-| CSS 去花哨 | ✅ done | 恢复精致 UI；去除多余光晕；sidebar sticky + 滚动高亮 |
-| 导航与正文对齐 | ✅ done | sidebar 顺序与 DOM 一致；滚动时高亮跟随 |
-| 会话范围过滤 scope | ✅ done | `--repo` / `--dir` / `--keyword` + config.yaml |
-| 五轴迷你趋势图比例 | ✅ done | axis 系列独立 viewBox 64px，避免拉伸失真 |
-| min_quality / advanced_features / has_data | ✅ done | 质量门、高级特性、无数据展示 — |
-| evaluation_status 体系 | ✅ done | 4 种评估状态如实披露 |
-| friction_synthesis | ✅ done | LLM 优先 + 规则兜底 |
-| closure_guidance.mode | ✅ done | 区分 open_ended vs engineered |
+---
 
-### v0.4 验收标准
-- [x] 报告首屏能在 5 秒内让用户知道"我哪里弱 + 怎么练"（Prompt Coach / Growth Plan 前置；Hero 单行摘要）
-- [x] 侧栏导航与正文区块一一对应，滚动时当前章节高亮同步
-- [x] 所有 appendix section 默认折叠
-- [x] indexed_prompt 用户不会看到"缺少必要上下文"标签（降权 + 文案 override）
-- [x] `--min-quality` 与 scope 过滤可在 CLI / config 配置
+## 3. 已完成里程碑
 
-## 4. 中期规划（v0.5 ~ v0.7）
+### 3.1 v0.4.2 (基于 Schema 1.2) — 性能与评分规范重构
+* **指标动态归一化**：在 Cursor/Trae 无 Token 指标时，在 [scorer.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/domain/growth/scorer.py) 中动态剔除 Token 权重，并重分配其余指标权重，解决零值惩罚的缺口。
+* **Per-Session DB Revision**：利用 AI 聊天核心行哈希，防止因无关的 IDE 状态修改导致缓存颠簸失效。
+* **多机器物理隔离**：支持 `(source_machine, session_id)` 双重唯一去重，并在缓存中按机器子目录物理隔离。
+* **惰性 Placeholder 解析**：初扫描阶段仅提取 project_path 构建 Placeholder 会话，过滤采样后再深度解析，吞吐率提升百倍。
 
-### v0.5：交互式报告
-- 报告从静态 HTML 改为带 JS 交互的 SPA
-- 用户可以点击 deficit 直接跳转到对应的改写卡片
-- 雷达图可交互（hover 显示每个轴的详情）
-- 暗色模式支持
+### 3.2 v0.4.0 (基于 Schema 1.1) — Agentic 诊断底座
+* **三段式 LLM 诊断层**：Stage-1 候选生成 -> Stage-2 LLM 深度诊断与反例校验 -> Stage-3 规则重排过滤。
+* **Agentic Evidence Graph**：六维会话事实图（任务意图、使用方法、上下文、执行路径、收口状态、人工干预）落地，并写入 Sidecar 归档。
+* **Action Contract Generator**：动态规则产出个性化 Rule/Skill/Workflow 起草建议，替代原有的固定文字卡片。
+* **人工纠偏成本趋势**：追踪快照中 `human_intervention_session_rate` 的 Improving/Worsening/Flat 趋势并对比。
 
-### v0.6：个性化训练路径
-- 基于用户历史 N 次报告，生成个性化的训练序列
-- 每周推送一个"本周训练 Prompt"
-- 训练完成后自动对比前后数据
-- 引入"习惯养成"机制（连续 N 天/N 周）
+---
 
-### v0.7：团队版
-- 团队聚合视图（匿名化）
-- 团队平均 vs 个人对比
-- 团队常见短板 Top 3
-- Manager Dashboard（不看个人数据，只看聚合趋势）
+## 4. 中期规划 (v0.5.0 ~ v0.7.0)
 
-## 5. 长期规划（v1.0+）
+### 4.1 v0.5.0 — 免部署交互式报告 (SPA-like Single-File HTML)
+* **核心目标**：在不破坏“本地双击即用”的零服务器前提下，大幅增强数据报告的交互体验。
+* **技术路线**：避开复杂的 React/Vue SSR 本地打包（防止本地文件的 CORS 错误），采用 **纯前端原生 JS 与精致 CSS 实现的单文件交互方案**。
+* **主要特性**：
+  - **Scroll Spy & Sidebar Sticky**：侧边栏滚动跟随，章节视口高亮。
+  - **Deficit-to-Card Linking**：点击首屏的“短板诊断 (Deficit)”直接跳转至对应的“改写建议卡片 (Rewrite Card)”。
+  - **雷达图悬停交互**：五轴雷达图 Hover 显示各轴评分因子与子维度事实。
+  - **原生暗黑模式 (Dark Mode)**：支持系统级暗色主题适配及手动切换。
 
-### v1.0：AI Coding 教练平台
-- 开放 API：第三方 AI 工具可接入
-- 插件市场：用户可自定义评分维度
-- 社区基准：匿名对标（"你的 context_provision 处于前 30%"）
+### 4.2 v0.6.0 — 训练环比增量闭环 (Practice Feedback Loop)
+* **核心目标**：让“教练建议”可追踪、可评估，杜绝一次性建议的堆砌。
+* **主要特性**：
+  - **Practice Feedback Loop (训练反馈环)**：基于 30 天滑动窗口内的多份 snapshot 历史，在生成本期报告时，针对上一期标记进行环比增量解析（例如：“根据您上两周在‘交付收口’上的强化训练，本期您的 Acceptance Criteria 覆盖率提升了 20%，该项得分由 55 增至 78”）。
+  - **每日微习惯追踪**：在 CLI 中加入极简命令（如 `ai-growth-mirror status`），显示距离下次报告生成的样本量，以及本周建议练习的 prompt 技巧提示。
 
-### v1.5：实时反馈
-- IDE 插件：在用户发送 Prompt 前给出实时建议
-- "发送前自检"自动弹出
-- 基于历史数据预测本次 session 的潜在摩擦
+### 4.3 v0.7.0 — 跨机器快照聚合与团队聚合
+* **核心目标**：打通多设备使用壁垒，为多端工作的程序员和团队提供无摩擦的聚合视图。
+* **主要特性**：
+  - **Cross-Machine CLI Aggregator**：在 CLI 中支持 `--sources` 传递多机器缓存路径，合并生成跨设备统一画像。
+  - **团队脱敏看板 (Manager Dashboard)**：支持在完全本地化、匿名且脱敏的原则下，合并多个用户的快照 Sidecar，生成团队/部门的常见协作痛点 Top 3 与能力平均基线。
 
-## 6. 设计原则（长期不变）
+---
 
-1. **诊断先于评分** — 用户不关心 65 分还是 70 分，关心"我哪里不好"
-2. **可执行先于全面** — 每次只给 2 个训练重点，不要信息轰炸
-3. **如实披露** — 代理结果标注来源，不伪装为 LLM 深度分析
-4. **程序员审美** — 信息密度 > 视觉冲击，代码块 > 花哨卡片
-5. **数据自主** — 所有数据本地处理，不上传到服务端
-6. **增量进化** — 每个版本专注解决 1-2 个核心问题
+## 5. 长期规划 (v1.0.0+)
 
-## 7. 技术债清理计划
+### 5.1 v1.0.0 — AI Coding 教练平台
+* **开放平台 API**：允许第三方 AI 工具（如自定义 IDE 脚本、VS Code 插件）通过 API 输入会话包。
+* **插件市场 (Plugin Market)**：支持开发者基于 `Agentic Evidence Graph` 的六维事实，自定义编写规则/LLM 评估插件，扩展五轴评分。
+* **匿名社区基准 (Community Benchmark)**：在用户完全自愿的前提下，允许上传无敏感数据的匿名 sidecar。平台提供对标服务（例如：“您的 Context Frame 处于全球前 30%”）。
 
-| 项目 | 优先级 | 说明 |
-|------|--------|------|
-| i18n key 去重 | P1 | template_labels / guidance_labels / view_model 有重叠 |
-| 模板拆分 | P1 | 1700行单文件 → partials 组件化 |
-| 测试覆盖 | P2 | prompt_coach 逻辑缺少端到端测试 |
-| session_read schema 迁移 | P2 | v1.0 → v1.1 的向后兼容性 |
-| 报告渲染引擎 | P3 | Jinja2 → React/Vue SSR（为 v0.5 交互化铺路） |
+### 5.2 v1.5.0 — IDE 实时自检插件
+* **实时自检**：在 IDE 的 Chat 面板增加“发送前自检 (Preflight Check)”悬浮提示，在用户点击发送 Prompt 前进行拦截诊断。
+* **偏航预测**：基于用户最近的成长短板，实时预判当前 Prompts 是否存在上下文缺失或偏航风险。
 
-## 当前完成里程碑（v0.4-patch1 — Agentic Architecture）
-- 三段式 LLM 诊断层：结构化 evidence packet 输入 + 强制 why_not_other_diagnosis 输出
-- Agentic Evidence Graph：六维会话事实图，随 CoreEvidence sidecar 持久化（schema 1.2）
-- Action Contract Generator 升级：动态 rule/skill/workflow/checklist 草稿，替换固定 5 条
-- human_cost_reduction 趋势：跨快照对比，improving/worsening/flat 三向显示
+---
 
-## 修订记录
+## 6. 修订记录
 
-| 日期 | 版本 | 变更 |
-|------|------|------|
-| 2026-06-03 | v0.4 | 导航/DOM 对齐、滚动 spy、scope 配置化、五轴图比例、质量门与高级特性 |
-| 2026-06-02 | v0.1 | 初版产品规划 |
+| 日期 | 产品版本 | 缓存 Schema | 变更概要 |
+|------|---------|-------------|---------|
+| 2026-06-06 | v0.4.2 | 1.2 | **重构路线图**：解耦产品版本与缓存版本，厘清 v0.4.2/v0.4.0 里程碑；修正 v0.5.0 技术方案为“单文件免部署交互”；细化 v0.6.0/v0.7.0 规划；将所有内部链接规范为绝对 `file://` 格式。 |
+| 2026-06-03 | v0.4.0 | 1.1 | 引入导航/DOM 对齐、滚动高亮同步、Scope 配置化、五轴比例与评估状态等功能。 |
+| 2026-06-02 | v0.1.0 | 1.0 | 初版产品规划设立。 |

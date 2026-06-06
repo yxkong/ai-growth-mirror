@@ -494,3 +494,39 @@ application/orchestrator.generate_report_artifacts()
 - 在 `application/report_view.py` 或 `html_render.py` 中用 `if language == 'zh'` 硬编码展示文案（应在 `assets/i18n/`，由 application 注入 catalog）
 - 新建独立 `report/` 包或在 `html_render.py` 复制 view 组装逻辑
 - 在 `cli.py` 内复制 collect → extract → aggregate 主编排
+
+---
+
+## 14. 研发架构与逻辑硬规范
+
+> [!NOTE]
+> **[v0.4.2 架构增量]**：以下四类硬规范于产品版本 **v0.4.2** 中引入，配合缓存 Schema **1.2** 正式生效，旨在打通多端数据同步、缓存防颠簸以及大规模会话日志场景下的吞吐与评分准确性底座。
+
+为确保 AI Growth Mirror 在大规模日志、多机器同步、无 Token 数据源等现实场景下的鲁棒性，特设立以下四类研发硬规范及配套计算逻辑：
+
+### 14.1 缺失型指标动态归一化规范
+- **原则**：若数据源不支持或缺失了某类指标（如 Cursor/Trae/QCoder 等不提供 LLM Token 数量和计费明细），在计算评分时**不得**将其计为 `0` 予以惩罚。
+- **计算逻辑**：
+  - 在 [scorer.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/domain/growth/scorer.py) 汇总前，首先通过 `any(s.input_tokens is not None for s in sessions)` 校验是否有可用的 Token 数据。
+  - 若无 Token 数据，计算 `implementation_depth` 时动态将 `total_token_volume` 权重元组（18%）从 `_bounded_average` 的参数列表中剔除。
+  - `_bounded_average` 内部根据剩余参数的总权重（`0.32 + 0.20 + 0.15 + 0.15 = 0.82`）动态求加权平均，自动完成权重归一化。
+
+### 14.2 共享数据库 Per-Session Revision 机制
+- **原则**：对于多会话共享单一数据库（如 Trae 或 QCoder 的 `state.vscdb`）的数据源，禁止直接使用整个数据库文件的 `stat().st_mtime` 作为缓存版本戳，防止无关的 IDE UI 状态写入导致缓存过度失效（颠簸）。
+- **计算逻辑**：
+  - 在 [base.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/infra/readers/base.py) 引入 `get_vscdb_mtime(state_db)` 时间感知器。
+  - 读取并拼接 `state.vscdb` 中与 AI 对话和代理状态直接相关的行（包含 `%input-history%`、`%ai-agent-storage%`、`%modelMap%`）生成内容哈希。
+  - 当且仅当内容哈希发生改变时，才允许 `st_mtime` 推进并更新内存缓存；否则返回上一次稳定的 `mtime`，保证缓存稳定命中。
+
+### 14.3 跨端标识与缓存路径隔离规范
+- **原则**：在多机器或多数据根场景下，session 的唯一标识和去重不得只依赖 `session_id`，且不同机器的缓存必须物理隔离，防止跨端覆盖。
+- **计算逻辑**：
+  - 去重键：由原本的 `session_id` 升级为 `(source_machine, session_id)` 双重键。
+  - 缓存路径：在 [store.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/infra/cache/store.py) 中，当 `source_machine != "local"` 时，缓存路径由默认的 `records/{tool_name}/{session_id}.json` 隔离为 `records/{tool_name}/{source_machine}/{session_id}.json`，实现完全的物理隔离。
+
+### 14.4 惰性解析与按需加载采样规范
+- **原则**：在大规模日志（数万/多年历史）场景下，为避免扫描阶段因全量载入深度解析造成 CPU 和内存过载，必须采用 Placeholder 惰性解析机制。
+- **计算逻辑**：
+  - 在 [base.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/infra/readers/base.py) 的 `_iter_sessions_from_root` 中，若 cache 启用且未命中缓存，先快速构建一个带有 `_is_placeholder = True` 的轻量级 `SessionRecord`，其仅通过子类实现的 `_quick_extract_project_path`（如极速加载 `workspace.json`）带上项目路径。
+  - 直到 [orchestrator.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/application/orchestrator.py) 对会话执行完 Scope 过滤和采样限额后，才对最终确定的 sessions 列表调用 `session.ensure_parsed(cache)`，就地完成深度解析并写盘。未选中样本不发生任何深度解析开销。
+

@@ -111,12 +111,14 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
             session_id = workspace_dir.name
             if session_id in seen:
                 continue
+            from .base import get_vscdb_mtime
+            source_mtime = get_vscdb_mtime(state_db)
             try:
                 start_time = datetime.fromtimestamp(
-                    state_db.stat().st_mtime,
+                    source_mtime,
                     tz=timezone.utc,
                 )
-            except OSError:
+            except Exception:
                 start_time = datetime.now(timezone.utc)
             source_paths = [state_db]
             workspace_json = workspace_dir / "workspace.json"
@@ -128,7 +130,7 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
                 tool_name=self.tool_name,
                 start_time=start_time,
                 source_paths=source_paths,
-                source_mtime=_max_mtime(source_paths),
+                source_mtime=source_mtime,
             )
 
     def parse_session(self, raw: SessionRef) -> SessionRecord:
