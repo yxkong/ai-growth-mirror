@@ -325,11 +325,17 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
                 )
             if scope_filters.keywords:
                 progress(f"  keyword: {', '.join(scope_filters.keywords)}")
-            sessions = apply_session_scope(sessions, scope_filters)
+            sessions = apply_session_scope(sessions, scope_filters, cache=cache_for_iter)
             progress(f"Sessions after filters: {len(sessions)} of {before_filter_count}")
 
         if not sessions:
             raise NoSessionsInRangeError()
+
+        # Ensure all placeholder sessions are fully parsed and cached before proceeding.
+        # This occurs after project filtering to minimize IO/CPU.
+        for s in sessions:
+            if getattr(s, "_is_placeholder", False):
+                s.ensure_parsed(cache_for_iter)
 
         if len(sessions) < MIN_SESSIONS_HARD:
             raise InsufficientSessionsError(

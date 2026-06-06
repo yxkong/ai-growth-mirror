@@ -54,10 +54,16 @@ class CacheStore:
     def __init__(self, cache_dir: Path):
         self.cache_dir = cache_dir
 
-    def _record_path(self, tool_name: str, session_id: str) -> Path:
+    def _record_path(self, tool_name: str, session_id: str, source_machine: str = "local") -> Path:
+        machine = source_machine or "local"
+        if machine != "local":
+            return self.cache_dir / "records" / tool_name / machine / f"{session_id}.json"
         return self.cache_dir / "records" / tool_name / f"{session_id}.json"
 
-    def _analysis_path(self, tool_name: str, session_id: str) -> Path:
+    def _analysis_path(self, tool_name: str, session_id: str, source_machine: str = "local") -> Path:
+        machine = source_machine or "local"
+        if machine != "local":
+            return self.cache_dir / "reads" / tool_name / machine / f"{session_id}.json"
         return self.cache_dir / "reads" / tool_name / f"{session_id}.json"
 
     def read_record(
@@ -65,6 +71,7 @@ class CacheStore:
         tool_name: str,
         session_id: str,
         source_mtime: Optional[float] = None,
+        source_machine: str = "local",
     ) -> Optional[SessionRecord]:
         """Load cached session record.
 
@@ -73,7 +80,7 @@ class CacheStore:
         stale and None is returned.  There is no calendar TTL.  Pass
         ``source_mtime=None`` to skip the revision check.
         """
-        path = self._record_path(tool_name, session_id)
+        path = self._record_path(tool_name, session_id, source_machine)
         if not path.exists():
             return None
         try:
@@ -90,7 +97,7 @@ class CacheStore:
             return None
 
     def write_record(self, meta: SessionRecord) -> None:
-        path = self._record_path(meta.tool_name, meta.session_id)
+        path = self._record_path(meta.tool_name, meta.session_id, meta.source_machine)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(meta.to_dict(), f, ensure_ascii=False, indent=2)
@@ -101,6 +108,7 @@ class CacheStore:
         session_id: str,
         source_mtime: Optional[float] = None,
         report_language: Optional[str] = None,
+        source_machine: str = "local",
     ) -> Optional[SessionRead]:
         """Load cached session analysis, optionally gated by source_mtime freshness.
 
@@ -109,7 +117,7 @@ class CacheStore:
         different locale are stale. Unstamped entries without ``_report_language`` still
         hit (prompt-only changes do not force a full session-read re-run).
         """
-        path = self._analysis_path(tool_name, session_id)
+        path = self._analysis_path(tool_name, session_id, source_machine)
         if not path.exists():
             return None
         try:
@@ -129,8 +137,8 @@ class CacheStore:
         except Exception:
             return None
 
-    def write_analysis(self, session_read: SessionRead) -> None:
-        path = self._analysis_path(session_read.tool_name, session_read.session_id)
+    def write_analysis(self, session_read: SessionRead, source_machine: str = "local") -> None:
+        path = self._analysis_path(session_read.tool_name, session_read.session_id, source_machine)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(session_read.to_dict(), f, ensure_ascii=False, indent=2)

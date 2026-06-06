@@ -40,6 +40,20 @@ class WorkspaceStorageChatAdapter(BaseSessionAdapter):
     def extra_storage_roots(self) -> list[Path]:
         return []
 
+    def _quick_extract_project_path(self, raw: SessionRef) -> str:
+        workspace_json = next((path for path in raw.source_paths if path.name == "workspace.json"), None)
+        if workspace_json and workspace_json.exists():
+            try:
+                with open(workspace_json, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                folder = data.get("folder", "")
+                if folder.startswith("file:///"):
+                    folder = folder[8:]
+                return folder
+            except Exception:
+                pass
+        return ""
+
     def is_available(self) -> bool:
         return any(self._iter_session_files())
 

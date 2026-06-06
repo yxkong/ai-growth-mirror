@@ -253,6 +253,7 @@ def _compute_growth_level(
     workflow_fingerprint_session_rate: float = 0.0,
     workflow_reuse_depth: int = 0,
     asset_authoring_session_rate: float = 0.0,
+    has_token_data: bool = True,
 ) -> tuple[str, int, dict[str, float]]:
     prompt_dimensions = prompt_dimensions or {}
     friction_by_attribution = friction_by_attribution or {}
@@ -289,13 +290,17 @@ def _compute_growth_level(
         (_soft_threshold(float(tier_diversity), 2.0, 5.0, 100.0), 0.18),
         (structured_rate * 100.0, 0.16),
     )
-    implementation_depth = _bounded_average(
+    impl_depth_items = [
         (_soft_threshold(files_per_session, 0.5, 3.0, 100.0), 0.32),
-        (_soft_threshold(float(total_token_volume), 500_000.0, 12_000_000.0, 100.0), 0.18),
         (code_verification_rate * 100.0, 0.20),
         (fully_achieved_rate * 100.0, 0.15),
         (_soft_threshold(float(total_files_modified), 3.0, 40.0, 100.0), 0.15),
-    )
+    ]
+    if has_token_data:
+        impl_depth_items.append(
+            (_soft_threshold(float(total_token_volume), 500_000.0, 12_000_000.0, 100.0), 0.18)
+        )
+    implementation_depth = _bounded_average(*impl_depth_items)
     delivery_closure = _bounded_average(
         (fully_achieved_rate * 100.0, 0.42),
         (verification_rate * 100.0, 0.24),
@@ -915,7 +920,7 @@ def _valid_session_reads(session_reads: list[SessionRead]) -> list[SessionRead]:
     return [read for read in session_reads if not getattr(read, "extraction_failed", False)]
 
 
-def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead]) -> None:
+def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessions: list[SessionRecord]) -> None:
     valid_reads = _valid_session_reads(session_reads)
     weighted_outcome_total = sum(stats.outcome_counts.values())
     if weighted_outcome_total:
@@ -937,6 +942,7 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead]) -> No
         if stats.code_session_count >= 5
         else stats.verification_behavior_rate
     )
+    has_token_data = any(s.input_tokens is not None for s in sessions)
     _apply_asset_floor(stats)
     maturity_bonus = _asset_maturity_bonus(stats)
     (
@@ -982,6 +988,7 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead]) -> No
         workflow_fingerprint_session_rate=stats.workflow_fingerprint_session_rate,
         workflow_reuse_depth=stats.workflow_reuse_depth,
         asset_authoring_session_rate=stats.asset_authoring_session_rate,
+        has_token_data=has_token_data,
     )
     stats.agentic_system_score = round(stats.agentic_sub_scores.get("agentic_system", 0.0), 1)
     stats.radar_axes = _build_radar_axes(stats)
@@ -1015,5 +1022,5 @@ def aggregate(
     _populate_prompt_signals(stats, sessions)
     _populate_advanced_feature_signals(stats, sessions)
     _populate_code_session_metrics(stats, sessions)
-    _score_profile(stats, session_reads)
+    _score_profile(stats, session_reads, sessions)
     return stats

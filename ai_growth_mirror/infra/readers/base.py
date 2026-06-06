@@ -83,12 +83,17 @@ class BaseSessionAdapter(ABC):
         """Derive higher-order collaboration features uniformly across readers."""
         enrich_advanced_features(session)
 
+    def _quick_extract_project_path(self, raw: SessionRef) -> str:
+        """Rapidly extract project path without parsing full session payload."""
+        return ""
+
     def _iter_sessions_from_root(
         self,
         since: Optional[datetime] = None,
         until: Optional[datetime] = None,
         cache: Optional["CacheStore"] = None,
         force_refresh: bool = False,
+        machine: str = "local",
     ) -> Iterator[SessionRecord]:
         """Iterate sessions from the current self.data_root.
 
@@ -113,49 +118,57 @@ class BaseSessionAdapter(ABC):
             session: Optional[SessionRecord] = None
             if cache is not None and raw.source_mtime > 0 and not force_refresh:
                 session = cache.read_record(
-                    self.tool_name, raw.session_id, source_mtime=raw.source_mtime
+                    self.tool_name, raw.session_id, source_mtime=raw.source_mtime, source_machine=machine
                 )
             if session is None:
-                try:
-                    session = self.parse_session(raw)
-                except Exception:
-                    continue
-                session._source_mtime = raw.source_mtime
-                # Enrich prompt signals for adapters that don't compute them natively.
-                self._enrich_prompt_signals(session)
-                # Infer agentic signals from tool_counts when not natively available.
-                self._enrich_agentic_signals(session)
                 if cache is not None:
+                    # Lazy loading placeholder
+                    project_path = self._quick_extract_project_path(raw)
+                    session = SessionRecord(
+                        session_id=raw.session_id,
+                        tool_name=self.tool_name,
+                        start_time=raw.start_time.isoformat(),
+                        project_path=project_path,
+                    )
+                    session._is_placeholder = True
+                    session._raw_ref = raw
+                    session._adapter = self
+                    session._source_mtime = raw.source_mtime
+                else:
                     try:
-                        cache.write_record(session)
+                        session = self.parse_session(raw)
                     except Exception:
-                        # Cache failures are non-fatal — degrade to no-cache mode silently.
-                        pass
-            # Derive plan/subagent/skill/MCP/multi-model features. Idempotent &
-            # ADD-only, so safe to run on both fresh parses and cache hits —
-            # this lets older caches (without advanced_features) light up
-            # without requiring `--no-cache`.
-            self._enrich_advanced_features(session)
+                        continue
+                    session._source_mtime = raw.source_mtime
+                    # Enrich prompt signals for adapters that don't compute them natively.
+                    self._enrich_prompt_signals(session)
+                    # Infer agentic signals from tool_counts when not natively available.
+                    self._enrich_agentic_signals(session)
+
+            # Enrich advanced features only for fully-loaded records.
+            if not session._is_placeholder:
+                self._enrich_advanced_features(session)
             if since:
                 # Determine the session's last-activity timestamp.
                 last_activity = raw.start_time
-                if session.end_time:
-                    try:
-                        last_activity = parse_iso(session.end_time)
-                        if last_activity.tzinfo is None:
-                            from datetime import timezone as _tz
-                            last_activity = last_activity.replace(tzinfo=_tz.utc)
-                    except Exception:
-                        pass
-                elif session.user_message_timestamps:
-                    try:
-                        last_ts = parse_iso(session.user_message_timestamps[-1])
-                        if last_ts.tzinfo is None:
-                            from datetime import timezone as _tz
-                            last_ts = last_ts.replace(tzinfo=_tz.utc)
-                        last_activity = last_ts
-                    except Exception:
-                        pass
+                if not session._is_placeholder:
+                    if session.end_time:
+                        try:
+                            last_activity = parse_iso(session.end_time)
+                            if last_activity.tzinfo is None:
+                                from datetime import timezone as _tz
+                                last_activity = last_activity.replace(tzinfo=_tz.utc)
+                        except Exception:
+                            pass
+                    elif session.user_message_timestamps:
+                        try:
+                            last_ts = parse_iso(session.user_message_timestamps[-1])
+                            if last_ts.tzinfo is None:
+                                from datetime import timezone as _tz
+                                last_ts = last_ts.replace(tzinfo=_tz.utc)
+                            last_activity = last_ts
+                        except Exception:
+                            pass
                 # Exclude only if the entire session ended before ``since``.
                 if last_activity < since:
                     continue
@@ -168,7 +181,7 @@ class BaseSessionAdapter(ABC):
         cache: Optional["CacheStore"] = None,
         force_refresh: bool = False,
     ) -> Iterator[SessionRecord]:
-        """Iterate sessions across all data roots, deduplicating by session_id.
+        """Iterate sessions across all data roots, deduplicating by (machine, session_id).
 
         Pass `cache` to enable mtime-gated cache reuse — cuts re-parse time
         on stable session sets to near-zero.  When omitted, every session
@@ -179,17 +192,18 @@ class BaseSessionAdapter(ABC):
         source while still writing the fresh result back to cache — the
         intended semantics of `ai-growth-mirror generate --no-cache`.
         """
-        seen: set[str] = set()
+        seen: set[tuple[str, str]] = set()
         for i, root in enumerate(self.data_roots):
             self.data_root = root
             # Index 0 is always the local root; subsequent roots are from
             # local tool data root only
             machine = "local" if i == 0 else root.parent.name
             for session in self._iter_sessions_from_root(
-                since, until, cache=cache, force_refresh=force_refresh
+                since, until, cache=cache, force_refresh=force_refresh, machine=machine
             ):
-                if session.session_id not in seen:
-                    seen.add(session.session_id)
+                dedupe_key = (machine, session.session_id)
+                if dedupe_key not in seen:
+                    seen.add(dedupe_key)
                     session.source_machine = machine
                     yield session
 
@@ -335,4 +349,49 @@ def _common_prefix_path(paths: list[str]) -> str:
         return os.path.commonpath(absolute_paths)
     except Exception:
         return ""
+
+
+_VSCDB_REVISION_CACHE: dict[str, tuple[str, float]] = {}
+
+
+def get_vscdb_mtime(state_db: Path) -> float:
+    """Extract a stable per-session mtime by watching key AI conversation keys.
+
+    If those keys haven't changed, we return the previously cached mtime to prevent
+    cache thrashing caused by unrelated UI state writes (which change file mtime).
+    """
+    import sqlite3
+    import json
+
+    if not state_db.exists():
+        return 0.0
+
+    try:
+        db_mtime = state_db.stat().st_mtime
+    except OSError:
+        return 0.0
+
+    db_path_str = str(state_db)
+
+    try:
+        with sqlite3.connect(state_db) as conn:
+            cursor = conn.execute(
+                "SELECT key, value FROM ItemTable "
+                "WHERE key LIKE '%input-history%' "
+                "OR key LIKE '%ai-agent-storage%' "
+                "OR key LIKE '%modelMap%'"
+            )
+            rows = cursor.fetchall()
+            features = sorted([(row[0], row[1]) for row in rows])
+            feature_str = json.dumps(features)
+    except Exception:
+        feature_str = ""
+
+    if db_path_str in _VSCDB_REVISION_CACHE:
+        prev_hash, prev_mtime = _VSCDB_REVISION_CACHE[db_path_str]
+        if prev_hash == feature_str:
+            return prev_mtime
+
+    _VSCDB_REVISION_CACHE[db_path_str] = (feature_str, db_mtime)
+    return db_mtime
 

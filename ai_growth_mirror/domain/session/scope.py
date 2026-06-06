@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Optional, Any
 
 from .model import SessionRecord
 
@@ -65,7 +65,14 @@ class SessionScope:
         return any((self.repos, self.dirs, self.keywords))
 
 
-def matches_session_scope(session: SessionRecord, scope: SessionScope) -> bool:
+def matches_session_scope(
+    session: SessionRecord,
+    scope: SessionScope,
+    cache: Optional[Any] = None,
+) -> bool:
+    if scope.repos or scope.keywords:
+        if getattr(session, "_is_placeholder", False):
+            session.ensure_parsed(cache)
     if scope.repos:
         repo_haystacks = []
         if session.git_origin_url:
@@ -84,7 +91,11 @@ def matches_session_scope(session: SessionRecord, scope: SessionScope) -> bool:
     return True
 
 
-def apply_session_scope(sessions: list[SessionRecord], scope: SessionScope) -> list[SessionRecord]:
+def apply_session_scope(
+    sessions: list[SessionRecord],
+    scope: SessionScope,
+    cache: Optional[Any] = None,
+) -> list[SessionRecord]:
     if not scope.has_filters:
         return list(sessions)
-    return [session for session in sessions if matches_session_scope(session, scope)]
+    return [session for session in sessions if matches_session_scope(session, scope, cache)]

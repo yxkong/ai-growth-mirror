@@ -295,6 +295,7 @@ def _cached_session_read(
         meta.session_id,
         source_mtime=meta._source_mtime or None,
         report_language=language,
+        source_machine=meta.source_machine,
     )
 
 
@@ -307,7 +308,7 @@ def _write_session_read(
 ) -> SessionRead:
     session_read._source_mtime = meta._source_mtime
     session_read._report_language = language
-    cache.write_analysis(session_read)
+    cache.write_analysis(session_read, source_machine=meta.source_machine)
     return session_read
 
 

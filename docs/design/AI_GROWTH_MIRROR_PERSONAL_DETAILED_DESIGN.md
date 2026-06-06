@@ -2,7 +2,7 @@
 title: AI Growth Mirror Personal Detailed Design
 domain: growth_mirror
 status: canonical
-updated_at: 2026-06-03
+updated_at: 2026-06-06
 score_target: 9.9
 ---
 
@@ -438,6 +438,15 @@ Stage 3 (Rule 排序) →  rerank_diagnosis_result()
 - Week 1
 - Week 2
 - 练习 Prompt
+
+## 5.9 缓存与性能底盘优化 (v0.4.2 / Schema 1.2 架构增量)
+
+为支持多端协作、海量历史日志扫描以及无 Token 数据源的平权，引入以下底层数据及性能机制：
+
+- **缺失型指标动态归一化**：在计算 `implementation_depth` 时，若 [scorer.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/domain/growth/scorer.py) 检测到 `has_token_data` 为 `False`，动态剥离 `total_token_volume`（18% 子权重），其余四项等比扩重至 `1.0`。
+- **共享数据库 Per-Session Revision 感知**：对多会话共用单 SQLite（如 Trae/QCoder 的 `state.vscdb`），通过 `get_vscdb_mtime` 取出 `chat.input-history` 等 AI 相关数据行的组合哈希。仅在哈希变更时缓存失效，避免无关 UI 状态写入导致缓存颠簸失效。
+- **跨机器缓存物理隔离**：对非 `local` 机器的 session 记录，以 `(source_machine, session_id)` 双重键唯一标识和去重，并隔离存储于子目录中（如 `{cache_dir}/records/{tool_name}/{source_machine}/{session_id}.json`），防止多端缓存互相覆写。
+- **惰性解析 (Lazy Placeholder) 机制**：扫描阶段仅使用极速提取的 `project_path` 构造 Placeholder 代理会话，不调昂贵的完整 `parse_session`。当 [orchestrator.py](file:///Users/yxk/workspace/projects/github/ai-growth-mirror/ai_growth_mirror/application/orchestrator.py) 过滤采样定位了最终 session 列表后，才执行 `ensure_parsed` 并写回缓存。
 
 ## 6. 交互原则
 

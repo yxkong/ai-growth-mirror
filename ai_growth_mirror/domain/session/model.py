@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from ..cache_schema import RECORD_SCHEMA_VERSION
 
@@ -153,13 +153,40 @@ class SessionRecord:
     # "unknown / never set" — cache layer treats as always stale.
     _source_mtime: float = 0.0
 
+    # Transient fields for lazy parsing (never cached, never serialized)
+    _is_placeholder: bool = field(default=False, init=False, repr=False)
+    _raw_ref: Optional[Any] = field(default=None, init=False, repr=False)
+    _adapter: Optional[Any] = field(default=None, init=False, repr=False)
+
+    def ensure_parsed(self, cache: Optional[Any] = None) -> None:
+        if not self._is_placeholder:
+            return
+        if self._adapter is None or self._raw_ref is None:
+            return
+        real_record = self._adapter.parse_session(self._raw_ref)
+        for k, v in real_record.__dict__.items():
+            if k not in ("_is_placeholder", "_raw_ref", "_adapter"):
+                setattr(self, k, v)
+        self._is_placeholder = False
+        self._adapter._enrich_prompt_signals(self)
+        self._adapter._enrich_agentic_signals(self)
+        self._adapter._enrich_advanced_features(self)
+        if cache is not None:
+            try:
+                cache.write_record(self)
+            except Exception:
+                pass
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["SCHEMA_VERSION"] = self.SCHEMA_VERSION
         d.pop("source_machine", None)  # transient — re-derived at runtime, never cached
+        d.pop("_is_placeholder", None)
+        d.pop("_raw_ref", None)
+        d.pop("_adapter", None)
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> "SessionRecord":
-        d = {k: v for k, v in d.items() if k != "SCHEMA_VERSION"}
+        d = {k: v for k, v in d.items() if k not in {"SCHEMA_VERSION", "_is_placeholder", "_raw_ref", "_adapter"}}
         return cls(**d)
