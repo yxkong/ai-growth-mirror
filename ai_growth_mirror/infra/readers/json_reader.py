@@ -7,6 +7,7 @@ from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
+from ai_growth_mirror.domain.session.heuristics import enrich_advanced_features
 from ai_growth_mirror.domain.session.model import SessionRecord
 
 _SESSION_RECORD_KEYS = {field.name for field in fields(SessionRecord)}
@@ -34,4 +35,6 @@ class JsonSessionAdapter:
 
     def load(self, source: str | Path) -> SessionRecord:
         payload = _read_json_source(source)
-        return SessionRecord.from_dict(_normalize_meta(payload))
+        session = SessionRecord.from_dict(_normalize_meta(payload))
+        enrich_advanced_features(session)
+        return session

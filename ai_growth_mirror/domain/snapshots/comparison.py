@@ -150,6 +150,13 @@ def _build_human_cost_trend(
 
 def _build_axis_deltas(previous: SnapshotSource, current: SnapshotSource) -> list[AxisDelta]:
     rows: list[AxisDelta] = []
+    # When either snapshot does not carry the current five-axis schema, the
+    # missing axes would default to 0.0 and fabricate "0 -> 60" gains/regressions
+    # that pollute the waterfall, evidence cards and training priorities. The
+    # confidence layer already flags the mismatch; here we simply emit no axis
+    # deltas so the comparison stays schema-honest.
+    if not is_current_axis_schema(previous.axis_scores) or not is_current_axis_schema(current.axis_scores):
+        return rows
     for key in AXIS_ORDER:
         prev_value = float(previous.axis_scores.get(key, 0.0))
         curr_value = float(current.axis_scores.get(key, 0.0))

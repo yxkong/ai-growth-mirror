@@ -13,7 +13,14 @@ from ...domain.growth.costs import estimate_cost
 from ...domain.session.heuristics import CONSTRAINT_WORDS, CODE_CONTEXT_PATTERNS, TEST_PATTERNS, WRITE_TOOL_NAMES
 from ...domain.session.model import SessionRecord, SessionRef
 from ...domain.signals.tooling import compute_tier_counts
-from .base import BaseSessionAdapter, detect_authorship_path, detect_language, parse_iso
+from .base import (
+    BaseSessionAdapter,
+    SKILL_READ_TOOL_NAMES,
+    detect_authorship_path,
+    detect_language,
+    extract_skill_name_from_path,
+    parse_iso,
+)
 
 _SYSTEM_PREFIXES = (
     "<local-command-",
@@ -202,10 +209,17 @@ class _ClaudeAccumulator:
         if any(pattern in command for pattern in TEST_PATTERNS):
             self.has_test_commands = True
 
+        is_read_tool = normalized in SKILL_READ_TOOL_NAMES
         for path in _find_paths(payload):
             if path not in self._seen_paths:
                 self._seen_paths.add(path)
                 self.files_modified = len(self._seen_paths)
+            if is_read_tool:
+                skill_name = extract_skill_name_from_path(path)
+                if skill_name:
+                    self.skill_invocation_count += 1
+                    if skill_name not in self.unique_skills_used:
+                        self.unique_skills_used.append(skill_name)
             language = detect_language(path)
             if language:
                 self.languages[language] = self.languages.get(language, 0) + 1

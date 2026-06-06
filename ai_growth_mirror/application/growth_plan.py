@@ -135,6 +135,8 @@ def build_growth_plan(
         )
         for key in selected_keys
     ]
+    _dedupe_action_contracts_across_priorities(priorities)
+    _dedupe_practice_prompts_across_priorities(priorities)
     _link_friction_synthesis_ids(priorities, prompt_coach)
 
     headline = i18n.get("headline", "")
@@ -204,6 +206,63 @@ def _deficit_keys_from_refs(refs: list[str]) -> set[str]:
 
 def _deficit_keys_from_ids(ids: list[str]) -> set[str]:
     return _deficit_keys_from_refs(ids)
+
+
+def _dedupe_action_contracts_across_priorities(
+    priorities: list[GrowthPriorityView],
+) -> None:
+    """Drop action-contract lines that already appeared in an earlier priority.
+
+    Shared deficits (e.g. vague-request belongs to both intent_clarity and
+    execution_driving) and the generic synthesis line could otherwise render the
+    same contract in multiple training blocks, which reads as "every contract is
+    the same" to the user.
+    """
+    seen: set[str] = set()
+    for priority in priorities:
+        kept: list[str] = []
+        for line in priority.action_contract:
+            if line in seen:
+                continue
+            seen.add(line)
+            kept.append(line)
+        priority.action_contract = kept
+
+
+def _dedupe_practice_prompts_across_priorities(
+    priorities: list[GrowthPriorityView],
+) -> None:
+    """Avoid rendering repeated or ungrounded examples in training blocks."""
+    seen: set[str] = set()
+    for priority in priorities:
+        prompt = (priority.practice_prompt or "").strip()
+        if not prompt:
+            continue
+        if _looks_like_placeholder_practice_prompt(prompt):
+            priority.practice_prompt = ""
+            continue
+        if prompt in seen:
+            priority.practice_prompt = ""
+            continue
+        seen.add(prompt)
+
+
+def _looks_like_placeholder_practice_prompt(text: str) -> bool:
+    stripped = (text or "").strip()
+    if not stripped:
+        return False
+    placeholder_tokens = (
+        "<你要完成什么>",
+        "<现状/报错/背景>",
+        "<路径1, 路径2>",
+        "<不允许改什么>",
+        "<如何算完成>",
+        "[问题]",
+        "[路径]",
+        "[issue]",
+        "[paths]",
+    )
+    return any(token in stripped for token in placeholder_tokens)
 
 
 def _link_friction_synthesis_ids(
@@ -364,11 +423,12 @@ def _priority_prompt(
     if prompt_coach and prompt_coach.prompt_style and prompt_coach.prompt_style.suggested_next_prompt and (
         prompt_coach.prompt_style.type in {"indexed_prompt", "mixed_prompt"}
     ):
-        return prompt_coach.prompt_style.suggested_next_prompt
+        candidate = prompt_coach.prompt_style.suggested_next_prompt
+        return "" if _looks_like_placeholder_practice_prompt(candidate) else candidate
     for item in linked_rewrites:
         if item.better_prompt:
-            return item.better_prompt
-    return base_prompt
+            return "" if _looks_like_placeholder_practice_prompt(item.better_prompt) else item.better_prompt
+    return "" if _looks_like_placeholder_practice_prompt(base_prompt) else base_prompt
 
 
 def _priority_actions(
@@ -418,7 +478,22 @@ def _priority_action_contract(
         "agentic_system": set(),
         "friction": {"unclear-correction", "scope-drift"},
     }
-    focus_deficit_keys: set[str] | None = _KEY_DEFICIT_SCOPE.get(key, None)
+    # Normalize gap-alias / fallback keys to their canonical axis before scope
+    # lookup; otherwise an unknown key (e.g. code_penetration_gap, consolidation)
+    # returns None and leaks the global deficit contracts into every section.
+    _SCOPE_KEY_ALIASES: dict[str, str] = {
+        "verification_gap": "delivery_closure",
+        "closure_gap": "delivery_closure",
+        "debug_recovery_gap": "adaptive_recovery",
+        "framing_gap": "intent_clarity",
+        "scope_control_gap": "intent_clarity",
+        "code_penetration_gap": "implementation_depth",
+        "workflow_composition_gap": "execution_driving",
+        "friction": "friction",
+        "consolidation": "implementation_depth",  # fallback: treat as strength → no deficit contracts
+    }
+    scope_key = _SCOPE_KEY_ALIASES.get(key, key)
+    focus_deficit_keys: set[str] | None = _KEY_DEFICIT_SCOPE.get(scope_key, set())
 
     cap_scores = capability_scores or {}
     contract_report = generate_action_contracts(

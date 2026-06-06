@@ -225,7 +225,12 @@ def build_diagnosis_candidate_packet(
             continue
         seen_codes.add(code)
         axis_key = priority.key.replace("prompt:", "") if priority.key.startswith("prompt:") else priority.key
-        current = capability_scores.get(axis_key) or pq_dims.get(axis_key, 0.0)
+        current = _resolve_axis_score(
+            axis_key,
+            stats=stats,
+            capability_scores=capability_scores,
+            pq_dims=pq_dims,
+        )
         threshold = _default_threshold(priority.key)
         snippets = _evidence_snippets_for(code, stats=stats, pq_deficit_counts=pq_deficit_counts)
         candidates.append(
@@ -285,6 +290,34 @@ def build_diagnosis_candidate_packet(
         recent_friction_snippets=recent_friction[:5],
         recent_takeaway_snippets=recent_takeaways[:5],
     )
+
+
+def _resolve_axis_score(
+    axis_key: str,
+    *,
+    stats: "GrowthProfile",
+    capability_scores: dict[str, float],
+    pq_dims: dict[str, float],
+) -> float:
+    """Resolve the real current score for a priority axis.
+
+    capability_scores only carries the five radar axes, so agentic_system and
+    friction must be sourced explicitly; otherwise the diagnosis gap is computed
+    against 0 and every why_not_other_diagnosis comparison is distorted.
+    """
+    if axis_key == "agentic_system":
+        return float(getattr(stats, "agentic_system_score", 0.0) or 0.0)
+    if axis_key == "friction":
+        # Friction maps to correction quality / adaptive recovery.
+        return float(
+            pq_dims.get("correction_quality")
+            or capability_scores.get("adaptive_recovery")
+            or 0.0
+        )
+    resolved = capability_scores.get(axis_key)
+    if resolved is None:
+        resolved = pq_dims.get(axis_key, 0.0)
+    return float(resolved or 0.0)
 
 
 def _default_threshold(priority_key: str) -> float:

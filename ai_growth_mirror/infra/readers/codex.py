@@ -13,7 +13,16 @@ from ...domain.growth.costs import estimate_cost
 from ...domain.session.heuristics import EXEC_TOOL_NAMES, SUBAGENT_TOOL_NAMES, TEST_PATTERNS, WRITE_TOOL_NAMES
 from ...domain.session.model import SessionRecord, SessionRef
 from ...domain.signals.tooling import compute_tier_counts
-from .base import BaseSessionAdapter, _max_mtime, detect_authorship_path, detect_language, parse_iso, parse_ts
+from .base import (
+    BaseSessionAdapter,
+    SKILL_READ_TOOL_NAMES,
+    _max_mtime,
+    detect_authorship_path,
+    detect_language,
+    extract_skill_name_from_path,
+    parse_iso,
+    parse_ts,
+)
 
 
 def _thread_first_prompt(thread: sqlite3.Row | None) -> str:
@@ -142,6 +151,8 @@ class _RolloutAccumulator:
     hook_config_modified: bool = False
     mcp_server_authored: bool = False
     subagent_invocation_count: int = 0
+    skill_invocation_count: int = 0
+    unique_skills_used: list[str] = field(default_factory=list)
     tool_errors: int = 0
     tool_error_categories: dict[str, int] = field(default_factory=dict)
     _written_paths: set[str] = field(default_factory=set)
@@ -195,10 +206,17 @@ class _RolloutAccumulator:
             if any(pattern in command for pattern in TEST_PATTERNS):
                 self.has_test_commands = True
 
+        is_read_tool = name in SKILL_READ_TOOL_NAMES
         for path in _find_paths(payload):
             if path not in self._written_paths:
                 self._written_paths.add(path)
                 self.files_modified = len(self._written_paths)
+            if is_read_tool:
+                skill_name = extract_skill_name_from_path(path)
+                if skill_name:
+                    self.skill_invocation_count += 1
+                    if skill_name not in self.unique_skills_used:
+                        self.unique_skills_used.append(skill_name)
             language = detect_language(path)
             if language:
                 self.languages[language] = self.languages.get(language, 0) + 1
@@ -264,6 +282,8 @@ class _RolloutAccumulator:
             hook_config_modified=self.hook_config_modified,
             mcp_server_authored=self.mcp_server_authored,
             subagent_invocation_count=self.subagent_invocation_count,
+            skill_invocation_count=self.skill_invocation_count,
+            unique_skills_used=self.unique_skills_used,
             tool_errors=self.tool_errors,
             tool_error_categories=self.tool_error_categories,
         )

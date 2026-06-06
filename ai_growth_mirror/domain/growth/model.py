@@ -273,7 +273,7 @@ class GrowthProfile:
     code_verification_rate: float = 0.0
 
     # Aggregated growth level (L1–L5) and mirror score (0–100).
-    # Level boundaries: L1 0-29 / L2 30-59 / L3 60-79 / L4 80-89 / L5 90-100.
+    # Level boundaries: L1 0-37 / L2 38-55 / L3 56-74 / L4 75-89 / L5 90-100 (see scorer._LEVEL_MIN_SCORE).
     growth_level: str = ""
     mirror_score: int = 0
     # Per-axis sub-scores. Keys: intent_clarity / execution_driving /

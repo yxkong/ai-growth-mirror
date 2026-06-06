@@ -459,6 +459,10 @@ def _read_json(path: Path, default: dict[str, Any] | None = None) -> dict[str, A
 def _as_float(value: Any) -> float | None:
     if value in (None, ""):
         return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _parse_created_at(value: Any) -> datetime | None:
@@ -525,10 +529,6 @@ def _prompt_dimension_key(label: str) -> str:
         "纠错反馈": "correction_quality",
     }
     return mapping.get(normalized, mapping.get(label, normalized))
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _stats_have_usage(stats: dict[str, Any]) -> bool:

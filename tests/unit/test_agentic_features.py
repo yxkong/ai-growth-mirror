@@ -634,3 +634,213 @@ class TestHumanCostTrend:
         sig = inspect.signature(_snapshot_source_from_payloads)
         assert "profile" in sig.parameters
         assert "stats" in sig.parameters or "report" in sig.parameters
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for the product review bug-fix pass
+# ---------------------------------------------------------------------------
+
+
+class TestReviewRegressions:
+    def test_as_float_converts_real_numbers(self):
+        """_as_float must convert valid numbers, not silently return None."""
+        from ai_growth_mirror.infra.snapshots import _as_float
+
+        assert _as_float(0.25) == 0.25
+        assert _as_float("0.4") == 0.4
+        assert _as_float(0) == 0.0
+        assert _as_float(None) is None
+        assert _as_float("") is None
+        assert _as_float("not-a-number") is None
+
+    def test_runtime_snapshot_source_carries_human_intervention_rate(self):
+        """build_runtime_snapshot_source must populate human_intervention_session_rate."""
+        import inspect
+        from ai_growth_mirror.application import growth_trajectory
+
+        src = inspect.getsource(growth_trajectory.build_runtime_snapshot_source)
+        assert "human_intervention_session_rate=" in src
+
+    def test_diagnosis_resolves_agentic_and_friction_scores(self):
+        """agentic_system / friction must resolve to real scores, not 0."""
+        from ai_growth_mirror.domain.growth.diagnosis import _resolve_axis_score
+
+        stats = _make_stats(agentic_system_score=42.0)
+        cap = {"intent_clarity": 60.0, "adaptive_recovery": 55.0}
+        pq = {"correction_quality": 48.0}
+
+        assert _resolve_axis_score("agentic_system", stats=stats, capability_scores=cap, pq_dims=pq) == 42.0
+        assert _resolve_axis_score("friction", stats=stats, capability_scores=cap, pq_dims=pq) == 48.0
+        assert _resolve_axis_score("intent_clarity", stats=stats, capability_scores=cap, pq_dims=pq) == 60.0
+
+    def test_axis_deltas_empty_for_incomparable_schema(self):
+        """Legacy-schema snapshots must not fabricate 0 -> N axis deltas."""
+        from ai_growth_mirror.domain.snapshots.model import SnapshotSource
+        from ai_growth_mirror.domain.snapshots.comparison import compare_snapshot_sources
+
+        legacy = SnapshotSource(
+            snapshot_id="legacy",
+            created_at="2026-05-01T10:00:00",
+            growth_level="L3",
+            mirror_score=60,
+            axis_scores={"delegation": 50.0, "verification": 40.0, "breadth": 55.0},
+        )
+        current = SnapshotSource(
+            snapshot_id="current",
+            created_at="2026-06-01T10:00:00",
+            growth_level="L3",
+            mirror_score=68,
+            axis_scores={
+                "intent_clarity": 60.0, "execution_driving": 70.0,
+                "implementation_depth": 65.0, "delivery_closure": 55.0, "adaptive_recovery": 52.0,
+            },
+        )
+        comparison = compare_snapshot_sources(legacy, current)
+        assert comparison.axis_deltas == []
+        assert any("schema" in reason for reason in comparison.confidence.reasons)
+
+    def test_trend_summary_reports_schema_mismatch_before_insufficient(self):
+        """A 2-point mixed-schema window must report schema_mismatch, not insufficient_points."""
+        from ai_growth_mirror.domain.snapshots.model import SnapshotSource
+        from ai_growth_mirror.domain.snapshots.trajectory import build_snapshot_trajectory_window
+
+        legacy = SnapshotSource(
+            snapshot_id="legacy",
+            created_at="2026-05-01T10:00:00",
+            growth_level="L3",
+            mirror_score=60,
+            axis_scores={"delegation": 50.0, "verification": 40.0},
+        )
+        current = SnapshotSource(
+            snapshot_id="current",
+            created_at="2026-06-01T10:00:00",
+            growth_level="L3",
+            mirror_score=68,
+            axis_scores={
+                "intent_clarity": 60.0, "execution_driving": 70.0,
+                "implementation_depth": 65.0, "delivery_closure": 55.0, "adaptive_recovery": 52.0,
+            },
+        )
+        window = build_snapshot_trajectory_window([legacy, current], window_days=90)
+        assert window.trend_summary.explanation == "schema_mismatch"
+
+    def test_codex_reader_tracks_skill_reads(self):
+        """Codex reader must detect SKILL.md reads as skill invocations."""
+        import inspect
+        from ai_growth_mirror.infra.readers import codex
+
+        src = inspect.getsource(codex)
+        assert "extract_skill_name_from_path" in src
+        assert "skill_invocation_count=" in src
+
+    def test_claude_code_reader_tracks_skill_path_reads(self):
+        """Claude Code reader must detect SKILL.md path reads, not just tool names."""
+        import inspect
+        from ai_growth_mirror.infra.readers import claude_code
+
+        src = inspect.getsource(claude_code)
+        assert "extract_skill_name_from_path" in src
+
+    def test_json_reader_enriches_advanced_features(self, tmp_path):
+        """Even the one-off JSON reader should derive advanced features."""
+        import json
+
+        from ai_growth_mirror.infra.readers.json_reader import JsonSessionAdapter
+
+        payload = {
+            "session_id": "fixture-1",
+            "tool_name": "json_dump",
+            "first_prompt": "Plan mode is active. Use the shared workflow.",
+            "unique_skills_used": ["delivery-workflow"],
+        }
+        path = tmp_path / "session.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+        session = JsonSessionAdapter().load(path)
+
+        assert "plan_mode" in session.advanced_features
+        assert "skill_invocation" in session.advanced_features
+
+    def test_action_contracts_deduped_across_priorities(self):
+        """A shared contract line must not repeat across training blocks."""
+        from ai_growth_mirror.application.growth_plan import (
+            GrowthPriorityView,
+            _dedupe_action_contracts_across_priorities,
+        )
+
+        p1 = GrowthPriorityView(key="intent_clarity", title="t1", why="w1")
+        p1.action_contract = ["RULE: clarify intent", "shared synthesis line"]
+        p2 = GrowthPriorityView(key="execution_driving", title="t2", why="w2")
+        p2.action_contract = ["shared synthesis line", "WORKFLOW: drive execution"]
+
+        _dedupe_action_contracts_across_priorities([p1, p2])
+
+        assert p1.action_contract == ["RULE: clarify intent", "shared synthesis line"]
+        assert p2.action_contract == ["WORKFLOW: drive execution"]
+
+    def test_practice_prompts_deduped_across_priorities(self):
+        """The same concrete training example must not repeat across blocks."""
+        from ai_growth_mirror.application.growth_plan import (
+            GrowthPriorityView,
+            _dedupe_practice_prompts_across_priorities,
+        )
+
+        p1 = GrowthPriorityView(key="delivery_closure", title="t1", why="w1")
+        p1.practice_prompt = "same example"
+        p2 = GrowthPriorityView(key="prompt:scope_management", title="t2", why="w2")
+        p2.practice_prompt = "same example"
+        p3 = GrowthPriorityView(key="agentic_system", title="t3", why="w3")
+        p3.practice_prompt = "different example"
+
+        _dedupe_practice_prompts_across_priorities([p1, p2, p3])
+
+        assert p1.practice_prompt == "same example"
+        assert p2.practice_prompt == ""
+        assert p3.practice_prompt == "different example"
+
+    def test_practice_prompt_placeholder_is_suppressed(self):
+        """A YAML fallback skeleton must not be rendered as a user-specific example."""
+        from ai_growth_mirror.application.growth_plan import (
+            GrowthPriorityView,
+            _dedupe_practice_prompts_across_priorities,
+            _priority_prompt,
+        )
+
+        p1 = GrowthPriorityView(key="prompt:context_provision", title="t1", why="w1")
+        p1.practice_prompt = (
+            "目标：<你要完成什么>\n"
+            "当前现象：<现状/报错/背景>\n"
+            "相关文件：<路径1, 路径2>\n"
+            "验收标准：<如何算完成>"
+        )
+        p2 = GrowthPriorityView(key="adaptive_recovery", title="t2", why="w2")
+        p2.practice_prompt = "如果当前方向不对，请先说明哪里错了。"
+
+        _dedupe_practice_prompts_across_priorities([p1, p2])
+
+        assert p1.practice_prompt == ""
+        assert p2.practice_prompt
+        assert _priority_prompt(p1.practice_prompt, [], [], None) == ""
+
+    def test_strength_axis_contract_scope_suppresses_global_deficits(self):
+        """A gap-alias key (code_penetration_gap) must not leak global deficit contracts."""
+        from ai_growth_mirror.application.growth_plan import _priority_action_contract
+
+        stats = _make_stats(
+            pq_deficit_counts={
+                "missing-context": 8,
+                "vague-request": 6,
+                "scope-drift": 5,
+            },
+            agentic_system_score=80.0,
+            verification_behavior_rate=0.8,
+        )
+        cap = {
+            "intent_clarity": 80.0, "execution_driving": 82.0,
+            "implementation_depth": 85.0, "delivery_closure": 80.0, "adaptive_recovery": 78.0,
+        }
+        # code_penetration_gap normalizes to implementation_depth (strength → no deficit contracts)
+        lines = _priority_action_contract("code_penetration_gap", stats, [], None, cap)
+        joined = "\n".join(lines)
+        assert "missing-context" not in joined.lower()
+        assert "missing_context" not in joined.lower()

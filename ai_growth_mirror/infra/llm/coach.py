@@ -75,13 +75,20 @@ def generate_growth_guidance(
     language = normalize_report_language(language)
     priority_keys = priority_keys_for_coaching(stats, capability_scores)
 
-    # Stage-1: build ranked candidates and evidence packet
+    # Stage-1: build ranked candidates and evidence packet.
+    # Order deficits by frequency (desc) so coach diagnosis and the growth-plan
+    # UI rank the same high-frequency deficits first.
+    top_deficit_keys = tuple(
+        key
+        for key, _count in sorted(
+            (stats.pq_deficit_counts or {}).items(),
+            key=lambda item: -item[1],
+        )
+    )[:5]
     ranked_priorities = rank_growth_priorities(
         stats,
         capability_scores,
-        top_deficit_keys=tuple(
-            (stats.pq_deficit_counts or {}).keys()
-        )[:5],
+        top_deficit_keys=top_deficit_keys,
     )
     diagnosis_packet = build_diagnosis_candidate_packet(
         stats,

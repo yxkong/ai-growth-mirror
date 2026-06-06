@@ -971,6 +971,9 @@ level_axis_metrics:
     delivery_closure: "Axis {score} · weighted completion {completion_rate}% · verification {verification_rate}% · tests {test_rate}%"
     adaptive_recovery: "Axis {score} · correction quality {correction_quality}% · structured share {structured_rate_pct}% · user friction {user_actionable_ratio_pct}% · authored assets {authored_assets}"
     agentic_system: "System score {score} · skill/workflow usage {skill_usage_rate}% · method fingerprints {workflow_fingerprint_rate}% (public {public_framework_rate}% / local {local_method_rate}%) · repeated methods {workflow_reuse_depth} · asset authoring {asset_authoring_rate}% · leverage features {advanced_feature_rate}%"
+    agentic_system_with_fingerprint: "System score {score} · skill/workflow usage {skill_usage_rate}% · method fingerprints {workflow_fingerprint_rate}% (public {public_framework_rate}% / local {local_method_rate}%) · repeated methods {workflow_reuse_depth} · asset authoring {asset_authoring_rate}% · leverage features {advanced_feature_rate}%"
+    agentic_system_detection_gap: "System score {score} · skill/workflow usage {skill_usage_rate}% · {note} · repeated methods {workflow_reuse_depth} · asset authoring {asset_authoring_rate}% · leverage features {advanced_feature_rate}%"
+    agentic_detection_note: "method fingerprints untracked (detection relies on ReadFile reads of SKILL.md; visible after the historical session cache is refreshed)"
   thresholds:
     L2:
       intent_clarity: 42
