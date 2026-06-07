@@ -914,7 +914,7 @@ agent_asset:
 methodology:
   title: "AI Growth Mirror evaluates only four things"
   lines:
-    - "Context Frame: whether goals, constraints, acceptance, and context are clear up front."
+    - "Context Frame: whether boundaries (goals, constraints, and acceptance criteria) are established during alignment, either through initial prompt or interactive clarification."
     - "Flow Orchestration: whether AI can keep moving instead of needing manual rescue every step."
     - "Proof Loop: whether you verify, test, and review instead of stopping at plausibility."
     - "Method Asset: whether effective patterns are preserved as templates, rules, scripts, or reusable flows."

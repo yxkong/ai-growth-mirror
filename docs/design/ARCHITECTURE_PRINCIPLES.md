@@ -1,6 +1,6 @@
 # AI Growth Mirror — 架构总纲
 
-> **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审�AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、CodeBuddy、Trae、QCoder 共 7 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
+> **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、CodeBuddy、Trae、QCoder 共 7 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
 
 **核心目标**：帮助使用 AI 工具的人提升自我，不是给单人用的报告工具，而是对所有 AI 工具用户通用的产品。
 
@@ -20,7 +20,7 @@
 
 AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平：
 
-- **Context Frame**：首轮是否把目标、约束、验收、上下文说清楚
+- **Context Frame**：是否在协作启动与对齐阶段建立清晰的目标、约束和验收标准（可通过单轮精准或多轮澄清完成）
 - **Flow Orchestration**：是否能让 AI 连续推进，而不是每一步都靠人工接管
 - **Proof Loop**：是否把验证、测试、回看放进主流程，保证事实性
 - **Method Asset**：是否把有效做法沉淀成模板、规则、脚本、Skill 或流程

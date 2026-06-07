@@ -914,7 +914,7 @@ agent_asset:
 methodology:
   title: "AI Growth Mirror 的判断只看四件事"
   lines:
-    - "Context Frame：首轮是否把目标、约束、验收和上下文讲清楚。"
+    - "Context Frame：是否在协作启动与对齐阶段建立清晰的目标、约束和验收标准（可通过单轮精准或多轮澄清完成）。"
     - "Flow Orchestration：是否能让 AI 连续推进，而不是每一步都靠人工救火。"
     - "Proof Loop：是否做验证、测试、回看，避免停留在“看起来可行”。"
     - "Method Asset：是否把有效做法沉淀成模板、规则、脚本或可复用流程。"
