@@ -1,8 +1,8 @@
 capability_meta:
-  intent_clarity:
-    label: "任务表达"
-    explanation: "衡量你是否能把目标、边界与验收条件清楚前置给 AI。"
-    next_action: "首轮固定补齐：目标、相关文件、约束、验收标准。"
+  collaboration_framing:
+    label: "协作框定"
+    explanation: "衡量你在多轮协作中，是否能快速框定方向、提供环境上下文，并加速目标锁定。"
+    next_action: "引导 AI 时：优先给出明确方向和关键上下文，在 3 轮内引导其锁定目标并产出第一行代码。"
   execution_driving:
     label: "协作驱动"
     explanation: "衡量你是否会主动组织协作节奏，而不是被 AI 当前回答牵着走。"
@@ -19,12 +19,16 @@ capability_meta:
     label: "恢复推进"
     explanation: "衡量你在偏航、报错或阻塞时，能否快速基于新证据切回正确路径。"
     next_action: "纠偏时固定说清：哪里错了、有什么新证据、下一步怎么走。"
+  agentic_system:
+    label: "Agentic 系统化"
+    explanation: "衡量你是否能使用和沉淀可复用的 AI 资产（如 skill、workflow、MCP 插件等）来赋能 AI 自主推进。"
+    next_action: "尝试用 skill/workflow/MCP 沉淀可复用协作方法。"
 
 radar_axes:
-  intent_clarity:
-    reason_high: "目标、约束与验收通常能前置给到 AI。"
-    reason_low: "任务上下文经常需要在中途补齐。"
-    clarification_boost_note: "（含 +{boost} 分主动澄清加成：{rate}% 的会话通过多轮追加约束补齐了意图）"
+  collaboration_framing:
+    reason_high: "你已会快速向 AI 框定方向，多轮交互中能提供有效上下文并快速锁定目标。"
+    reason_low: "引导方向偏宽泛，AI 容易在前期轮次中多次迷茫或无法锁定有效操作。"
+    tooltip: "轴分 {score} · 方向清晰 {direction_clarity_rate}% · 上下文注入 {context_grounding_rate}% · 目标锁定速度 {goal_locking_speed}分 · 主动澄清率 {active_clarification_rate}%"
   execution_driving:
     reason_high: "你已经会主动组织 AI 的推进节奏和工具路径。"
     reason_low: "协作仍容易停在泛讨论，推进链不够稳定。"
@@ -37,6 +41,11 @@ radar_axes:
   adaptive_recovery:
     reason_high: "遇到偏航或阻塞时，你通常能把协作拉回正轨。"
     reason_low: "偏航后的纠偏和新证据补充还不够锐利。"
+  agentic_system:
+    reason_high: "你已开始构建和复用 skill、workflow、MCP 等 Agent 资产来做系统化人机协作。"
+    reason_low: "较少沉淀和复用结构化 AI 资产，更多依赖单次对话的即兴发挥。"
+    tooltip: "轴分 {score} · skill 使用率 {skill_usage_pct}% · workflow 结构化 {structured_pct}% · 资产创作 {asset_authoring_pct}%"
+    gap_reason: "Agentic 系统化能力偏弱：尝试用 skill/workflow/MCP 沉淀可复用协作方法"
 
 growth_gaps:
   framing_gap:
@@ -959,14 +968,14 @@ level_axis_metrics:
   labels:
     agentic_system: "Agentic 系统成熟度"
   explanations:
-    intent_clarity: "看你是否能把目标、约束、验收和上下文前置清楚。"
+    collaboration_framing: "看你是否能快速框定方向、注入环境上下文，并加速目标锁定。"
     execution_driving: "看你是否会主动组织推进节奏，并调动 AI / 工具能力。"
     implementation_depth: "看你是否真的进入代码、实现链路和边界，而不是停留在表层建议。"
     delivery_closure: "看结果是否被带到验证、结论和可交付状态。"
     adaptive_recovery: "看你在偏航、报错或阻塞时，能否基于新证据恢复推进。"
     agentic_system: "看真实任务里是否稳定调动 skill、workflow、工具和方法资产，而不是只看目录里有多少文件。"
   current_values:
-    intent_clarity: "轴分 {score} · 约束前置 {constraint_rate}% · 代码上下文 {code_context_rate}% · 具体度 {request_specificity}%"
+    collaboration_framing: "轴分 {score} · 方向清晰 {direction_clarity_rate}% · 上下文注入 {context_grounding_rate}% · 目标锁定速度 {goal_locking_speed}分 · 主动澄清率 {active_clarification_rate}%"
     execution_driving: "轴分 {score} · 平均链 {avg_chain} · 重会话 {heavy_sessions} · subagent {subagent_count} · MCP {mcp_rate}%"
     implementation_depth: "轴分 {score} · 人均改动文件 {files_per_session} · token 体量 {token_volume_m}M · 代码验证 {code_verification_rate_pct}%"
     delivery_closure: "轴分 {score} · 加权完成率 {completion_rate}% · 验证率 {verification_rate}% · 测试率 {test_rate}%"
@@ -977,28 +986,28 @@ level_axis_metrics:
     agentic_detection_note: "方法指纹未追踪（检测依赖 ReadFile 读取 SKILL.md 的记录；历史会话缓存刷新后可见）"
   thresholds:
     L2:
-      intent_clarity: 42
+      collaboration_framing: 42
       execution_driving: 45
       implementation_depth: 40
       delivery_closure: 40
       adaptive_recovery: 38
       agentic_system: 35
     L3:
-      intent_clarity: 56
+      collaboration_framing: 56
       execution_driving: 58
       implementation_depth: 55
       delivery_closure: 55
       adaptive_recovery: 52
       agentic_system: 52
     L4:
-      intent_clarity: 72
+      collaboration_framing: 72
       execution_driving: 74
       implementation_depth: 70
       delivery_closure: 70
       adaptive_recovery: 68
       agentic_system: 75
     L5:
-      intent_clarity: 86
+      collaboration_framing: 86
       execution_driving: 86
       implementation_depth: 84
       delivery_closure: 84
@@ -1006,9 +1015,9 @@ level_axis_metrics:
       agentic_system: 88
   targets:
     L2:
-      intent_clarity:
-        target: "把目标、相关文件、约束和验收说清楚"
-        hint: "开始减少中途补背景"
+      collaboration_framing:
+        target: "能在多轮交互中给出核心方向与上下文"
+        hint: "锁定第一行代码的轮数开始减少"
       execution_driving:
         target: "出现稳定推进链，且开始主动组织步骤"
         hint: "从等待回答走向驱动协作"
@@ -1025,9 +1034,9 @@ level_axis_metrics:
         target: "开始在真实任务里使用 skill、workflow 或高杠杆工具"
         hint: "先看使用痕迹，不用资产库存替代能力"
     L3:
-      intent_clarity:
-        target: "任务 framing 稳定，首轮上下文更完整"
-        hint: "AI 更少需要先补问"
+      collaboration_framing:
+        target: "任务 framing 稳定，能在 5 轮内引导 AI 锁定目标"
+        hint: "协作方向感增强"
       execution_driving:
         target: "复杂任务能按固定节奏推进"
         hint: "开始具备稳定编排感"
@@ -1044,9 +1053,9 @@ level_axis_metrics:
         target: "多次任务里出现可重复的方法、技能或 workflow 调用"
         hint: "从偶发使用走向稳定复用"
     L4:
-      intent_clarity:
-        target: "高复杂任务也能前置清楚目标和边界"
-        hint: "上下文组织开始体现经验"
+      collaboration_framing:
+        target: "复杂任务能在 3 轮内清晰框定环境并锁定推进目标"
+        hint: "多轮交互体现高效框定能力"
       execution_driving:
         target: "会主动调动 subagent、MCP、计划等高杠杆能力"
         hint: "你在组织一次协作，而不是只在发请求"
@@ -1063,9 +1072,9 @@ level_axis_metrics:
         target: "能组合 skill、workflow、工具和上下文资产推进复杂任务"
         hint: "能力系统开始参与真实交付"
     L5:
-      intent_clarity:
-        target: "复杂任务 framing 已具备高度稳定性和迁移性"
-        hint: "输入本身就是高杠杆能力"
+      collaboration_framing:
+        target: "复杂任务首轮或极速锁定，具备极高多轮框定效率"
+        hint: "人机意图对齐成本极低"
       execution_driving:
         target: "能稳定编排多工具、多模型、多路径协作"
         hint: "高杠杆推进已可复制"

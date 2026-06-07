@@ -139,6 +139,7 @@ class _ClaudeAccumulator:
     hook_config_modified: bool = False
     mcp_server_authored: bool = False
     subagent_invocation_count: int = 0
+    turns_until_first_file_write: Optional[int] = None
     _seen_paths: set[str] = field(default_factory=set)
     _last_timestamp: Optional[datetime] = None
     _saw_write: bool = False
@@ -189,6 +190,8 @@ class _ClaudeAccumulator:
         self.tool_counts[normalized] = self.tool_counts.get(normalized, 0) + 1
         if normalized in WRITE_TOOL_NAMES or any(token in normalized for token in ("edit", "write", "patch")):
             self._saw_write = True
+            if self.turns_until_first_file_write is None:
+                self.turns_until_first_file_write = max(1, self.user_message_count)
         if any(token in normalized for token in ("bash", "shell", "command", "exec")):
             self._saw_exec = True
         if "mcp" in normalized:
@@ -295,6 +298,7 @@ class _ClaudeAccumulator:
             hook_config_modified=self.hook_config_modified,
             mcp_server_authored=self.mcp_server_authored,
             subagent_invocation_count=self.subagent_invocation_count,
+            turns_until_first_file_write=self.turns_until_first_file_write,
         )
         BaseSessionAdapter._enrich_prompt_signals(record)
         BaseSessionAdapter._enrich_agentic_signals(record)

@@ -215,6 +215,7 @@ class _GeminiAccumulator:
     mcp_server_authored: bool = False
     subagent_invocation_count: int = 0
     skill_invocation_count: int = 0
+    turns_until_first_file_write: Optional[int] = None
     unique_skills: set[str] = field(default_factory=set)
     user_message_timestamps: list[str] = field(default_factory=list)
     message_hours: list[int] = field(default_factory=list)
@@ -288,6 +289,8 @@ class _GeminiAccumulator:
         is_exec = normalized in _GEMINI_EXEC_TOOLS or normalized in EXEC_TOOL_NAMES
         if is_write:
             self._saw_write = True
+            if self.turns_until_first_file_write is None:
+                self.turns_until_first_file_write = max(1, self.user_message_count)
         if is_exec:
             self._saw_exec = True
             cmd = _command_from_args(args).lower()
@@ -371,6 +374,7 @@ class _GeminiAccumulator:
             unique_skills_used=sorted(self.unique_skills),
             entrypoint="ide",
             models_used=["gemini"],
+            turns_until_first_file_write=self.turns_until_first_file_write,
         )
         BaseSessionAdapter._enrich_prompt_signals(record)
         BaseSessionAdapter._enrich_agentic_signals(record)

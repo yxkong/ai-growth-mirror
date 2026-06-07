@@ -9,13 +9,13 @@ headline: ""
 next_focus_fallback: "Consolidate existing AI collaboration habits"
 
 priorities:
-  intent_clarity:
-    title: "Task framing"
+  collaboration_framing:
+    title: "Collaboration Framing"
     why: ""
-    success_signal: "The opening turn already states goal, files, constraints, and acceptance, so the AI rarely needs to clarify first."
-    stop_doing: "Adding background mid-task and forcing repeated clarification before work can start."
+    success_signal: "State direction and core context clearly to guide the AI to lock goals and produce code within 3 turns."
+    stop_doing: "Giving overly broad direction that leaves the AI wandering or failing to lock onto actionable tasks in early turns."
     week_1_actions: []
-    practice_prompt: "Before solving the task, check whether the request already includes goal, relevant files, constraints, and acceptance criteria. If not, point out the gaps and help rewrite it into an executable request."
+    practice_prompt: "Before coding, check whether the direction and context in this request are clear. If you have doubts, ask questions to help us lock goals and start producing code within 3 turns."
 
   execution_driving:
     title: "Execution driving"

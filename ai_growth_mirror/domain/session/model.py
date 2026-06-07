@@ -146,6 +146,7 @@ class SessionRecord:
     # boolean uses_subagent flag; "5 sequential delegations" looks different
     # from "1 delegation" in our scoring.  Computed during JSONL parsing.
     subagent_invocation_count: int = 0
+    turns_until_first_file_write: Optional[int] = None
 
     # Data provenance — set by BaseSessionAdapter.iter_sessions(); not persisted to cache (always re-derived)
     source_machine: str = "local"            # always local in current product scope

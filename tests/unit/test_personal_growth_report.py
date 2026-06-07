@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 
 from ai_growth_mirror.domain.session.model import SessionRecord
@@ -115,7 +115,7 @@ def test_build_growth_plan_returns_two_priorities():
     plan = build_growth_plan(
         stats=stats,
         capability_scores={
-            "intent_clarity": 72,
+            "collaboration_framing": 72,
             "execution_driving": 66,
             "implementation_depth": 43,
             "delivery_closure": 34,
@@ -150,7 +150,7 @@ def test_build_personal_report_view_contains_core_sections():
     assert any(item.id == "section-level-evidence" for item in view.sections)
     assert all(item.id != "section-usage" for item in view.sections)
     assert all(item.id != "section-capability" for item in view.sections)
-    assert len(view.capability.dimensions) == 5
+    assert len(view.capability.dimensions) == 6
     assert view.capability.dimensions[0].has_data is True
     assert view.radar_chart is not None
     assert view.radar_chart.polygon_points
@@ -470,10 +470,10 @@ def test_snapshot_trajectory_window_collapses_same_day_points():
             mirror_score=score,
             headline="headline",
             next_focus="focus",
-            strongest_axis_key="intent_clarity",
+            strongest_axis_key="collaboration_framing",
             weakest_axis_key="delivery_closure",
             axis_scores={
-                "intent_clarity": float(score),
+                "collaboration_framing": float(score),
                 "execution_driving": float(score - 2),
                 "implementation_depth": float(score - 4),
                 "delivery_closure": float(score - 6),
@@ -539,7 +539,7 @@ def test_snapshot_trajectory_marks_legacy_axis_schema_low_confidence():
         growth_level="L3",
         mirror_score=70,
         axis_scores={
-            "intent_clarity": 45.0,
+            "collaboration_framing": 45.0,
             "execution_driving": 80.0,
             "implementation_depth": 78.0,
             "delivery_closure": 55.0,
@@ -573,7 +573,7 @@ def test_snapshot_compare_confidence_drops_on_axis_schema_mismatch():
         growth_level="L4",
         mirror_score=82,
         axis_scores={
-            "intent_clarity": 60.0,
+            "collaboration_framing": 60.0,
             "execution_driving": 85.0,
             "implementation_depth": 82.0,
             "delivery_closure": 75.0,
@@ -645,7 +645,7 @@ def test_trajectory_point_view_surfaces_axis_schema_and_comparable():
         growth_level="L3",
         mirror_score=70,
         axis_scores={
-            "intent_clarity": 60.0,
+            "collaboration_framing": 60.0,
             "execution_driving": 80.0,
             "implementation_depth": 78.0,
             "delivery_closure": 55.0,
@@ -924,7 +924,7 @@ def test_snapshot_comparison_data_structure():
     left_profile = {
         "capability": {
             "dimensions": [
-                {"key": "intent_clarity", "label": "任务表达", "score": 40},
+                {"key": "collaboration_framing", "label": "协作框定", "score": 40},
                 {"key": "execution_driving", "label": "协作驱动", "score": 30},
                 {"key": "implementation_depth", "label": "实现下潜", "score": 20},
                 {"key": "delivery_closure", "label": "交付收口", "score": 50},
@@ -935,7 +935,7 @@ def test_snapshot_comparison_data_structure():
     right_profile = {
         "capability": {
             "dimensions": [
-                {"key": "intent_clarity", "label": "任务表达", "score": 55},
+                {"key": "collaboration_framing", "label": "协作框定", "score": 55},
                 {"key": "execution_driving", "label": "协作驱动", "score": 48},
                 {"key": "implementation_depth", "label": "实现下潜", "score": 25},
                 {"key": "delivery_closure", "label": "交付收口", "score": 62},
@@ -1403,7 +1403,7 @@ def test_snapshot_compare_html_escapes_untrusted_summary_fields(tmp_path: Path):
         profile = {
             "capability": {
                 "dimensions": [
-                    {"key": "intent_clarity", "label": "任务表达", "score": 40},
+                    {"key": "collaboration_framing", "label": "协作框定", "score": 40},
                 ]
             }
         }
@@ -1498,14 +1498,14 @@ def test_active_clarification_signal_shared_between_extractors():
     assert heuristic_read.active_clarification == detect_active_clarification(s) is True
 
 
-def test_intent_clarity_boost_is_disclosed_in_radar_tooltip_and_summary():
-    """Regression: the active-clarification boost must be transparently shown."""
+def test_collaboration_framing_details_disclosed_in_radar_tooltip_and_summary():
+    """Verify that collaboration_framing's sub-metrics are transparently shown."""
     sessions = [_make_session(f"s{i}", "D:/repo/a") for i in range(1, 5)]
     facets = [_make_facets(f"s{i}") for i in range(1, 5)]
     for facet in facets:
         facet.active_clarification = True
     stats = aggregate(sessions, facets, tool_name="codex")
-    assert stats.intent_clarity_boost > 0.0
+    assert stats.active_clarification_rate > 0.0
 
     view = build_personal_report_view(
         sessions=sessions,
@@ -1514,18 +1514,19 @@ def test_intent_clarity_boost_is_disclosed_in_radar_tooltip_and_summary():
         tool_display_name="Codex CLI",
         catalogs=load_report_label_catalogs("zh"),
     )
-    intent_axis = next(a for a in view.radar_axes if a.key == "intent_clarity")
-    assert "主动澄清加成" in intent_axis.short_reason
+    collab_axis = next(a for a in view.radar_axes if a.key == "collaboration_framing")
+    assert "目标锁定速度" in collab_axis.short_reason
+    assert "主动澄清率" in collab_axis.short_reason
 
     html = render_personal_report_html(view=view, language="zh", redact=False)
-    assert "主动澄清加成" in html
+    assert "目标锁定速度" in html
 
     payload = build_personal_summary_payload(view)
-    assert payload["scorecard"]["intent_clarity_boost"] > 0.0
+    assert payload["scorecard"]["goal_locking_speed"] >= 0.0
     assert payload["scorecard"]["active_clarification_rate"] == stats.active_clarification_rate
 
 
-def test_active_clarification_scorer_boost():
+def test_active_clarification_scorer_factor():
     sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/b")]
     facets = [_make_facets("s1"), _make_facets("s2")]
     facets[0].active_clarification = True
@@ -1535,9 +1536,7 @@ def test_active_clarification_scorer_boost():
     assert stats.active_clarification_count == 1
     assert stats.active_clarification_rate == 0.5
     
-    # Verify boost was applied (max boost +8)
-    # 0.5 rate is >= 20%, so it should trigger full +8 boost
-    assert stats.agentic_sub_scores["intent_clarity"] > 0
+    assert stats.agentic_sub_scores["collaboration_framing"] > 0
 
 
 def test_action_contract_outcome_evaluation():
@@ -1548,16 +1547,16 @@ def test_action_contract_outcome_evaluation():
         snapshot_id="v1",
         created_at="2026-06-01 10:00:00",
         mirror_score=60,
-        axis_scores={"intent_clarity": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
         coverage=SnapshotCoverage(session_count=10, session_read_count=10),
-        action_contracts=[{"axis_key": "intent_clarity", "title": "提升意图表达"}]
+        action_contracts=[{"axis_key": "collaboration_framing", "title": "提升意图表达"}]
     )
     
     curr_improved = SnapshotSource(
         snapshot_id="v2",
         created_at="2026-06-08 10:00:00",
         mirror_score=66,
-        axis_scores={"intent_clarity": 56.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 56.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
         coverage=SnapshotCoverage(session_count=10, session_read_count=10),
     )
 
@@ -1570,7 +1569,7 @@ def test_action_contract_outcome_evaluation():
         snapshot_id="v2",
         created_at="2026-06-08 10:00:00",
         mirror_score=62,
-        axis_scores={"intent_clarity": 52.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 52.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
         coverage=SnapshotCoverage(session_count=10, session_read_count=10),
     )
     comp_partial = compare_snapshot_sources(prev, curr_partial)
@@ -1581,9 +1580,9 @@ def test_action_contract_outcome_evaluation():
         snapshot_id="v1",
         created_at="2026-06-01 10:00:00",
         mirror_score=60,
-        axis_scores={"intent_clarity": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
         coverage=SnapshotCoverage(session_count=5, session_read_count=5),
-        action_contracts=[{"axis_key": "intent_clarity", "title": "提升意图表达"}]
+        action_contracts=[{"axis_key": "collaboration_framing", "title": "提升意图表达"}]
     )
     comp_small = compare_snapshot_sources(prev_small, curr_improved)
     assert comp_small.confidence.level == "low"
@@ -1603,7 +1602,7 @@ def test_render_personal_report_html_with_prior_snapshot_contract_outcomes():
         growth_level="L2",
         mirror_score=55,
         axis_scores={
-            "intent_clarity": 50.0,
+            "collaboration_framing": 50.0,
             "execution_driving": 55.0,
             "implementation_depth": 52.0,
             "delivery_closure": 48.0,
@@ -1611,7 +1610,7 @@ def test_render_personal_report_html_with_prior_snapshot_contract_outcomes():
         },
         coverage=SnapshotCoverage(session_count=10, session_read_count=10, has_usage_data=True),
         sample_count=10,
-        action_contracts=[{"axis_key": "intent_clarity", "title": "提升意图表达"}],
+        action_contracts=[{"axis_key": "collaboration_framing", "title": "提升意图表达"}],
     )
 
     view = build_personal_report_view(

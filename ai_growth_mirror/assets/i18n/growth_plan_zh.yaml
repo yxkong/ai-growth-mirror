@@ -12,13 +12,13 @@ headline: ""
 next_focus_fallback: "巩固现有 AI 协作习惯"
 
 priorities:
-  intent_clarity:
-    title: "任务表达"
+  collaboration_framing:
+    title: "协作框定"
     why: ""
-    success_signal: "首轮已写清目标、相关文件、约束与验收，AI 很少需要先补问。"
-    stop_doing: "边做边补背景，让 AI 反复追问才能开工。"
+    success_signal: "能在多轮协作中快速给出方向和关键上下文，在 3 轮内引导 AI 锁定目标并产出第一行代码。"
+    stop_doing: "引导方向过于宽泛，导致 AI 在前期轮次中迷茫或无法锁定有效操作。"
     week_1_actions: []
-    practice_prompt: "先不要直接回答。请先帮我检查这次任务描述里是否已经包含：目标、相关文件、约束、验收标准。如果缺失，请先指出缺口并帮我补成可执行版本。"
+    practice_prompt: "先不要开始写代码。请先帮我检查这次任务的总体方向和已知上下文是否清晰。如果还有疑虑，请主动提问以帮助我们快速锁定目标，并在 3 轮内开始产出代码。"
 
   execution_driving:
     title: "协作驱动"

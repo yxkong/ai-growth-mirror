@@ -59,11 +59,12 @@ def _pattern_label(pattern: str, catalogs: ReportLabelCatalogs) -> str:
 
 
 _CAPABILITY_ORDER = [
-    "intent_clarity",
+    "collaboration_framing",
     "execution_driving",
     "implementation_depth",
     "delivery_closure",
     "adaptive_recovery",
+    "agentic_system",
 ]
 
 
@@ -77,14 +78,25 @@ def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
             "reason_high" if axis.score >= 65 else "reason_low",
             "",
         )
-        if axis.key == "intent_clarity" and stats.intent_clarity_boost > 0.0:
-            note_template = axis_i18n.get("clarification_boost_note", "")
-            if note_template:
-                note = note_template.format(
-                    boost=round(stats.intent_clarity_boost, 1),
-                    rate=round(stats.active_clarification_rate * 100),
+        if axis.key == "collaboration_framing":
+            tooltip_template = axis_i18n.get("tooltip", "")
+            if tooltip_template:
+                short_reason = tooltip_template.format(
+                    score=round(axis.score, 1),
+                    direction_clarity_rate=round(stats.constraint_prompt_rate * 100),
+                    context_grounding_rate=round(stats.code_context_rate * 100),
+                    goal_locking_speed=round(stats.goal_locking_speed, 1),
+                    active_clarification_rate=round(stats.active_clarification_rate * 100),
                 )
-                short_reason = (short_reason + " " + note).strip()
+        elif axis.key == "agentic_system":
+            tooltip_template = axis_i18n.get("tooltip", "")
+            if tooltip_template:
+                short_reason = tooltip_template.format(
+                    score=round(axis.score, 1),
+                    skill_usage_pct=round(stats.skill_usage_session_rate * 100),
+                    structured_pct=round(stats.workflow_fingerprint_session_rate * 100),
+                    asset_authoring_pct=round(stats.asset_authoring_session_rate * 100),
+                )
         axes.append(
             RadarAxis(
                 key=axis.key,
@@ -601,7 +613,7 @@ class PersonalReportView:
     hide_wechat: bool = False
     hide_email: bool = False
     active_clarification_rate: float = 0.0
-    intent_clarity_boost: float = 0.0
+    goal_locking_speed: float = 0.0
 
 
 def build_agent_asset_footprint(
@@ -807,7 +819,7 @@ def build_personal_report_view(
         hide_wechat=hide_wechat,
         hide_email=hide_email,
         active_clarification_rate=stats.active_clarification_rate,
-        intent_clarity_boost=stats.intent_clarity_boost,
+        goal_locking_speed=getattr(stats, "goal_locking_speed", 0.0),
     )
 
 
@@ -838,8 +850,10 @@ def _build_capability_section(
         score = capability_scores.get(key, 0.0)
         if stats is None:
             has_data = True
-        elif key == "intent_clarity":
+        elif key == "collaboration_framing":
             has_data = pq_evaluated > 0
+        elif key == "agentic_system":
+            has_data = stats is not None and "agentic_system" in stats.agentic_sub_scores and stats.session_count > 0
         else:
             has_data = session_count > 0 and (pq_evaluated > 0 or has_outcome_signals)
         if has_data and score == 0.0 and not has_outcome_signals and pq_evaluated == 0:
@@ -1858,11 +1872,12 @@ def _build_level_axis_metrics(
         * 100
     )
     current_values = {
-        "intent_clarity": current_value_templates.get("intent_clarity", "").format(
-            score=round(axis_scores.get("intent_clarity", 0.0)),
-            constraint_rate=round((stats.constraint_prompt_rate or 0.0) * 100),
-            code_context_rate=round((stats.code_context_rate or 0.0) * 100),
-            request_specificity=round(prompt_dims.get("request_specificity", 50.0)),
+        "collaboration_framing": current_value_templates.get("collaboration_framing", "").format(
+            score=round(axis_scores.get("collaboration_framing", 0.0)),
+            direction_clarity_rate=round((stats.constraint_prompt_rate or 0.0) * 100),
+            context_grounding_rate=round((stats.code_context_rate or 0.0) * 100),
+            goal_locking_speed=round((getattr(stats, "goal_locking_speed", 0.0) or 0.0), 1),
+            active_clarification_rate=round((stats.active_clarification_rate or 0.0) * 100),
         ),
         "execution_driving": current_value_templates.get("execution_driving", "").format(
             score=round(axis_scores.get("execution_driving", 0.0)),
@@ -1910,6 +1925,8 @@ def _build_level_axis_metrics(
     ordered_keys = tuple(_CAPABILITY_ORDER)
     metrics: list[LevelEvidenceMetricView] = []
     for key in ordered_keys:
+        if key == "agentic_system":
+            continue
         metric_copy = target_profile.get(key, {})
         target_value = metric_copy.get("target", "")
         level_hint = metric_copy.get("hint", "")

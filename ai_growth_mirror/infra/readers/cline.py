@@ -297,6 +297,7 @@ class ClineFamilyTaskAdapter(BaseSessionAdapter):
         last_timestamp: Optional[datetime] = None
         skill_invocation_count = 0
         unique_skills: set[str] = set()
+        turns_until_first_file_write = None
 
         for message in messages:
             if not isinstance(message, dict):
@@ -384,6 +385,8 @@ class ClineFamilyTaskAdapter(BaseSessionAdapter):
                 ):
                     pending_write = True
                     current_chain += 1
+                    if turns_until_first_file_write is None:
+                        turns_until_first_file_write = max(1, user_message_count)
                 elif normalized in EXEC_TOOL_NAMES or "command" in normalized:
                     if pending_write:
                         has_verification = True
@@ -429,6 +432,7 @@ class ClineFamilyTaskAdapter(BaseSessionAdapter):
             autonomous_chain_lengths=chain_lengths,
             skill_invocation_count=skill_invocation_count,
             unique_skills_used=sorted(unique_skills),
+            turns_until_first_file_write=turns_until_first_file_write,
         )
 
     def _parse_ui_messages(

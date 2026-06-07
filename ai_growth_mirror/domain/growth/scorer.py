@@ -213,20 +213,14 @@ def _bounded_average(*weighted_values: tuple[float, float]) -> float:
     return round(total_score / total_weight, 1)
 
 
-# v0.6.0 G-3: the active-clarification boost rewards the "multi-turn clarify
-# then constrain" collaboration pattern so it is not penalized for missing a
-# first-turn constraint. The ramp reaches the +8 cap at a 20% session rate and
-# scales down linearly below that. This is the single source of the formula —
-# both the score itself and the transparent report disclosure read from here.
-INTENT_CLARITY_BOOST_CAP = 8.0
-_ACTIVE_CLARIFICATION_FULL_BOOST_RATE = 0.20
-
-
-def _intent_clarity_boost(active_clarification_rate: float) -> float:
-    if active_clarification_rate <= 0.0:
+def _goal_locking_speed_score(turns: Optional[int]) -> float:
+    if turns is None:
+        return 100.0
+    if turns <= 3:
+        return 100.0
+    if turns >= 10:
         return 0.0
-    ramp = (active_clarification_rate / _ACTIVE_CLARIFICATION_FULL_BOOST_RATE) * INTENT_CLARITY_BOOST_CAP
-    return round(min(INTENT_CLARITY_BOOST_CAP, ramp), 1)
+    return round(100.0 * (10 - turns) / 7.0, 1)
 
 
 def _compute_growth_level(
@@ -255,8 +249,9 @@ def _compute_growth_level(
     hook_modified_session_count: int,
     mcp_authored_session_count: int,
     assetized_session_rate: float,
-    constraint_prompt_rate: float = 0.0,
-    code_context_rate: float = 0.0,
+    direction_clarity_rate: float = 0.0,
+    context_grounding_rate: float = 0.0,
+    goal_locking_speed: float = 0.0,
     prompt_dimensions: dict[str, float] | None = None,
     test_run_rate: float = 0.0,
     code_verification_rate: float = 0.0,
@@ -281,21 +276,12 @@ def _compute_growth_level(
     user_actionable_ratio = user_actionable / friction_total if friction_total else 0.0
     files_per_session = total_files_modified / max(session_count, 1)
 
-    intent_clarity_raw = _bounded_average(
-        (constraint_prompt_rate * 100.0, 0.28),
-        (code_context_rate * 100.0, 0.24),
-        (prompt_dimensions.get("request_specificity", 50.0), 0.26),
-        (
-            (
-                prompt_dimensions.get("context_provision", 50.0)
-                + prompt_dimensions.get("scope_management", 50.0)
-            )
-            / 2.0,
-            0.22,
-        ),
+    collaboration_framing = _bounded_average(
+        (direction_clarity_rate * 100.0, 0.20),
+        (context_grounding_rate * 100.0, 0.18),
+        (goal_locking_speed, 0.28),
+        (active_clarification_rate * 100.0, 0.34),
     )
-    boost = _intent_clarity_boost(active_clarification_rate)
-    intent_clarity = min(100.0, intent_clarity_raw + boost)
     execution_driving = _bounded_average(
         (_soft_threshold(avg_chain, 1.5, 8.0, 100.0), 0.32),
         (_soft_threshold(heavy_session_rate, 0.10, 0.40, 100.0), 0.18),
@@ -369,27 +355,28 @@ def _compute_growth_level(
         (_soft_threshold(float(mcp_authored_session_count), 0.0, 3.0, 100.0), 0.06),
         (_soft_threshold(float(hook_modified_session_count), 0.0, 3.0, 100.0), 0.06),
     )
-    tool_leverage_bonus = min(tool_bonus / 25.0, 4.0)
-    workflow_maturity_bonus = min(workflow_bonus / 33.0, 3.0)
     inventory_context = min(asset_maturity_bonus / 3.0, 1.0) * 100.0
     agentic_system = _bounded_average(
-        (skill_usage_session_rate * 100.0, 0.22),
-        (workflow_fingerprint_session_rate * 100.0, 0.16),
-        (structured_rate * 100.0, 0.14),
-        (advanced_feature_ratio * 100.0, 0.14),
-        (_soft_threshold(float(unique_skill_count), 2.0, 12.0, 100.0), 0.10),
-        (_soft_threshold(float(workflow_reuse_depth), 1.0, 8.0, 100.0), 0.10),
-        (asset_authoring_session_rate * 100.0, 0.06),
-        (assetized_session_rate * 100.0, 0.05),
+        (skill_usage_session_rate * 100.0, 0.18),
+        (workflow_fingerprint_session_rate * 100.0, 0.14),
+        (structured_rate * 100.0, 0.12),
+        (advanced_feature_ratio * 100.0, 0.12),
+        (_soft_threshold(float(unique_skill_count), 2.0, 12.0, 100.0), 0.08),
+        (_soft_threshold(float(workflow_reuse_depth), 1.0, 8.0, 100.0), 0.08),
+        (asset_authoring_session_rate * 100.0, 0.05),
+        (assetized_session_rate * 100.0, 0.04),
         (inventory_context, 0.03),
+        (tool_bonus, 0.08),
+        (workflow_bonus, 0.08),
     )
 
     weakest_axis = min(
-        intent_clarity,
+        collaboration_framing,
         execution_driving,
         implementation_depth,
         delivery_closure,
         adaptive_recovery,
+        agentic_system,
     )
     consistency_modifier = 0.0
     if weakest_axis >= 65.0:
@@ -398,13 +385,12 @@ def _compute_growth_level(
         consistency_modifier -= 3.0
 
     total_score = (
-        intent_clarity * 0.20
-        + execution_driving * 0.22
-        + implementation_depth * 0.22
-        + delivery_closure * 0.22
-        + adaptive_recovery * 0.14
-        + tool_leverage_bonus
-        + workflow_maturity_bonus
+        collaboration_framing * 0.14
+        + execution_driving * 0.25
+        + implementation_depth * 0.20
+        + delivery_closure * 0.20
+        + adaptive_recovery * 0.10
+        + agentic_system * 0.11
         + asset_maturity_bonus
         + consistency_modifier
     )
@@ -415,26 +401,26 @@ def _compute_growth_level(
         score = 82
     elif (
         session_count >= 15
-        and agentic_system >= 88.0
-        and execution_driving >= 78.0
-        and implementation_depth >= 70.0
-        and delivery_closure >= 65.0
-        and adaptive_recovery >= 55.0
+        and agentic_system >= 80.0
+        and execution_driving >= 75.0
+        and implementation_depth >= 68.0
+        and delivery_closure >= 62.0
+        and adaptive_recovery >= 52.0
     ):
         score = max(score, 90)
     elif (
         session_count >= 15
-        and agentic_system >= 75.0
-        and execution_driving >= 70.0
-        and implementation_depth >= 65.0
-        and delivery_closure >= 50.0
+        and agentic_system >= 65.0
+        and execution_driving >= 65.0
+        and implementation_depth >= 60.0
+        and delivery_closure >= 48.0
     ):
         score = max(score, 75)
 
     level = growth_level_from_score(score)
 
     return level, score, {
-        "intent_clarity": round(intent_clarity, 1),
+        "collaboration_framing": round(collaboration_framing, 1),
         "execution_driving": round(execution_driving, 1),
         "implementation_depth": round(implementation_depth, 1),
         "delivery_closure": round(delivery_closure, 1),
@@ -460,11 +446,12 @@ def _axis_confidence(stats: GrowthProfile) -> float:
 def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
     confidence = _axis_confidence(stats)
     keys = [
-        "intent_clarity",
+        "collaboration_framing",
         "execution_driving",
         "implementation_depth",
         "delivery_closure",
         "adaptive_recovery",
+        "agentic_system",
     ]
     sub_scores = stats.agentic_sub_scores or {}
     pq_evaluated = max(0, stats.pq_sessions_evaluated)
@@ -478,8 +465,10 @@ def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
         score = round(sub_scores.get(key, 0.0), 1)
         # Per-axis evidence rules: PQ-driven axes need PQ-evaluated sessions;
         # action-driven axes need at least some recorded tool/workflow signals.
-        if key == "intent_clarity":
+        if key == "collaboration_framing":
             axis_has_data = pq_evaluated > 0
+        elif key == "agentic_system":
+            axis_has_data = "agentic_system" in sub_scores and stats.session_count > 0
         else:
             axis_has_data = stats.session_count > 0 and (
                 pq_evaluated > 0 or has_outcome_signals
@@ -504,18 +493,27 @@ def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
 
 def _build_gap_rankings(stats: GrowthProfile) -> list[GrowthGap]:
     axes = {axis.key: axis.score for axis in stats.radar_axes}
-    candidates = [
-        ("framing_gap", 100.0 - axes.get("intent_clarity", 0.0)),
-        ("workflow_composition_gap", 100.0 - axes.get("execution_driving", 0.0)),
-        ("code_penetration_gap", 100.0 - axes.get("implementation_depth", 0.0)),
-        (
+    active_keys = {axis.key for axis in stats.radar_axes if axis.has_data}
+
+    candidates = []
+    if "agentic_system" in active_keys:
+        candidates.append(("agentic_system_gap", 100.0 - axes.get("agentic_system", 0.0)))
+    if "collaboration_framing" in active_keys:
+        candidates.append(("framing_gap", 100.0 - axes.get("collaboration_framing", 0.0)))
+    if "execution_driving" in active_keys:
+        candidates.append(("workflow_composition_gap", 100.0 - axes.get("execution_driving", 0.0)))
+    if "implementation_depth" in active_keys:
+        candidates.append(("code_penetration_gap", 100.0 - axes.get("implementation_depth", 0.0)))
+    if "delivery_closure" in active_keys:
+        candidates.append((
             "verification_gap",
             100.0
             - ((axes.get("delivery_closure", 0.0) * 0.65) + stats.verification_behavior_rate * 35.0),
-        ),
-        ("closure_gap", 100.0 - axes.get("delivery_closure", 0.0)),
-        ("debug_recovery_gap", 100.0 - axes.get("adaptive_recovery", 0.0)),
-    ]
+        ))
+        candidates.append(("closure_gap", 100.0 - axes.get("delivery_closure", 0.0)))
+    if "adaptive_recovery" in active_keys:
+        candidates.append(("debug_recovery_gap", 100.0 - axes.get("adaptive_recovery", 0.0)))
+
     ranked: list[GrowthGap] = []
     for rank, (key, severity) in enumerate(
         sorted(candidates, key=lambda item: item[1], reverse=True)[:4],
@@ -974,6 +972,12 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
     has_token_data = any(s.input_tokens is not None for s in sessions)
     _apply_asset_floor(stats)
     maturity_bonus = _asset_maturity_bonus(stats)
+    locking_speeds = [
+        _goal_locking_speed_score(s.turns_until_first_file_write)
+        for s in sessions
+    ]
+    goal_locking_speed = sum(locking_speeds) / len(locking_speeds) if locking_speeds else 100.0
+
     (
         stats.growth_level,
         stats.mirror_score,
@@ -1003,8 +1007,9 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
         hook_modified_session_count=stats.hook_modified_session_count,
         mcp_authored_session_count=stats.mcp_authored_session_count,
         assetized_session_rate=stats.assetized_session_rate,
-        constraint_prompt_rate=stats.constraint_prompt_rate,
-        code_context_rate=stats.code_context_rate,
+        direction_clarity_rate=stats.constraint_prompt_rate,
+        context_grounding_rate=stats.code_context_rate,
+        goal_locking_speed=goal_locking_speed,
         prompt_dimensions=stats.pq_avg_dimensions,
         test_run_rate=stats.test_run_rate,
         code_verification_rate=stats.code_verification_rate,
@@ -1021,7 +1026,7 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
         active_clarification_rate=stats.active_clarification_rate,
     )
     stats.agentic_system_score = round(stats.agentic_sub_scores.get("agentic_system", 0.0), 1)
-    stats.intent_clarity_boost = _intent_clarity_boost(stats.active_clarification_rate)
+    stats.goal_locking_speed = round(goal_locking_speed, 1)
     stats.radar_axes = _build_radar_axes(stats)
     stats.gap_rankings = _build_gap_rankings(stats)
     stats.growth_stage = _build_growth_stage(stats)

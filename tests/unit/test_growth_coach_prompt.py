@@ -13,11 +13,12 @@ def _coach_context() -> dict:
         "tool_display_name": "Codex CLI",
         "period_label": "2026-05-01 -> 2026-05-31",
         "capability_scores": {
-            "intent_clarity": 74.0,
+            "collaboration_framing": 74.0,
             "execution_driving": 69.0,
             "implementation_depth": 63.0,
             "delivery_closure": 55.0,
             "adaptive_recovery": 58.0,
+            "agentic_system": 50.0,
         },
         "outcome_counts": {"fully_achieved": 5, "mostly_achieved": 3},
         "top_friction": [("scope_drift", 4), ("missing_context", 2)],
@@ -54,7 +55,7 @@ def test_growth_coach_system_prompt_zh_output_language():
 
 def test_growth_coach_user_prompt_uses_five_axes_and_heavy_sessions():
     rendered = _render_template("user.md.j2", _coach_context())
-    assert "Five-axis scores" in rendered
+    assert "Six-axis scores" in rendered
     assert "- Average autonomous chain: 4.2" in rendered
     assert "- Heavy sessions: 5" in rendered
     assert "- execution_driving: 69.0" in rendered

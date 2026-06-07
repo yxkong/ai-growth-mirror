@@ -22,40 +22,42 @@ from .model import (
 )
 
 AXIS_ORDER = (
-    "intent_clarity",
+    "collaboration_framing",
     "execution_driving",
     "implementation_depth",
     "delivery_closure",
     "adaptive_recovery",
+    "agentic_system",
 )
 
 AXIS_WEIGHTS = {
-    "intent_clarity": 0.20,
-    "execution_driving": 0.22,
-    "implementation_depth": 0.22,
-    "delivery_closure": 0.22,
-    "adaptive_recovery": 0.14,
+    "collaboration_framing": 0.14,
+    "execution_driving": 0.25,
+    "implementation_depth": 0.20,
+    "delivery_closure": 0.20,
+    "adaptive_recovery": 0.10,
+    "agentic_system": 0.11,
 }
 
 LEVEL_ORDER = {"L1": 1, "L2": 2, "L3": 3, "L4": 4, "L5": 5}
 
 PQ_AXIS_MAP = {
-    "context_provision": "intent_clarity",
-    "request_specificity": "intent_clarity",
-    "scope_management": "intent_clarity",
+    "context_provision": "collaboration_framing",
+    "request_specificity": "collaboration_framing",
+    "scope_management": "collaboration_framing",
     "information_timing": "execution_driving",
     "correction_quality": "adaptive_recovery",
 }
 
 FRICTION_AXIS_MAP = {
-    "ambiguous-request": "intent_clarity",
-    "context-confusion": "intent_clarity",
-    "context-gap": "intent_clarity",
-    "fuzzy-intent": "intent_clarity",
+    "ambiguous-request": "collaboration_framing",
+    "context-confusion": "collaboration_framing",
+    "context-gap": "collaboration_framing",
+    "fuzzy-intent": "collaboration_framing",
     "goal-drift": "adaptive_recovery",
     "incomplete-output": "delivery_closure",
     "missing-acceptance-criteria": "delivery_closure",
-    "missing-context": "intent_clarity",
+    "missing-context": "collaboration_framing",
     "off-track": "adaptive_recovery",
     "outdated-context": "adaptive_recovery",
     "recurring-pattern": "adaptive_recovery",
@@ -66,10 +68,20 @@ FRICTION_AXIS_MAP = {
 }
 
 
+def _normalize_axes(scores: dict[str, float]) -> dict[str, float]:
+    normalized = dict(scores)
+    if "intent_clarity" in normalized and "collaboration_framing" not in normalized:
+        normalized["collaboration_framing"] = normalized.pop("intent_clarity")
+    return normalized
+
+
 def compare_snapshot_sources(
     previous: SnapshotSource,
     current: SnapshotSource,
 ) -> SnapshotComparison:
+    import dataclasses
+    previous = dataclasses.replace(previous, axis_scores=_normalize_axes(previous.axis_scores))
+    current = dataclasses.replace(current, axis_scores=_normalize_axes(current.axis_scores))
     score = _numeric_delta(previous.mirror_score, current.mirror_score, decimals=0)
     level_delta = LEVEL_ORDER.get(current.growth_level, 0) - LEVEL_ORDER.get(previous.growth_level, 0)
     axis_deltas = _build_axis_deltas(previous, current)
@@ -201,6 +213,8 @@ def _evaluate_action_contracts(
         axis_key = contract.get("axis_key", "")
         if not axis_key:
             continue
+        if axis_key == "intent_clarity":
+            axis_key = "collaboration_framing"
 
         title = contract.get("title", "")
         has_schema = is_current_axis_schema(previous.axis_scores) and is_current_axis_schema(current.axis_scores)
@@ -256,8 +270,10 @@ def _build_axis_deltas(previous: SnapshotSource, current: SnapshotSource) -> lis
     if not is_current_axis_schema(previous.axis_scores) or not is_current_axis_schema(current.axis_scores):
         return rows
     for key in AXIS_ORDER:
-        prev_value = float(previous.axis_scores.get(key, 0.0))
-        curr_value = float(current.axis_scores.get(key, 0.0))
+        if key not in previous.axis_scores or key not in current.axis_scores:
+            continue
+        prev_value = float(previous.axis_scores[key])
+        curr_value = float(current.axis_scores[key])
         delta = round(curr_value - prev_value, 1)
         rows.append(
             AxisDelta(

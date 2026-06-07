@@ -575,14 +575,14 @@ def _stats_have_usage(stats: dict[str, Any]) -> bool:
 
 def _topic_from_friction(category: str) -> str:
     return {
-        "ambiguous-request": "intent_clarity",
-        "context-confusion": "intent_clarity",
-        "context-gap": "intent_clarity",
-        "fuzzy-intent": "intent_clarity",
+        "ambiguous-request": "collaboration_framing",
+        "context-confusion": "collaboration_framing",
+        "context-gap": "collaboration_framing",
+        "fuzzy-intent": "collaboration_framing",
         "goal-drift": "adaptive_recovery",
         "incomplete-output": "delivery_closure",
         "missing-acceptance-criteria": "delivery_closure",
-        "missing-context": "intent_clarity",
+        "missing-context": "collaboration_framing",
         "off-track": "adaptive_recovery",
         "outdated-context": "adaptive_recovery",
         "recurring-pattern": "adaptive_recovery",

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 CURRENT_TRAJECTORY_AXIS_KEYS = frozenset(
     {
-        "intent_clarity",
+        "collaboration_framing",
         "execution_driving",
         "implementation_depth",
         "delivery_closure",

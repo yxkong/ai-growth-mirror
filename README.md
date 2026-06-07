@@ -1,7 +1,7 @@
-﻿# AI Growth Mirror (AI 协作成长镜)
+# AI Growth Mirror (AI 协作成长镜)
 
-[![Release](https://img.shields.io/badge/Release-v0.6.0-blue.svg)](./pyproject.toml)
-[![Schema Version](https://img.shields.io/badge/Schema-v1.3-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
+[![Release](https://img.shields.io/badge/Release-v0.8.0-blue.svg)](./pyproject.toml)
+[![Schema Version](https://img.shields.io/badge/Schema-v1.4-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
 [![Python Version](https://img.shields.io/badge/python-3.12+-green.svg)](./pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](./LICENSE)
 
@@ -43,14 +43,14 @@ AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数
 
 每一期生成的评估结果都会投射到**六轴协作雷达**（协作指数由此计算）：
 
-| 协作能力轴 | v0.6 权重 | v0.7 权重 | 衡量内容 |
+| 协作能力轴 | v0.7 权重 | v0.8 权重 | 衡量内容 |
 |-----------|:---------:|:---------:|---------|
-| **任务表达** (`intent_clarity`) | 20% | **15%** ↓ | 协作启动质量；v0.8 重命名为 `collaboration_framing` |
-| **协作驱动** (`execution_driving`) | 22% | **24%** ↑ | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场）|
-| **实现下潜** (`implementation_depth`) | 22% | **20%** | 文件修改量、代码验证覆盖率与实现边界控制 |
-| **交付收口** (`delivery_closure`) | 22% | **20%** | 任务完成率、验证行为率与测试用例运行表现 |
-| **恢复推进** (`adaptive_recovery`) | 14% | **11%** | AI 偏航或报错时，纠偏和回到正轨的质量 |
-| **Agentic 系统化** (`agentic_system`) | — | **10%** 🆕 | Skill/Workflow/MCP/Subagent 等方法资产化能力 |
+| **协作框定** (`collaboration_framing`) | 15% | **14%** ↓ | 协作启动质量，包含目标锁定速度与主动澄清率（v0.8重构） |
+| **协作驱动** (`execution_driving`) | 24% | **25%** ↑ | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场）|
+| **实现下潜** (`implementation_depth`) | 20% | **20%** | 文件修改量、代码验证覆盖率与实现边界控制 |
+| **交付收口** (`delivery_closure`) | 20% | **20%** | 任务完成率、验证行为率与测试用例运行表现 |
+| **恢复推进** (`adaptive_recovery`) | 11% | **10%** ↓ | AI 偏航或报错时，纠偏和回到正轨的质量 |
+| **Agentic 系统化** (`agentic_system`) | 10% | **11%** ↑ | Skill/Workflow/MCP/Subagent 等方法资产化能力 |
 
 > **为什么这样调整**：见 [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md)
 

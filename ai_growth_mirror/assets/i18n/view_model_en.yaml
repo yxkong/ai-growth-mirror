@@ -1,8 +1,8 @@
 capability_meta:
-  intent_clarity:
-    label: "Task Framing"
-    explanation: "How clearly you front-load goal, boundaries, and acceptance criteria."
-    next_action: "Make goal, relevant files, constraints, and acceptance criteria your default opening frame."
+  collaboration_framing:
+    label: "Collaboration Framing"
+    explanation: "How effectively you frame the direction, provide environment context, and accelerate goal locking across turns."
+    next_action: "Prioritize clear direction and environment context; aim to lock goals and produce the first line of code within 3 turns."
   execution_driving:
     label: "Execution Driving"
     explanation: "How actively you steer the collaboration instead of following the current answer."
@@ -19,12 +19,16 @@ capability_meta:
     label: "Recovery Steering"
     explanation: "How well you recover from drift, errors, or blockers using new evidence."
     next_action: "When steering back, state what was wrong, what changed, and the new minimal path."
+  agentic_system:
+    label: "Agentic System"
+    explanation: "How effectively you leverage and author reusable AI assets (skills, workflows, MCPs) to systemize cooperation."
+    next_action: "Use skills, workflows, and MCP configs to capture repeatable collaboration steps."
 
 radar_axes:
-  intent_clarity:
-    reason_high: "Goals, boundaries, and acceptance criteria are usually front-loaded."
-    reason_low: "The task context still needs to be filled in midway too often."
-    clarification_boost_note: "(includes +{boost} active-clarification boost: {rate}% of sessions reached clear intent by adding constraints across turns)"
+  collaboration_framing:
+    reason_high: "You frame direction quickly, provide effective context across turns, and lock goals efficiently."
+    reason_low: "The direction is too broad, leading the AI to wander or fail to lock onto actionable tasks in early turns."
+    tooltip: "score {score} · direction clarity {direction_clarity_rate}% · context grounding {context_grounding_rate}% · goal locking speed {goal_locking_speed} pts · active clarification {active_clarification_rate}%"
   execution_driving:
     reason_high: "You actively organize the collaboration rhythm and tool path."
     reason_low: "The session can still stall in discussion instead of a stable execution chain."
@@ -37,6 +41,11 @@ radar_axes:
   adaptive_recovery:
     reason_high: "When work drifts or stalls, you usually steer it back effectively."
     reason_low: "Course correction and new evidence injection are still not sharp enough."
+  agentic_system:
+    reason_high: "You leverage and author reusable AI assets (skills, workflows, MCPs) for systemized collaboration."
+    reason_low: "You rely more on ad-hoc prompts rather than capturing repeatable methods into assets."
+    tooltip: "score {score} · skill usage {skill_usage_pct}% · structured workflows {structured_pct}% · asset creation {asset_authoring_pct}%"
+    gap_reason: "Agentic System is weak: try using skills, workflows, or MCP configs to capture repeatable cooperation steps."
 
 growth_gaps:
   framing_gap:
@@ -959,14 +968,14 @@ level_axis_metrics:
   labels:
     agentic_system: "Agentic system maturity"
   explanations:
-    intent_clarity: "Checks whether goal, constraints, acceptance, and context are front-loaded clearly."
+    collaboration_framing: "Checks whether you frame direction, provide environment context, and accelerate goal locking across turns."
     execution_driving: "Checks whether you actively organize the rhythm and leverage AI/tool capabilities."
     implementation_depth: "Checks whether you enter real code, implementation paths, and boundaries instead of staying at surface advice."
     delivery_closure: "Checks whether work reaches verification, conclusion, and a deliverable state."
     adaptive_recovery: "Checks whether you recover from drift, errors, or blockers using new evidence."
     agentic_system: "Checks whether real tasks repeatedly mobilize skills, workflows, tools, and reusable methods instead of treating asset inventory as proof."
   current_values:
-    intent_clarity: "Axis {score} · constraints {constraint_rate}% · code context {code_context_rate}% · specificity {request_specificity}%"
+    collaboration_framing: "Axis {score} · direction clarity {direction_clarity_rate}% · context grounding {context_grounding_rate}% · goal locking speed {goal_locking_speed} pts · active clarification {active_clarification_rate}%"
     execution_driving: "Axis {score} · avg chain {avg_chain} · heavy {heavy_sessions} · subagent {subagent_count} · MCP {mcp_rate}%"
     implementation_depth: "Axis {score} · files/session {files_per_session} · token volume {token_volume_m}M · code proof {code_verification_rate_pct}%"
     delivery_closure: "Axis {score} · weighted completion {completion_rate}% · verification {verification_rate}% · tests {test_rate}%"
@@ -977,28 +986,28 @@ level_axis_metrics:
     agentic_detection_note: "method fingerprints untracked (detection relies on ReadFile reads of SKILL.md; visible after the historical session cache is refreshed)"
   thresholds:
     L2:
-      intent_clarity: 42
+      collaboration_framing: 42
       execution_driving: 45
       implementation_depth: 40
       delivery_closure: 40
       adaptive_recovery: 38
       agentic_system: 35
     L3:
-      intent_clarity: 56
+      collaboration_framing: 56
       execution_driving: 58
       implementation_depth: 55
       delivery_closure: 55
       adaptive_recovery: 52
       agentic_system: 52
     L4:
-      intent_clarity: 72
+      collaboration_framing: 72
       execution_driving: 74
       implementation_depth: 70
       delivery_closure: 70
       adaptive_recovery: 68
       agentic_system: 75
     L5:
-      intent_clarity: 86
+      collaboration_framing: 86
       execution_driving: 86
       implementation_depth: 84
       delivery_closure: 84
@@ -1006,9 +1015,9 @@ level_axis_metrics:
       agentic_system: 88
   targets:
     L2:
-      intent_clarity:
-        target: "State goal, relevant files, constraints, and acceptance clearly"
-        hint: "Background starts arriving earlier"
+      collaboration_framing:
+        target: "State direction and core context clearly in early turns"
+        hint: "Locking the first line of code takes fewer turns"
       execution_driving:
         target: "A stable execution chain appears, with explicit step control"
         hint: "You move from waiting for answers to driving collaboration"
@@ -1025,9 +1034,9 @@ level_axis_metrics:
         target: "Real tasks start using skills, workflows, or high-leverage tools"
         hint: "Usage evidence comes before asset inventory"
     L3:
-      intent_clarity:
-        target: "Task framing is stable and the opening context is more complete"
-        hint: "AI needs fewer clarification turns"
+      collaboration_framing:
+        target: "Task framing is stable, guiding the AI to lock goals within 5 turns"
+        hint: "Cooperation direction becomes more focused"
       execution_driving:
         target: "Complex tasks follow a deliberate rhythm"
         hint: "Execution begins to feel orchestrated"
@@ -1044,9 +1053,9 @@ level_axis_metrics:
         target: "Reusable methods, skills, or workflow calls appear across multiple tasks"
         hint: "Usage starts becoming repeatable"
     L4:
-      intent_clarity:
-        target: "Even complex tasks are front-loaded with clear goal and boundary"
-        hint: "Context organization shows real working maturity"
+      collaboration_framing:
+        target: "Frame environment context and lock target within 3 turns even on complex tasks"
+        hint: "High efficiency in multi-turn alignment"
       execution_driving:
         target: "You deliberately leverage plan, subagent, MCP, or similar high-leverage paths"
         hint: "You are organizing a collaboration, not just issuing requests"
@@ -1063,9 +1072,9 @@ level_axis_metrics:
         target: "You combine skills, workflows, tools, and context assets in complex work"
         hint: "The capability system starts contributing to delivery"
     L5:
-      intent_clarity:
-        target: "Framing is highly stable and portable even on hard tasks"
-        hint: "Input quality itself becomes leverage"
+      collaboration_framing:
+        target: "Lock target in the first turn or instantly with minimal alignment cost"
+        hint: "Framing itself becomes a high-leverage skill"
       execution_driving:
         target: "Multi-tool, multi-model, multi-path orchestration is stable"
         hint: "High-leverage steering is repeatable"

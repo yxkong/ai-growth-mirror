@@ -8,12 +8,13 @@ Period summary packet ({{ period_label }}):
 - Average autonomous chain: {{ avg_chain }}
 - Heavy sessions: {{ heavy_session_count }}
 
-Five-axis scores:
-- intent_clarity: {{ '%.1f'|format(capability_scores.intent_clarity) }}
+Six-axis scores:
+- collaboration_framing: {{ '%.1f'|format(capability_scores.collaboration_framing) }}
 - execution_driving: {{ '%.1f'|format(capability_scores.execution_driving) }}
 - implementation_depth: {{ '%.1f'|format(capability_scores.implementation_depth) }}
 - delivery_closure: {{ '%.1f'|format(capability_scores.delivery_closure) }}
 - adaptive_recovery: {{ '%.1f'|format(capability_scores.adaptive_recovery) }}
+- agentic_system: {{ '%.1f'|format(capability_scores.agentic_system) }}
 
 Execution and capability signals:
 - mcp_session_rate_pct: {{ mcp_session_rate_pct }}

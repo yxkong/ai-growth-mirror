@@ -582,18 +582,20 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
                 key=axis_key,
                 label=catalogs.view_model.get("capability_meta", {}).get(axis_key, {}).get("label", axis_key),
                 color=color,
-                # Only comparable (current-schema) points carry the five axes;
-                # legacy points would default to 0.0 and draw a fake crash to zero.
-                values=[point.axes.get(axis_key, 0.0) for point in _comparable_axis_points],
-                points=_comparable_axis_points,
+                # Filter points to only include those containing the axis_key,
+                # ensuring that missing axes (e.g. agentic_system in v0.6) are skipped
+                # instead of rendering as a fake drop to 0.0.
+                values=[point.axes[axis_key] for point in _comparable_axis_points if axis_key in point.axes],
+                points=[point for point in _comparable_axis_points if axis_key in point.axes],
                 value_mode="axis",
             )
             for axis_key, color in (
-                ("intent_clarity", "#ec4899"),
+                ("collaboration_framing", "#ec4899"),
                 ("execution_driving", "#2563eb"),
                 ("implementation_depth", "#0ea5e9"),
                 ("delivery_closure", "#f59e0b"),
                 ("adaptive_recovery", "#14b8a6"),
+                ("agentic_system", "#8b5cf6"),
             )
         ],
         prompt_quality_series=[
@@ -1000,14 +1002,14 @@ def _build_actionable_friction_counts(stats: GrowthProfile) -> dict[str, int]:
 
 def _topic_from_friction(category: str) -> str:
     return {
-        "ambiguous-request": "intent_clarity",
-        "context-confusion": "intent_clarity",
-        "context-gap": "intent_clarity",
-        "fuzzy-intent": "intent_clarity",
+        "ambiguous-request": "collaboration_framing",
+        "context-confusion": "collaboration_framing",
+        "context-gap": "collaboration_framing",
+        "fuzzy-intent": "collaboration_framing",
         "goal-drift": "adaptive_recovery",
         "incomplete-output": "delivery_closure",
         "missing-acceptance-criteria": "delivery_closure",
-        "missing-context": "intent_clarity",
+        "missing-context": "collaboration_framing",
         "off-track": "adaptive_recovery",
         "outdated-context": "adaptive_recovery",
         "recurring-pattern": "adaptive_recovery",

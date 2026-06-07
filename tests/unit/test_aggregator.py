@@ -48,8 +48,14 @@ def test_execution_driving_rewards_reusable_asset_authoring():
         hook_modified_session_count=0,
         mcp_authored_session_count=0,
         assetized_session_rate=0.4,
-        constraint_prompt_rate=0.6,
-        code_context_rate=0.7,
+        direction_clarity_rate=0.6,
+        context_grounding_rate=0.7,
+        goal_locking_speed=80.0,
+        active_clarification_rate=0.5,
+        skill_usage_session_rate=0.5,
+        workflow_fingerprint_session_rate=0.5,
+        workflow_reuse_depth=4,
+        advanced_feature_ratio=0.5,
         prompt_dimensions={
             "request_specificity": 68.0,
             "context_provision": 70.0,
@@ -158,7 +164,7 @@ def test_agentic_system_rewards_real_repeated_skill_and_workflow_use():
     sessions = []
     for i in range(24):
         s = make_session(session_id=f"s{i}")
-        s.unique_skills_used = ["implementation-workflow", "quality-gate"]
+        s.unique_skills_used = ["implementation-workflow", "quality-gate", "git-workflow", "test-framework"]
         s.slash_commands = ["/spec-create"]
         s.advanced_features = ["skill_invocation", "subagent_dispatch"]
         s.skill_invocation_count = 2

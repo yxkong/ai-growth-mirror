@@ -236,7 +236,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
         "scorecard": {
             "radar_axes": radar_axes,
             "active_clarification_rate": round(view.active_clarification_rate, 4),
-            "intent_clarity_boost": round(view.intent_clarity_boost, 1),
+            "goal_locking_speed": round(view.goal_locking_speed, 1),
         },
         "capabilities": [
             {

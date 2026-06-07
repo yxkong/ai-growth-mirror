@@ -206,6 +206,7 @@ class CursorAdapter(BaseSessionAdapter):
         pending_write = False
         shell_commands: list[str] = []
         advanced_features: set[str] = set()
+        turns_until_first_file_write = None
 
         try:
             stat = jsonl_path.stat()
@@ -334,6 +335,8 @@ class CursorAdapter(BaseSessionAdapter):
                             advanced_features.add("skill_invocation")
                     if normalized in WRITE_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.WRITE:
                         pending_write = True
+                        if turns_until_first_file_write is None:
+                            turns_until_first_file_write = max(1, user_message_count)
                     if normalized in EXEC_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.BASH:
                         command = ""
                         if isinstance(tool_input, dict):
@@ -385,6 +388,7 @@ class CursorAdapter(BaseSessionAdapter):
             hook_config_modified=hook_config_modified,
             mcp_server_authored=mcp_server_authored,
             entrypoint="ide",
+            turns_until_first_file_write=turns_until_first_file_write,
         )
         return session
 
