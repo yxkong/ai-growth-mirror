@@ -1,4 +1,4 @@
-# AI Growth Mirror (AI 协作成长镜)
+﻿# AI Growth Mirror (AI 协作成长镜)
 
 [![Schema Version](https://img.shields.io/badge/Schema-v1.2-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
 [![Python Version](https://img.shields.io/badge/python-3.12+-green.svg)](./pyproject.toml)
@@ -58,11 +58,45 @@ Cursor、Trae、QCoder 等工具的日志天然缺少 Token 用量明细。系�
 
 ## 📊 报告效果预览
 
-**本期协作进化报告 (Hero 视图)**:
-![报告预览 1](docs/assets/images/growth_mirror.png)
+生成 `ai-growth-mirror.html` 后双击即可本地打开，无需部署。报告按「诊断 → 训练 → 追踪」组织，侧边栏可快速跳转各区块。
 
-**成长信号总览 (五轴雷达与协作能力地图)**:
-![报告预览 2](docs/assets/images/image.png)
+### 本期协作进化报告（Hero）
+
+首屏一眼看懂：**等级 · 协作指数  · 下一步练什么**。支持浅色 / 深色主题切换。
+
+| 浅色主题 | 深色主题 |
+|:---:|:---:|
+| ![Hero 浅色主题](docs/assets/images/report-hero-light.png) | ![Hero 深色主题](docs/assets/images/report-hero-dark.png) |
+
+### 成长信号总览
+
+五轴协作雷达 + 协作指数趋势折线 + Top 3 短板与可执行行动建议。
+
+![成长信号总览：五轴雷达、趋势折线与短板排行](docs/assets/images/report-growth-signals.png)
+
+### Prompt 成长教练
+
+基于真实会话的 Prompt 诊断：识别失败模式，并给出改写方向与收口建议。
+
+![Prompt 成长教练：短板诊断与优化方向](docs/assets/images/report-prompt-coach.png)
+
+### 协作风格透镜
+
+四维度协作画像（启动 / 推进 / 收口 / 复用），帮你看见自己的 AI 协作「打法」而非只看分数。
+
+![协作风格透镜：四维度协作画像](docs/assets/images/report-style-lens.png)
+
+### 工作聚焦与协作节奏
+
+你在做什么（项目、目标类型、工具与语言）+ 双节奏切换等协作节律洞察。
+
+![工作聚焦与协作节奏](docs/assets/images/report-work-focus-rhythm.png)
+
+### 本期值得保留的方法
+
+从高分会话中提炼可复用的协作范式（深度委托、工具链编排、结构化执行），直接迁移到下一类相似任务。
+
+![本期值得保留的方法：高分会话范例](docs/assets/images/report-exemplars.png)
 
 ---
 
