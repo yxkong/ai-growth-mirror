@@ -266,7 +266,7 @@ def _primary_success(session: SessionRecord, workflow_style: str) -> str:
 
 def _friction_description(language: str, category: str) -> str:
     key = _FRICTION_DESC_KEYS.get(category, category.replace("-", "_"))
-    return _i18n_text(language, "friction_descriptions", key)
+    return _i18n_text(language, "blockers", key)
 
 
 def _blockers(session: SessionRecord, language: str) -> list[ResistanceSignal]:
@@ -302,16 +302,11 @@ def _blockers(session: SessionRecord, language: str) -> list[ResistanceSignal]:
     recovery_count = sum(1 for msg in all_msgs if is_recovery_continuation(msg))
 
     if recovery_count > 0:
-        desc = (
-            "检测到继续或重试等恢复推进指令，表明由于环境原因进行恢复推进。"
-            if language == "zh"
-            else "Detected continuation or retry instructions, suggesting environment-driven recovery."
-        )
         points.append(
             ResistanceSignal(
                 category="environmental-recovery",
                 attribution="environmental",
-                description=desc,
+                description=_friction_description(language, "environmental-recovery"),
                 severity="low",
                 confidence=85,
             )

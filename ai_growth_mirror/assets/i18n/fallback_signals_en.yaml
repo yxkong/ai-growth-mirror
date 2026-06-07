@@ -8,6 +8,7 @@ blockers:
   tool_ceiling: "The session hit a tool or environment ceiling."
   fuzzy_intent: "The request stayed too vague for a precise execution path."
   off_track: "The collaboration drifted before converging on the core task."
+  environmental_recovery: "Detected continuation or retry instructions, suggesting environment-driven recovery."
 
 accelerators:
   verify_loop: "Closed the loop with execution or tests."

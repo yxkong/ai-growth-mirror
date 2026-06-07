@@ -301,6 +301,14 @@ def _cached_session_read(
     )
 
 
+def _friction_description(language: str, category: str) -> str:
+    from ..i18n.catalog import load_catalog
+    catalog = load_catalog("fallback_signals", language)
+    blockers = catalog.get("blockers", {})
+    key = category.replace("-", "_")
+    return blockers.get(key, "")
+
+
 def _write_session_read(
     cache: CacheStore,
     session_read: SessionRead,
@@ -329,16 +337,11 @@ def _write_session_read(
         for sig in session_read.resistance_signals:
             if sig.category == "off-track":
                 has_off_track = True
-                desc = (
-                    "检测到继续或重试等恢复推进指令，表明由于环境原因进行恢复推进。"
-                    if language == "zh"
-                    else "Detected continuation or retry instructions, suggesting environment-driven recovery."
-                )
                 corrected_signals.append(
                     ResistanceSignal(
                         category="environmental-recovery",
                         attribution="environmental",
-                        description=desc,
+                        description=_friction_description(language, "environmental-recovery"),
                         severity="low",
                         confidence=sig.confidence
                     )
@@ -348,16 +351,11 @@ def _write_session_read(
 
         has_env_rec = any(sig.category == "environmental-recovery" for sig in corrected_signals)
         if not has_env_rec:
-            desc = (
-                "会话中包含继续/重试指令。"
-                if language == "zh"
-                else "Session contains continuation/retry instructions."
-            )
             corrected_signals.append(
                 ResistanceSignal(
                     category="environmental-recovery",
                     attribution="environmental",
-                    description=desc,
+                    description=_friction_description(language, "environmental-recovery"),
                     severity="low",
                     confidence=85
                 )

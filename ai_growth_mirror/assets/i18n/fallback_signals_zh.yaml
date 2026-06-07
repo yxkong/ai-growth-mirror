@@ -8,6 +8,7 @@ blockers:
   tool_ceiling: "会话遇到了工具或环境上限。"
   fuzzy_intent: "请求表述偏模糊，难以直接收敛到精确执行路径。"
   off_track: "协作过程一度偏离主目标后才重新收敛。"
+  environmental_recovery: "检测到继续或重试等恢复推进指令，表明由于环境原因进行恢复推进。"
 
 accelerators:
   verify_loop: "通过执行或测试补齐了验证闭环。"
