@@ -19,6 +19,7 @@ from ...domain.session.model import SessionRecord
 from ...domain.session.heuristics import (
     classify_session_quality,
     detect_active_clarification,
+    is_recovery_continuation,
     passes_quality_gate as _passes_quality_gate,
 )
 from ...domain.signals.framework import detect_frameworks, summarise_for_hint
@@ -313,6 +314,56 @@ def _write_session_read(
     # session, not from the LLM judgement, so we compute it with the same shared
     # rule used by the heuristic extractor to keep both modes aligned.
     session_read.active_clarification = detect_active_clarification(meta)
+
+    # Exclude continuation messages from off-track misclassification
+    all_msgs = []
+    if meta.first_prompt:
+        all_msgs.append(meta.first_prompt)
+    if meta.top_user_messages:
+        all_msgs.extend(meta.top_user_messages)
+
+    has_continuation = any(is_recovery_continuation(msg) for msg in all_msgs)
+    if has_continuation:
+        corrected_signals = []
+        has_off_track = False
+        for sig in session_read.resistance_signals:
+            if sig.category == "off-track":
+                has_off_track = True
+                desc = (
+                    "检测到继续或重试等恢复推进指令，表明由于环境原因进行恢复推进。"
+                    if language == "zh"
+                    else "Detected continuation or retry instructions, suggesting environment-driven recovery."
+                )
+                corrected_signals.append(
+                    ResistanceSignal(
+                        category="environmental-recovery",
+                        attribution="environmental",
+                        description=desc,
+                        severity="low",
+                        confidence=sig.confidence
+                    )
+                )
+            else:
+                corrected_signals.append(sig)
+
+        has_env_rec = any(sig.category == "environmental-recovery" for sig in corrected_signals)
+        if not has_env_rec:
+            desc = (
+                "会话中包含继续/重试指令。"
+                if language == "zh"
+                else "Session contains continuation/retry instructions."
+            )
+            corrected_signals.append(
+                ResistanceSignal(
+                    category="environmental-recovery",
+                    attribution="environmental",
+                    description=desc,
+                    severity="low",
+                    confidence=85
+                )
+            )
+        session_read.resistance_signals = corrected_signals
+
     cache.write_analysis(session_read, source_machine=meta.source_machine)
     return session_read
 

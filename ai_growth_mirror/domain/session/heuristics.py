@@ -323,3 +323,24 @@ def detect_active_clarification(session: SessionRecord) -> bool:
         if any(word in msg_lower for word in CONSTRAINT_WORDS):
             return True
     return False
+
+
+_RECOVERY_CONTINUATION_PATTERNS = frozenset({
+    "继续", "恢复推进", "接着来", "接着做", "继续执行",
+    "continue", "resume", "retry", "重试", "再跑一次",
+    "你卡住了", "卡住了", "没反应", "超时了", "再试一次",
+    "keep going", "go on", "proceed",
+})
+
+
+def is_recovery_continuation(msg: str) -> bool:
+    """Detect if a user message is a continuation / recovery instruction.
+
+    This helps distinguish environmental recovery (system stuck, timeouts)
+    from user-driven off-track steering or interruptions.
+    """
+    if not msg:
+        return False
+    msg_lower = msg.lower().strip()
+    return any(pattern in msg_lower for pattern in _RECOVERY_CONTINUATION_PATTERNS)
+

@@ -23,6 +23,7 @@ from ..extractors.llm import _should_extract
 from ...domain.session.heuristics import (
     classify_session_quality,
     detect_active_clarification,
+    is_recovery_continuation,
     passes_quality_gate as _passes_quality_gate,
 )
 from ...domain.signals.framework import aggregate_family, detect_frameworks
@@ -290,7 +291,34 @@ def _blockers(session: SessionRecord, language: str) -> list[ResistanceSignal]:
                 confidence=76,
             )
         )
-    if session.user_interruptions >= 2:
+
+    # Detect recovery/continuation instructions
+    all_msgs = []
+    if session.first_prompt:
+        all_msgs.append(session.first_prompt)
+    if session.top_user_messages:
+        all_msgs.extend(session.top_user_messages)
+
+    recovery_count = sum(1 for msg in all_msgs if is_recovery_continuation(msg))
+
+    if recovery_count > 0:
+        desc = (
+            "检测到继续或重试等恢复推进指令，表明由于环境原因进行恢复推进。"
+            if language == "zh"
+            else "Detected continuation or retry instructions, suggesting environment-driven recovery."
+        )
+        points.append(
+            ResistanceSignal(
+                category="environmental-recovery",
+                attribution="environmental",
+                description=desc,
+                severity="low",
+                confidence=85,
+            )
+        )
+
+    effective_interruptions = max(0, session.user_interruptions - recovery_count)
+    if effective_interruptions >= 2:
         points.append(
             ResistanceSignal(
                 category="off-track",
