@@ -1,6 +1,7 @@
 ﻿# AI Growth Mirror (AI 协作成长镜)
 
-[![Schema Version](https://img.shields.io/badge/Schema-v1.2-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
+[![Release](https://img.shields.io/badge/Release-v0.6.0-blue.svg)](./pyproject.toml)
+[![Schema Version](https://img.shields.io/badge/Schema-v1.3-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
 [![Python Version](https://img.shields.io/badge/python-3.12+-green.svg)](./pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](./LICENSE)
 
@@ -35,7 +36,7 @@ AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数
 
 ---
 
-## ✨ 核心亮点 (v1.2 架构升级)
+## ✨ 核心亮点 (v0.6.0)
 
 ### 1. 🏎️ 惰性解析与采样匹配 (Lazy Parsing Placeholder)
 针对海量会话日志（数万条历史），系统引入了 **Lazy Placeholder** 扫描机制。扫描阶段仅加载轻量级代理结构进行项目过滤。在 Orchestrator 完成过滤和抽样限制后，仅对最终进入报告的 session 执行 `ensure_parsed` 深度解析，让海量日志的加载性能直升近百倍。
@@ -131,7 +132,7 @@ ai-growth-mirror generate
 
 运行完成后，您的当前目录下将输出：
 - `ai-growth-mirror.html`: 个人协作能力交互式分析主报告。
-- `ai-growth-mirror.json`: 结构化 Sidecar 缓存数据（Schema v1.2 规范）。
+- `ai-growth-mirror.json`: 结构化 Sidecar 缓存数据（缓存 Schema v1.3 规范）。
 - `ai-growth-mirror-share.html`: 对外分享脱敏卡片。
 - `ai-growth-mirror-archive/`: 快照存档目录，第二次运行时将自动激活「成长轨迹对比」（本期 vs 上一期）。
 

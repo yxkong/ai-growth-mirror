@@ -134,6 +134,7 @@ High-signal defaults only. Procedures and details belong in skills—see §技�
 
 ## 增量硬约束
 
+- **版本一致性**：产品版本真源 `pyproject.toml` → 同步 `ai_growth_mirror/__init__.py`、`uv.lock`、`README.md` Release badge；缓存 Schema 真源 `domain/cache_schema.py`（与产品版本解耦）。升版检查见项目技能 `ai-growth-mirror-dev` §版本一致性协议。
 - 报告主编排真源：`application/orchestrator.generate_report_artifacts`；禁止 CLI 双流水线。
 - 禁止未经用户确认删除 `docs/review/growth_mirror/REPORT_VALUE_RECOVERY_INVENTORY.md` 冻结能力。
 - **禁止**对 `ai-growth-mirror` 工作区执行 hub `sync-prompts`；不在仓内挂载 hub prompt 真源。
