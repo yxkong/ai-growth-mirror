@@ -24,6 +24,7 @@ radar_axes:
   intent_clarity:
     reason_high: "目标、约束与验收通常能前置给到 AI。"
     reason_low: "任务上下文经常需要在中途补齐。"
+    clarification_boost_note: "（含 +{boost} 分主动澄清加成：{rate}% 的会话通过多轮追加约束补齐了意图）"
   execution_driving:
     reason_high: "你已经会主动组织 AI 的推进节奏和工具路径。"
     reason_low: "协作仍容易停在泛讨论，推进链不够稳定。"

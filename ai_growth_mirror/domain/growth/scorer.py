@@ -213,6 +213,22 @@ def _bounded_average(*weighted_values: tuple[float, float]) -> float:
     return round(total_score / total_weight, 1)
 
 
+# v0.6.0 G-3: the active-clarification boost rewards the "multi-turn clarify
+# then constrain" collaboration pattern so it is not penalized for missing a
+# first-turn constraint. The ramp reaches the +8 cap at a 20% session rate and
+# scales down linearly below that. This is the single source of the formula —
+# both the score itself and the transparent report disclosure read from here.
+INTENT_CLARITY_BOOST_CAP = 8.0
+_ACTIVE_CLARIFICATION_FULL_BOOST_RATE = 0.20
+
+
+def _intent_clarity_boost(active_clarification_rate: float) -> float:
+    if active_clarification_rate <= 0.0:
+        return 0.0
+    ramp = (active_clarification_rate / _ACTIVE_CLARIFICATION_FULL_BOOST_RATE) * INTENT_CLARITY_BOOST_CAP
+    return round(min(INTENT_CLARITY_BOOST_CAP, ramp), 1)
+
+
 def _compute_growth_level(
     *,
     avg_chain: float,
@@ -278,9 +294,7 @@ def _compute_growth_level(
             0.22,
         ),
     )
-    boost = 0.0
-    if active_clarification_rate > 0.0:
-        boost = min(8.0, (active_clarification_rate / 0.20) * 8.0)
+    boost = _intent_clarity_boost(active_clarification_rate)
     intent_clarity = min(100.0, intent_clarity_raw + boost)
     execution_driving = _bounded_average(
         (_soft_threshold(avg_chain, 1.5, 8.0, 100.0), 0.32),
@@ -1007,6 +1021,7 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
         active_clarification_rate=stats.active_clarification_rate,
     )
     stats.agentic_system_score = round(stats.agentic_sub_scores.get("agentic_system", 0.0), 1)
+    stats.intent_clarity_boost = _intent_clarity_boost(stats.active_clarification_rate)
     stats.radar_axes = _build_radar_axes(stats)
     stats.gap_rankings = _build_gap_rankings(stats)
     stats.growth_stage = _build_growth_stage(stats)

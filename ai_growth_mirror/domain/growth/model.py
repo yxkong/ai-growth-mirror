@@ -123,6 +123,9 @@ class GrowthProfile:
 
     active_clarification_count: int = 0
     active_clarification_rate: float = 0.0
+    # +N boost applied to intent_clarity from the active-clarification pattern
+    # (v0.6.0 G-3). Stored so the report can disclose it transparently.
+    intent_clarity_boost: float = 0.0
 
     # ── Enhanced behavioral metrics ──────────────────────────────────────────
 

@@ -22,6 +22,7 @@ from ...domain.signals.model import (
 from ..extractors.llm import _should_extract
 from ...domain.session.heuristics import (
     classify_session_quality,
+    detect_active_clarification,
     passes_quality_gate as _passes_quality_gate,
 )
 from ...domain.signals.framework import aggregate_family, detect_frameworks
@@ -116,16 +117,7 @@ def build_heuristic_session_read_for_session(
     creation_mode, creation_depth = _creation_mode(session)
     project_name = _Path(session.project_path).name if session.project_path else ""
 
-    active_clarification = False
-    if session.user_message_count >= 3 and len(session.top_user_messages) >= 2:
-        check_messages = session.top_user_messages[1:3]
-        from ...domain.session.heuristics import CONSTRAINT_WORDS
-        for msg in check_messages:
-            if msg:
-                msg_lower = msg.lower()
-                if any(word in msg_lower for word in CONSTRAINT_WORDS):
-                    active_clarification = True
-                    break
+    active_clarification = detect_active_clarification(session)
 
     return SessionRead(
         session_id=session.session_id,

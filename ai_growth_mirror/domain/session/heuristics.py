@@ -300,3 +300,26 @@ def passes_quality_gate(session: SessionRecord, min_quality: str) -> bool:
     return _QUALITY_ORDER.get(session.quality_tag, 1) >= _QUALITY_ORDER.get(
         min_quality, 1
     )
+
+
+def detect_active_clarification(session: SessionRecord) -> bool:
+    """Detect the "active clarification" collaboration pattern (v0.6.0 G-3).
+
+    A session counts as active clarification when the user opens with a task,
+    then in a later turn (2nd/3rd user message) adds explicit constraints/scope
+    instead of repeating themselves. This is treated as a high-order intent
+    signal rather than a first-turn-constraint-missing penalty.
+
+    Shared by both the heuristic and LLM extractors so the signal is computed
+    from the same rule regardless of extraction mode.
+    """
+    if session.user_message_count < 3:
+        return False
+    follow_up_messages = (session.top_user_messages or [])[1:3]
+    for msg in follow_up_messages:
+        if not msg:
+            continue
+        msg_lower = msg.lower()
+        if any(word in msg_lower for word in CONSTRAINT_WORDS):
+            return True
+    return False
