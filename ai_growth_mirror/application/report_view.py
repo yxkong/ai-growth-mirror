@@ -73,16 +73,25 @@ def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
     axes: list[RadarAxis] = []
     for axis in stats.radar_axes:
         axis_i18n = radar_i18n.get(axis.key, {})
+        short_reason = axis_i18n.get(
+            "reason_high" if axis.score >= 65 else "reason_low",
+            "",
+        )
+        if axis.key == "intent_clarity" and stats.intent_clarity_boost > 0.0:
+            note_template = axis_i18n.get("clarification_boost_note", "")
+            if note_template:
+                note = note_template.format(
+                    boost=round(stats.intent_clarity_boost, 1),
+                    rate=round(stats.active_clarification_rate * 100),
+                )
+                short_reason = (short_reason + " " + note).strip()
         axes.append(
             RadarAxis(
                 key=axis.key,
                 label=capability_meta.get(axis.key, {}).get("label", axis.key),
                 score=axis.score,
                 status=axis.status,
-                short_reason=axis_i18n.get(
-                    "reason_high" if axis.score >= 65 else "reason_low",
-                    "",
-                ),
+                short_reason=short_reason,
                 confidence=axis.confidence,
                 has_data=getattr(axis, "has_data", True),
             )
@@ -591,6 +600,8 @@ class PersonalReportView:
     labels: dict = field(default_factory=dict)
     hide_wechat: bool = False
     hide_email: bool = False
+    active_clarification_rate: float = 0.0
+    intent_clarity_boost: float = 0.0
 
 
 def build_agent_asset_footprint(
@@ -795,6 +806,8 @@ def build_personal_report_view(
         labels=labels,
         hide_wechat=hide_wechat,
         hide_email=hide_email,
+        active_clarification_rate=stats.active_clarification_rate,
+        intent_clarity_boost=stats.intent_clarity_boost,
     )
 
 

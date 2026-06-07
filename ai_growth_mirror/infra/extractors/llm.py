@@ -18,6 +18,7 @@ from ...domain.common.contracts import LlmCallRequest, LlmGateway
 from ...domain.session.model import SessionRecord
 from ...domain.session.heuristics import (
     classify_session_quality,
+    detect_active_clarification,
     passes_quality_gate as _passes_quality_gate,
 )
 from ...domain.signals.framework import detect_frameworks, summarise_for_hint
@@ -308,6 +309,10 @@ def _write_session_read(
 ) -> SessionRead:
     session_read._source_mtime = meta._source_mtime
     session_read._report_language = language
+    # Active-clarification is a turn-structure signal derived from the raw
+    # session, not from the LLM judgement, so we compute it with the same shared
+    # rule used by the heuristic extractor to keep both modes aligned.
+    session_read.active_clarification = detect_active_clarification(meta)
     cache.write_analysis(session_read, source_machine=meta.source_machine)
     return session_read
 

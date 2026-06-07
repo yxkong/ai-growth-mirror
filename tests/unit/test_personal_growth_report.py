@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 
 from ai_growth_mirror.domain.session.model import SessionRecord
@@ -1467,18 +1467,62 @@ def test_personal_report_hide_wechat_email():
 
 def test_active_clarification_heuristic_detection():
     from ai_growth_mirror.infra.extractors.heuristic import build_heuristic_session_read_for_session
+
+    def _detect(user_count: int, messages: list[str]) -> bool:
+        s = _make_session("s", "D:/repo/demo")
+        s.user_message_count = user_count
+        s.top_user_messages = messages
+        return build_heuristic_session_read_for_session(s).active_clarification
+
+    # Positive samples: 3+ turns where a later turn adds explicit constraints.
+    assert _detect(3, ["实现登录", "不要使用第三方库", "好的谢谢"]) is True
+    assert _detect(4, ["写个接口", "make sure it returns 200", "再补一句"]) is True
+    assert _detect(3, ["先看看代码", "ensure the schema stays compatible", "ok"]) is True
+
+    # Negative samples: too few turns, or no constraint added in follow-ups.
+    assert _detect(2, ["实现登录", "不要使用第三方库"]) is False
+    assert _detect(3, ["实现登录", "继续", "好的谢谢"]) is False
+    assert _detect(1, ["不要使用第三方库"]) is False
+
+
+def test_active_clarification_signal_shared_between_extractors():
+    """LLM and heuristic extractors must agree on the active_clarification signal."""
+    from ai_growth_mirror.domain.session.heuristics import detect_active_clarification
+    from ai_growth_mirror.infra.extractors.heuristic import build_heuristic_session_read_for_session
+
     s = _make_session("s1", "D:/repo/demo")
     s.user_message_count = 3
     s.top_user_messages = ["实现登录", "不要使用第三方库", "好的谢谢"]
-    
-    read = build_heuristic_session_read_for_session(s)
-    assert read.active_clarification is True
 
-    s2 = _make_session("s2", "D:/repo/demo")
-    s2.user_message_count = 2
-    s2.top_user_messages = ["实现登录", "不要使用第三方库"]
-    read2 = build_heuristic_session_read_for_session(s2)
-    assert read2.active_clarification is False
+    heuristic_read = build_heuristic_session_read_for_session(s)
+    assert heuristic_read.active_clarification == detect_active_clarification(s) is True
+
+
+def test_intent_clarity_boost_is_disclosed_in_radar_tooltip_and_summary():
+    """Regression: the active-clarification boost must be transparently shown."""
+    sessions = [_make_session(f"s{i}", "D:/repo/a") for i in range(1, 5)]
+    facets = [_make_facets(f"s{i}") for i in range(1, 5)]
+    for facet in facets:
+        facet.active_clarification = True
+    stats = aggregate(sessions, facets, tool_name="codex")
+    assert stats.intent_clarity_boost > 0.0
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+    intent_axis = next(a for a in view.radar_axes if a.key == "intent_clarity")
+    assert "主动澄清加成" in intent_axis.short_reason
+
+    html = render_personal_report_html(view=view, language="zh", redact=False)
+    assert "主动澄清加成" in html
+
+    payload = build_personal_summary_payload(view)
+    assert payload["scorecard"]["intent_clarity_boost"] > 0.0
+    assert payload["scorecard"]["active_clarification_rate"] == stats.active_clarification_rate
 
 
 def test_active_clarification_scorer_boost():

@@ -24,6 +24,7 @@ radar_axes:
   intent_clarity:
     reason_high: "Goals, boundaries, and acceptance criteria are usually front-loaded."
     reason_low: "The task context still needs to be filled in midway too often."
+    clarification_boost_note: "(includes +{boost} active-clarification boost: {rate}% of sessions reached clear intent by adding constraints across turns)"
   execution_driving:
     reason_high: "You actively organize the collaboration rhythm and tool path."
     reason_low: "The session can still stall in discussion instead of a stable execution chain."

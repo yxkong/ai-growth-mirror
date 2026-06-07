@@ -72,13 +72,13 @@
 
 > 详细设计见 [v0.6.0-DESIGN.md](v0.6.0-DESIGN.md)
 
-**当前落地进度**（截至 2026-06-06）：
-- ✅ 主动澄清信号检测 + `intent_clarity` 加成（heuristic + scorer）
+**当前落地进度**（截至 2026-06-07）：
+- ✅ 主动澄清信号检测 + `intent_clarity` 加成（heuristic + scorer，单源 `_intent_clarity_boost`）
 - ✅ Action Contract 环比评估 + 报告内「上期训练回看」折叠区块
 - ✅ 雷达区协作指数趋势折线 + delta 徽章
-- ✅ CLI `status` 命令（本周样本进度 + 上期契约提示）
-- ⏳ Schema 1.3 全量迁移与 LLM session_read 的 `active_clarification` 字段对齐
-- ⏳ 加成 tooltip 在报告五轴区的透明展示补全
+- ✅ CLI `status` 命令（本周样本进度 + 上期契约提示），含 `test_cli_status.py` 有/无历史两路
+- ✅ Schema 升至 1.3；LLM 与 heuristic 两路共用 `detect_active_clarification`，`active_clarification` 字段对齐
+- ✅ 加成在报告五轴雷达 tooltip 透明展示；`summary.json` 输出 `active_clarification_rate` / `intent_clarity_boost`
 
 * **核心目标**：让"教练建议"可追踪、可评估，杜绝一次性建议的堆砌；修正多轮交互协作的评分悖论。
 * **主要特性**：
@@ -113,6 +113,7 @@
 
 | 日期 | 产品版本 | 缓存 Schema | 变更概要 |
 |------|---------|-------------|---------|
+| 2026-06-07 | v0.6.0（收口） | 1.3 | **v0.6.0 发布收口对齐**：主动澄清加成在雷达 tooltip 透明展示；`summary.json` 补 `active_clarification_rate`/`intent_clarity_boost`；LLM 与 heuristic 共用 `detect_active_clarification`；Schema 1.3；新增 `test_cli_status.py`。落地进度清单全部转 ✅。 |
 | 2026-06-06 | v0.5.0 | 1.2 | **v0.5.0 发布收口**：标记免部署交互式报告为已发布；明确 v0.5→v0.6→v0.7 演进逻辑；补充 v0.6.0 落地进度清单。 |
 | 2026-06-06 | v0.6.0（规划） | 1.3 | **v0.6.0 详细设计落地**：补充 Action Contract 追踪、环比 delta 卡片、主动澄清信号修正（解决多轮交互评分悖论）、CLI status 命令完整设计；新增 [v0.6.0-DESIGN.md](v0.6.0-DESIGN.md)；更新路线图特性描述。 |
 | 2026-06-06 | v0.4.2 | 1.2 | **重构路线图**：解耦产品版本与缓存版本，厘清 v0.4.2/v0.4.0 里程碑；修正 v0.5.0 技术方案为"单文件免部署交互"；细化 v0.6.0/v0.7.0 规划。 |
