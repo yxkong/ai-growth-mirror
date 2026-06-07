@@ -340,7 +340,7 @@ def build_snapshot_compare_page_view(
     left_source: SnapshotSource,
     right_source: SnapshotSource,
     catalogs: ReportLabelCatalogs,
-    current_prompt_coach_payload: dict | None = None,
+    current_training_evidence_payload: dict | None = None,
 ) -> SnapshotComparisonPageView:
     from .report_view import build_prompt_coach_view_from_payload
 
@@ -349,7 +349,7 @@ def build_snapshot_compare_page_view(
     trajectory.trend = None
     trajectory.data = _latest_vs_previous_dict(comparison)
     gt_i18n = catalogs.view_model.get("growth_trajectory", {})
-    prompt_coach = build_prompt_coach_view_from_payload(current_prompt_coach_payload)
+    prompt_coach = build_prompt_coach_view_from_payload(current_training_evidence_payload)
     return SnapshotComparisonPageView(
         title=catalogs.template_labels.get("snapshot_page_title", "Growth comparison"),
         subtitle=gt_i18n.get("page_subtitle", ""),
@@ -780,6 +780,7 @@ def _latest_vs_previous_dict(comparison) -> dict[str, object]:
                 "explanation": item.explanation,
             }
             for item in comparison.contract_outcomes
+            if item.status not in {"no_data", "schema_mismatch"}
         ] if hasattr(comparison, "contract_outcomes") else [],
     }
 

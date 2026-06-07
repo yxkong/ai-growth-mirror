@@ -42,7 +42,7 @@ score_target: 9.9
 首页主链区块（与 `report_view._build_report_sections` 导航顺序一致）：
 
 1. **首屏摘要**（Hero + Usage 卡片，`#section-summary`）
-2. **成长信号总览**（含五轴雷达与「协作能力地图」子区块，`#section-growth-signals`）
+2. **成长信号总览**（含六轴雷达与「协作能力地图」子区块，`#section-growth-signals`）
 3. **阶段评估**（`#section-level-evidence`）
 4. **协作等级说明**（`#section-level-guide`）
 5. **Prompt 成长教练**（`#section-prompt-coach`）
@@ -57,13 +57,13 @@ score_target: 9.9
 
 - **AI 资产足迹**（`#section-agent-asset`，需 hub / asset 配置）
 - **成长轨迹**（`#section-growth-delta`，需当前生成前已存在历史 snapshot；通常第 2 次 generate 起出现）
-  - 顶部先展示 **近 30 天趋势结论**，趋势指标至少覆盖 `mirror_score`、`growth_level`、五轴、Prompt Quality 五维、行动型摩擦五类
+  - 顶部先展示 **近 30 天趋势结论**，趋势指标至少覆盖 `mirror_score`、`growth_level`、六轴、Prompt Quality 五维、行动型摩擦五类
   - 同一天多次 generate 时，页面默认只展示当天最后一次 snapshot；sidecar JSON 必须保留 `window_points` 全量点位和 `daily_points` 展示点位
   - 当 `daily_points < 3` 时只展示已有点位和“数据不足”说明，不强行做长期趋势判断
-  - 当历史 snapshot 使用旧能力轴（`delegation / verification / breadth / authorship / outcome / workflow`）或缺少当前五轴时，趋势与 latest-vs-previous 必须降为低置信，并标记 schema mismatch；禁止把跨评分模型变化的点位包装成强趋势
+  - 当历史 snapshot 使用旧能力轴（`delegation / verification / breadth / authorship / outcome / workflow`）或缺少当前六轴时，趋势与 latest-vs-previous 必须降为低置信，并标记 schema mismatch；禁止把跨评分模型变化的点位包装成强趋势
   - 若存在上一期 snapshot，则同区块下半部分继续展示 **本期 vs 上一期变化诊断**
   - 诊断区顶部必须包含 5 张 summary cards：当前阶段、协作指数变化、最大进步轴、当前短板轴、置信度/样本量说明
-  - 诊断区中部至少包含五轴对比、成长变化瀑布、Prompt Quality 来源说明、摩擦与恢复变化、方法资产沉淀
+  - 诊断区中部至少包含六轴对比、成长变化瀑布、Prompt Quality 来源说明、摩擦与恢复变化、方法资产沉淀
   - 诊断区底部必须有关键证据卡片与下一阶段优先训练建议，所有结论都要能回到 sidecar JSON 的结构化字段
 - **协作风格透镜**（`#section-style-lens`，附录，不在主导航）
 
@@ -124,21 +124,22 @@ score_target: 9.9
 - `growth_level` 作为“当前阶段”
 - `mirror_score` 作为“协作指数”
 
-## 5.2 五轴成长底盘
+## 5.2 六轴成长底盘
 
 底层字段：
 
-- `radar_axes`（五轴分值与 reason）
+- `radar_axes`（六轴分值与 reason）
 - `growth_stage`（`strongest_axis` / `primary_gap` / `next_breakthrough`）
-- 五轴子分字典（聚合内部键：`intent_clarity`、`execution_driving`、`implementation_depth`、`delivery_closure`、`adaptive_recovery`）
+- 六轴子分字典（聚合内部键：`collaboration_framing`、`execution_driving`、`implementation_depth`、`delivery_closure`、`adaptive_recovery`、`agentic_system`）
 
 前台命名：
 
-- `任务表达`
+- `协作框定`
 - `协作驱动`
 - `实现下潜`
 - `交付收口`
 - `恢复推进`
+- `Agentic 系统化`
 
 区块名：
 
@@ -147,8 +148,8 @@ score_target: 9.9
 
 约束：
 
-- 雷达图或等价主图只承载这五轴
-- `mirror_score` / `growth_level` 可以保留，但必须由五轴与置信修正推出
+- 雷达图或等价主图只承载这六轴
+- `mirror_score` / `growth_level` 可以保留，但必须由六轴与置信修正推出
 - 用户必须同时看到 `strongest_axis`、`primary_gap`、`next_breakthrough`
 
 ## 5.3 风格 / 短板 / 阶段
@@ -271,7 +272,7 @@ score_target: 9.9
 
 - Prompt 维度或 deficit 明显偏弱时，输出 `prompt:*` 类型训练任务，但不得用静态模板替代个性化证据
 - `agentic_system_score < 75` 或人工纠偏率偏高时，必须生成 `Action Contract`：说明应新增/强化哪个 rule、skill 或 workflow，以及下次自然语言入口如何自动触发
-- `intent_clarity + missing-context / vague-request` 合并成“需求表达训练”
+- `collaboration_framing + missing-context / vague-request` 合并成“需求表达训练”
 - `delivery_closure + missing-acceptance-criteria` 合并成“验收标准训练”
 - 每个训练任务都必须附带 `evidence_refs`、`action_contract` 与 `linked_prompt_deficit_ids / linked_template_ids / linked_rewrite_card_ids / linked_growth_trend_refs / linked_closure_guidance_ids`
 
@@ -513,7 +514,7 @@ Stage 3 (Rule 排序) →  rerank_diagnosis_result()
 1. 产品命名与页面语义（已完成）
 2. application 接管 personal report 写盘与 coaching 编排（已完成：`application/personal_report_service.py`）
 3. label catalog 由 application 注入，`html_render.py` 不直接读 YAML（已完成）
-4. growth 底盘切换为五轴雷达 + 风格 + 短板 + 趋势（已完成主链）
+4. growth 底盘切换为六轴雷达 + 风格 + 短板 + 趋势（已完成主链）
 5. domain 去除展示文案，application 负责 i18n 映射与用户解释（持续迭代）
 6. 分享页与传播层补齐（已完成主链：`ai-growth-mirror-share.html`）
 7. HTML 渲染收口至 `application/html_render.py`（已完成）
@@ -536,6 +537,7 @@ Stage 3 (Rule 排序) →  rerank_diagnosis_result()
 - 2026-05-25：形成个人成长版详细设计真源。
 - 2026-05-27：阶段/指数字段对齐 `growth_level` / `mirror_score`；五轴底盘字段说明去 `agentic_*` 残留。
 - 2026-05-27：对齐严格分层目标架构；application 编排 personal report，i18n 真源经 `label_catalogs.py` + `infra/i18n/catalog.py` 注入。
+- 2026-06-07：成长底盘对齐 v0.8 **六轴**（`intent_clarity` → `collaboration_framing`，新增 `agentic_system`）；§5.2、趋势/对比描述、deficit 合并键同步到六轴。
 - 2026-05-27：分享卡改为对外可发的结论卡；主报告补完整导航、减少重复块，Prompt 教练优先展示真实样例与改写示例。
 - 2026-05-27：对齐当前代码——HTML 在 `application/html_render.py`；导航顺序与 README 一致；文档去旧产品面表述。
 - 2026-05-29：公开 Wrapped Hero/用量口径/协作节奏文案与配色语义对齐；文档治理备份后更新本节。

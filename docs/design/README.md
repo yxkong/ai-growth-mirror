@@ -14,7 +14,7 @@ updated_at: 2026-06-06
 | 文档 | 状态 (Status) | 主要用途 / 覆盖领域 |
 |------|--------------|-------------------|
 | **[ARCHITECTURE_PRINCIPLES.md](./ARCHITECTURE_PRINCIPLES.md)** | **canonical · 架构真源** | 定义系统分层原则、指标权重逻辑、防颠簸与惰性解析等硬性稳定性规范。 |
-| **[AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md](./AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md)** | **canonical · 详细设计** | 个人版报告的信息架构、文案禁用词边界、各模块数据映射（包含五轴雷达、Prompt教练与协作节奏等）。 |
+| **[AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md](./AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md)** | **canonical · 详细设计** | 个人版报告的信息架构、文案禁用词边界、各模块数据映射（包含六轴雷达、Prompt教练与协作节奏等）。 |
 | **[PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md)** | **canonical · 产品规划** | 产品的演进路线图，明确产品版本与缓存 Schema 版本的映射关系，定义 v0.4.2 到 v1.5.0 的技术与功能走向。 |
 | **[AI_GROWTH_MIRROR_OUTPUT_ROOT_CAUSE_ANALYSIS.md](./AI_GROWTH_MIRROR_OUTPUT_ROOT_CAUSE_ANALYSIS.md)** | **supporting · 根因分析** | 深度阐述为何需要 AI 成长镜这类工具，剖析用户协作习惯量化的必要性及方法论主线（四证法）。 |
 | **[OPEN_SOURCE_GOVERNANCE.md](../config/OPEN_SOURCE_GOVERNANCE.md)** | **supporting · 治理说明** | 规范项目开源范围、本地缓存隐私保护规则以及代码安全敏感信息脱敏标准。 |

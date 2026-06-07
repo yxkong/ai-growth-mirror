@@ -2,7 +2,7 @@ capability_meta:
   collaboration_framing:
     label: "Collaboration Framing"
     explanation: "How effectively you frame the direction, provide environment context, and accelerate goal locking across turns."
-    next_action: "Prioritize clear direction and environment context; aim to lock goals and produce the first line of code within 3 turns."
+    next_action: "Clarify task type, goal boundary, input material, and acceptance method before moving into design, analysis, or implementation output."
   execution_driving:
     label: "Execution Driving"
     explanation: "How actively you steer the collaboration instead of following the current answer."
@@ -49,10 +49,15 @@ radar_axes:
 
 growth_gaps:
   framing_gap:
-    label: "Task framing gap"
+    label: "Collaboration framing gap"
     evidence_summary: "The opening request still misses goal, constraints, or acceptance too often."
     why_it_happens: "Task framing is not yet stable enough, so later background fill-in remains costly."
     suggested_action: "Turn goal, relevant files, constraints, and acceptance criteria into a fixed opening skeleton."
+  agentic_system_gap:
+    label: "Agentic system gap"
+    evidence_summary: "Reusable skill / workflow / MCP assets are not yet leveraged consistently."
+    why_it_happens: "Work still leans on one-off improvisation instead of distilling effective moves into reusable assets."
+    suggested_action: "Capture recurring collaboration patterns as skills / workflows / rules and reuse them on similar tasks."
   workflow_composition_gap:
     label: "Workflow composition gap"
     evidence_summary: "The execution rhythm can still be pulled by the current answer."
@@ -205,7 +210,7 @@ wins:
   cards:
     strongest_dim:
       title: "{label} is already becoming a default habit"
-      evidence: "This dimension scores {score:.1f}, currently your strongest of the five core collaboration axes (systemization layer is tracked separately)."
+      evidence: "This dimension scores {score:.1f}, currently your strongest of the six collaboration axes."
     delivery_closure:
       title: "Verification is entering your default loop"
       evidence: "Your current verification behavior rate is about {pct}%."
@@ -343,23 +348,23 @@ growth_trajectory:
       axis_schema_mismatch: "Snapshots cross a scoring-axis schema change, so the trend should not be treated as strong evidence."
       legacy_axis_schema: "Some historical snapshots still use the legacy capability axes."
       missing_usage: "Usage coverage is incomplete."
-      prompt_proxy: "Prompt Quality is mostly proxy-filled or under-sampled."
-      prompt_mixed: "Prompt Quality mixes LLM and proxy signals."
+      prompt_proxy: "Collaboration input quality is mostly proxy-filled or under-sampled."
+      prompt_mixed: "Collaboration input quality mixes LLM and proxy signals."
   axis:
     up: "{label} improved by {delta}, which means this capability is becoming more stable. The next step is to transfer it into more task types."
     down: "{label} dropped by {delta}, which means it is not a default habit yet. Rebuild it by turning '{next_action}' into a stable move."
     flat: "{label} is mostly flat. You are holding ground, but not yet creating a new jump on this axis."
   prompt_quality:
-    headline: "Prompt Quality shift"
-    improved: "Prompt Quality is improving ({delta}), which means input structure and correction sharpness are getting better."
-    regressed: "Prompt Quality regressed ({delta}), which means the opening scaffold or correction boundary is still unstable."
-    stable: "Prompt Quality is broadly flat, so no new input leap is visible yet."
-    insufficient: "Prompt Quality is under-sampled. Keep the source note, but avoid strong claims."
+    headline: "Collaboration input quality shift"
+    improved: "Collaboration input quality is improving ({delta}), which means input structure and correction sharpness are getting better."
+    regressed: "Collaboration input quality regressed ({delta}), which means the opening scaffold or correction boundary is still unstable."
+    stable: "Collaboration input quality is broadly flat, so no new input leap is visible yet."
+    insufficient: "Collaboration input quality is under-sampled. Keep the source note, but avoid strong claims."
     source_note: "Previous LLM {prev_llm} / heuristic {prev_heuristic} / light {prev_light}; current LLM {curr_llm} / heuristic {curr_heuristic} / light {curr_light}"
     source_note_compare: "{prev_label}: {previous} {curr_label}: {current}"
-    confidence_high: "Prompt Quality is mostly backed by LLM semantic evaluation."
-    confidence_medium: "Prompt Quality mixes LLM and heuristic proxy signals, so keep the boundary explicit."
-    confidence_low: "Prompt Quality is low-sample or mostly heuristic, so treat it as a training hint only."
+    confidence_high: "Collaboration input quality is mostly backed by LLM semantic evaluation."
+    confidence_medium: "Collaboration input quality mixes LLM and heuristic proxy signals, so keep the boundary explicit."
+    confidence_low: "Collaboration input quality is low-sample or mostly heuristic, so treat it as a training hint only."
   friction:
     more: "Total friction is rising ({delta}), which means blockers are not being absorbed effectively yet."
     less: "Total friction is falling ({delta}), which means you are removing avoidable rework and blockers."
@@ -408,7 +413,7 @@ growth_trajectory:
       weakest_axis: "It is still the weakest current axis."
       regressed_axis: "It also regressed the most compared with the previous snapshot."
       friction_hotspot: "Related blockers are still recurring."
-      prompt_gap: "Prompt Quality is not supporting this capability well enough."
+      prompt_gap: "Collaboration input quality is not supporting this capability well enough."
       method_gap: "Method accumulation has not kept up with this capability."
   trend:
     score_label: "Collaboration index"
@@ -450,7 +455,7 @@ prompt_coach:
   label_friction_synthesis: "Friction synthesis"
   label_generated_by: "Generated by"
   label_universal_template: "Universal request template"
-  label_pq_source_detail: "Prompt Quality source detail"
+  label_pq_source_detail: "Collaboration input quality source detail"
   strength_card:
     label_prefix: "Keep this habit: {label}"
     evidence: "This is currently your most stable prompt habit, so it is already becoming reusable."
@@ -607,7 +612,7 @@ prompt_coach:
     llm_only: "Covered {total} sessions this period, all with LLM semantic evaluation."
     heuristic_only: "Covered {total} sessions this period, all with proxy backfill, including {light} lightweight proxy reads."
   source_truth:
-    prefix: "This period, {total} sessions were included in Prompt evaluation:"
+    prefix: "This period, {total} sessions were included in collaboration input evaluation:"
     llm_evaluated: "{n} completed LLM semantic judgment;"
     insufficient: "{n} used lightweight proxy due to short sessions;"
     llm_failed: "{n} fell back to proxy after LLM evaluation failed;"
@@ -685,7 +690,7 @@ prompt_coach:
         light: "too early to freeze"
     task_type_labels:
       code_change: "Code change"
-      config_or_prompt_change: "Prompt / rules / config change"
+      config_or_prompt_change: "Collaboration input / rules / config change"
       design_or_requirements: "Design / requirements task"
       writing_or_content: "Writing / content task"
       exploration_or_analysis: "Exploration / analysis task"
@@ -776,17 +781,6 @@ prompt_coach:
         problem_map:
           context_provision: "The indexed entry already provides workflow background; what still needs to be added is the task-specific variables and input materials."
           request_specificity: "Some task variables are already present. The next move is to define action order, done criteria, and closure more tightly."
-    rewrite_fallbacks:
-      context_provision:
-        scene: "requirements_design"
-        problem: "The opening context is too thin, so the AI has to clarify first."
-        better_prompt: "Background: ...\nCurrent problem: ...\nTarget outcome: ...\nConstraints: ...\nReferences: ...\nAcceptance: ...\nOutput format: ..."
-        why: "Once context and acceptance are front-loaded, the AI can go directly into execution."
-      request_specificity:
-        scene: "code_review"
-        problem: "The ask is too broad, so the AI cannot tell whether to diagnose, modify, or verify first."
-        better_prompt: "Please diagnose first, then give the minimal change, and finally state whether it passes the acceptance criteria."
-        why: "A clear action order makes delivery more stable."
     universal_template:
       title: "Reusable universal request template"
       common_gap: "The most common gap is that background, acceptance, and output format are not stated together."
@@ -921,12 +915,13 @@ agent_asset:
   summary: "Found {skill_count} skills, {prompt_count} prompts, {rule_count} rules."
 
 methodology:
-  title: "AI Growth Mirror evaluates only four things"
+  title: "AI Growth Mirror judges around four collaboration pillars (expanded into a six-axis radar)"
   lines:
     - "Context Frame: whether boundaries (goals, constraints, and acceptance criteria) are established during alignment, either through initial prompt or interactive clarification."
     - "Flow Orchestration: whether AI can keep moving instead of needing manual rescue every step."
     - "Proof Loop: whether you verify, test, and review instead of stopping at plausibility."
     - "Method Asset: whether effective patterns are preserved as templates, rules, scripts, or reusable flows."
+    - "These four pillars expand into the six scored axes: Context Frame -> collaboration framing; Flow Orchestration -> execution driving + implementation depth; Proof Loop -> delivery closure + adaptive recovery; Method Asset -> agentic system."
 
 pattern_labels:
   deep_delegator: "Deep Delegator"
@@ -1054,7 +1049,7 @@ level_axis_metrics:
         hint: "Usage starts becoming repeatable"
     L4:
       collaboration_framing:
-        target: "Frame environment context and lock target within 3 turns even on complex tasks"
+        target: "Frame environment context, target boundary, and acceptance method clearly even on complex tasks"
         hint: "High efficiency in multi-turn alignment"
       execution_driving:
         target: "You deliberately leverage plan, subagent, MCP, or similar high-leverage paths"

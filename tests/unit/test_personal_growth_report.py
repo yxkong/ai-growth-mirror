@@ -165,11 +165,11 @@ def test_build_personal_report_view_contains_core_sections():
     assert "内存" in view.usage.memory_note
     assert view.work_focus.goal_mix
     assert view.work_focus.goal_mix[0].detail.endswith("%")
-    assert view.work_focus.projects[0] == "demo-platform"
+    assert view.work_focus.recent_work[0] == "修复接口错误"
     assert view.work_focus.tools[0].label == "终端执行"
     assert all(item.label != "shell_command" for item in view.work_focus.tools)
     assert any(item.label == "页面查看" for item in view.work_focus.tools)
-    assert all("\\" not in item for item in view.work_focus.projects)
+    assert all("\\" not in item for item in view.work_focus.recent_work)
     assert len(view.wins.wins) >= 2
     assert len(view.growth_plan.priorities) >= 1
     assert view.style_lens.archetype_name
@@ -300,15 +300,14 @@ def test_personal_summary_payload_exports_closed_loop_fields():
     payload = build_personal_summary_payload(view)
 
     assert "growth_trajectory" in payload
-    assert "prompt_coach" in payload
+    assert "prompt_coach" not in payload
     assert "growth_plan" in payload
-    assert payload["prompt_coach"]["source_summary"]["llm_session_count"] >= 0
-    assert isinstance(payload["prompt_coach"]["rewrite_cards"], list)
     assert isinstance(payload["growth_plan"]["priorities"], list)
-    assert "seven_day_training_plan" not in payload["prompt_coach"]
-    assert "prompt_style" in payload["prompt_coach"]
-    assert "closure_guidance" in payload["prompt_coach"]
-    assert "recommended_training_inputs" in payload["prompt_coach"]
+    if "training_evidence" in payload:
+        assert "rewrite_cards" not in payload["training_evidence"]
+        assert "prompt_style" not in payload["training_evidence"]
+        assert "preflight_checklist" not in payload["training_evidence"]
+        assert "seven_day_training_plan" not in payload["training_evidence"]
     assert "window_points" in payload["growth_trajectory"]
     assert "daily_points" in payload["growth_trajectory"]
     assert "action_contract" in payload["growth_plan"]["priorities"][0]
@@ -673,7 +672,7 @@ def test_wins_evidence_does_not_say_five_core_growth_axes_only():
         .get("evidence", "")
     )
     assert "5 个核心成长轴" not in evidence_template, (
-        "wins evidence should no longer call the 5 axes the only growth axes — "
+        "wins evidence should no longer call the six axes the only growth axes — "
         "agentic_system is a system layer."
     )
 
@@ -710,7 +709,9 @@ def test_prompt_coach_classifies_indexed_prompt_without_treating_it_as_missing_c
     assert "索引式 Prompt" in view.prompt_coach.prompt_style.label
     assert any("技能路由" in item or "命令入口" in item for item in view.prompt_coach.prompt_style.evidence)
     payload = build_personal_summary_payload(view)
-    assert "seven_day_training_plan" not in payload["prompt_coach"]
+    assert "prompt_coach" not in payload
+    if "training_evidence" in payload:
+        assert "seven_day_training_plan" not in payload["training_evidence"]
 
 
 def test_prompt_coach_classifies_mixed_prompt():
@@ -1269,7 +1270,7 @@ def test_render_personal_report_html_escapes_untrusted_content():
     assert "&lt;script&gt;" in html
 
 
-def test_render_personal_report_html_compacts_prompt_coach_surface():
+def test_render_personal_report_html_hides_prompt_coach_top_level_section():
     sessions = [
         _make_session("s1", "D:/repo/a", first_prompt="requirements_design / AGENTS.md / delivery workflow"),
         _make_session("s2", "D:/repo/a", first_prompt="按照 requirements_design，基于成长轨迹模块做需求设计，重点考虑 Prompt 教练和训练冲刺联动。"),
@@ -1287,14 +1288,18 @@ def test_render_personal_report_html_compacts_prompt_coach_surface():
         catalogs=load_report_label_catalogs("zh"),
     )
     html = render_personal_report_html(view=view, language="zh", redact=False)
+    assert "section-prompt-coach" not in html
+    assert "Prompt 成长教练" not in html
     assert "场景化模板" not in html
+    assert "原始提法" not in html
+    assert "更好提示词" not in html
     assert "section_score_waterfall" not in html
-    assert "LLM" in html or "heuristic" in html
     assert "下次可以这样问" not in html
+    assert "协作证据补充" in html
     assert "AI Growth Mirror logo" in html
 
 
-def test_report_sections_keep_five_primary_chain():
+def test_report_sections_keep_primary_chain_without_prompt_coach():
     sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/a")]
     facets = [_make_facets("s1"), _make_facets("s2")]
     stats = aggregate(sessions, facets, tool_name="codex")
@@ -1310,7 +1315,6 @@ def test_report_sections_keep_five_primary_chain():
     assert visible_ids == [
         "section-growth-signals",
         "section-level-evidence",
-        "section-prompt-coach",
         "section-growth-plan",
     ]
     assert any(item.id == "section-summary" and not item.nav_visible for item in view.sections)
@@ -1354,7 +1358,7 @@ def test_generate_personal_report_redact_hides_project_names(tmp_path: Path):
     assert sidecar["session_examples"][0]["project"] == ""
     assert sidecar["session_examples"][0]["first_prompt"] == ""
     assert sidecar["session_read_summaries"][0]["session_takeaway"] == ""
-    assert summary["work_focus"]["projects"] == []
+    assert summary["work_focus"]["recent_work"] == []
     assert "脱敏" in html or "label_redact_note" in html
 
 

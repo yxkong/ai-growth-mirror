@@ -13,6 +13,16 @@ from .planning import select_growth_priority_keys
 
 
 @dataclass
+class AxisDiagnosis:
+    axis_key: str = ""
+    label: str = ""
+    explanation: str = ""
+    confidence: int = 0
+    evidence_refs: list[str] = field(default_factory=list)
+    next_action: str = ""
+
+
+@dataclass
 class CoachingPriority:
     key: str
     title: str
@@ -22,6 +32,8 @@ class CoachingPriority:
     week_1_actions: list[str] = field(default_factory=list)
     week_2_actions: list[str] = field(default_factory=list)
     practice_prompt: str = ""
+    action_contract: str = ""
+    evidence_refs: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -51,9 +63,10 @@ class CoachingContent:
 
     growth_headline: str = ""
     priorities: list[CoachingPriority] = field(default_factory=list)
-    prompt_coach_headline: str = ""
-    prompt_coach_evidence: str = ""
-    prompt_coach_takeaways: list[CoachingTakeaway] = field(default_factory=list)
+    axis_diagnosis: list[AxisDiagnosis] = field(default_factory=list)
+    framing_evidence_headline: str = ""
+    framing_evidence_summary: str = ""
+    framing_evidence_takeaways: list[CoachingTakeaway] = field(default_factory=list)
     friction_synthesis: list[FrictionSynthesisItem] = field(default_factory=list)
     share_lines: list[str] = field(default_factory=list)
     source: str = "llm"
@@ -73,8 +86,17 @@ def priority_keys_for_coaching(
 def parse_coaching_payload(raw: dict) -> CoachingContent:
     """Convert structured prompt output into the stable coaching contract."""
 
-    growth_plan = raw.get("growth_plan", {})
-    prompt_coach = raw.get("prompt_coach", {})
+    training_plan = raw.get("training_plan", {})
+    if not isinstance(training_plan, dict):
+        training_plan = {}
+
+    framing_evidence = raw.get("framing_evidence", {})
+    if not isinstance(framing_evidence, dict):
+        framing_evidence = {}
+
+    raw_axis_diagnosis = raw.get("axis_diagnosis", [])
+    if not isinstance(raw_axis_diagnosis, list):
+        raw_axis_diagnosis = []
 
     priorities = [
         CoachingPriority(
@@ -83,11 +105,35 @@ def parse_coaching_payload(raw: dict) -> CoachingContent:
             why=item.get("why", ""),
             success_signal=item.get("success_signal", ""),
             stop_doing=item.get("stop_doing", ""),
-            week_1_actions=item.get("week_1_actions", []),
-            week_2_actions=item.get("week_2_actions", []),
+            week_1_actions=[
+                action for action in item.get("week_1_actions", []) if isinstance(action, str)
+            ],
+            week_2_actions=[
+                action for action in item.get("week_2_actions", []) if isinstance(action, str)
+            ],
             practice_prompt=item.get("practice_prompt", ""),
+            action_contract=item.get("action_contract", ""),
+            evidence_refs=[
+                ref for ref in item.get("evidence_refs", []) if isinstance(ref, str) and ref.strip()
+            ],
         )
-        for item in growth_plan.get("priorities", [])[:3]
+        for item in training_plan.get("priorities", [])[:3]
+        if isinstance(item, dict)
+    ]
+
+    axis_diagnosis = [
+        AxisDiagnosis(
+            axis_key=item.get("axis_key", ""),
+            label=item.get("label", ""),
+            explanation=item.get("explanation", ""),
+            confidence=int(item.get("confidence", 0) or 0),
+            evidence_refs=[
+                ref for ref in item.get("evidence_refs", []) if isinstance(ref, str) and ref.strip()
+            ],
+            next_action=item.get("next_action", ""),
+        )
+        for item in raw_axis_diagnosis
+        if isinstance(item, dict)
     ]
 
     takeaways = [
@@ -99,7 +145,8 @@ def parse_coaching_payload(raw: dict) -> CoachingContent:
             action=item.get("action", ""),
             better_prompt=item.get("better_prompt", ""),
         )
-        for item in prompt_coach.get("takeaways", [])[:3]
+        for item in framing_evidence.get("takeaways", [])[:3]
+        if isinstance(item, dict)
     ]
 
     friction_synthesis = [
@@ -116,7 +163,8 @@ def parse_coaching_payload(raw: dict) -> CoachingContent:
             ],
             generated_by="llm",
         )
-        for index, item in enumerate(prompt_coach.get("friction_synthesis", [])[:2])
+        for index, item in enumerate(framing_evidence.get("friction_synthesis", [])[:2])
+        if isinstance(item, dict)
     ]
 
     # Stage-2 grounded diagnosis
@@ -129,13 +177,16 @@ def parse_coaching_payload(raw: dict) -> CoachingContent:
         diagnosis = rerank_diagnosis_result(parsed, DiagnosisCandidatePacket())
 
     return CoachingContent(
-        growth_headline=growth_plan.get("headline", ""),
+        growth_headline=training_plan.get("headline", ""),
         priorities=priorities,
-        prompt_coach_headline=prompt_coach.get("headline", ""),
-        prompt_coach_evidence=prompt_coach.get("evidence_summary", ""),
-        prompt_coach_takeaways=takeaways,
+        axis_diagnosis=axis_diagnosis,
+        framing_evidence_headline=framing_evidence.get("headline", ""),
+        framing_evidence_summary=framing_evidence.get("evidence_summary", ""),
+        framing_evidence_takeaways=takeaways,
         friction_synthesis=friction_synthesis,
-        share_lines=raw.get("share_lines", [])[:3],
+        share_lines=[
+            line for line in raw.get("share_lines", [])[:3] if isinstance(line, str)
+        ],
         source="llm",
         diagnosis=diagnosis,
     )

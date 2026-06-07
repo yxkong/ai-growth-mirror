@@ -294,6 +294,7 @@ class CodeBuddyAdapter(BaseSessionAdapter):
         has_test_commands = False
         current_chain = 0
         pending_write = False
+        turns_until_first_file_write: Optional[int] = None
         shell_commands: list[str] = []
         models_used: list[str] = []
         user_message_timestamps: list[str] = []
@@ -435,6 +436,8 @@ class CodeBuddyAdapter(BaseSessionAdapter):
                 # ── write / exec classification ───────────────────────────
                 if normalized in WRITE_TOOL_NAMES or normalize_tool_name(normalized) in ("write", "edit"):
                     pending_write = True
+                    if turns_until_first_file_write is None:
+                        turns_until_first_file_write = max(1, user_message_count)
 
                 if normalized in EXEC_TOOL_NAMES or normalize_tool_name(normalized) == "bash":
                     command = _command_from_tool_input(tool_input).lower()
@@ -489,6 +492,7 @@ class CodeBuddyAdapter(BaseSessionAdapter):
             entrypoint="ide",
             user_message_timestamps=user_message_timestamps,
             message_hours=message_hours,
+            turns_until_first_file_write=turns_until_first_file_write,
         )
         return session
 

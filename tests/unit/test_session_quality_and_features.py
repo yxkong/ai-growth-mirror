@@ -211,7 +211,7 @@ def test_radar_axes_no_data_for_empty_profile():
 
     empty = GrowthProfile(tool_name="all")
     axes = _build_radar_axes(empty)
-    # All five axes should report no data so the UI shows "—" not "0.0".
+    # All six axes should report no data so the UI shows "—" not "0.0".
     assert all(not axis.has_data for axis in axes)
 
 

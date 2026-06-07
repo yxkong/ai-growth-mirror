@@ -76,7 +76,7 @@ def test_status_with_history_shows_progress_and_contract(tmp_path: Path, capsys,
         "20260601-100000",
         [
             {
-                "title": "提升任务表达",
+                "title": "提升协作框定",
                 "success_signal": "首轮即给出验收条件",
                 "week_1_actions": ["每次任务首轮补齐验收标准"],
             }
@@ -86,7 +86,7 @@ def test_status_with_history_shows_progress_and_contract(tmp_path: Path, capsys,
     print_status_view(_make_config(cache_dir))
     out = capsys.readouterr().out
     assert "上期行动合约提醒" in out
-    assert "提升任务表达" in out
+    assert "提升协作框定" in out
     assert "1/8" in out
 
 

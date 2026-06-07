@@ -81,13 +81,38 @@ def cli(ctx: click.Context) -> None:
         click.echo(ctx.get_help())
 
 
+def _parse_tool_choices(ctx, param, value):
+    """Accept both comma-separated (-t a,b) and repeated (-t a -t b) tool flags."""
+    resolved: list[str] = []
+    for raw in value or ():
+        for part in str(raw).split(","):
+            name = part.strip()
+            if not name:
+                continue
+            if name not in INGEST_TOOL_CHOICES:
+                raise click.BadParameter(
+                    f"{name!r} is not one of "
+                    + ", ".join(repr(c) for c in INGEST_TOOL_CHOICES)
+                    + ".",
+                    ctx=ctx,
+                    param=param,
+                )
+            if name not in resolved:
+                resolved.append(name)
+    return tuple(resolved) or ("all",)
+
+
 @cli.command("generate")
 @click.option(
     "--tools", "-t",
     multiple=True,
-    type=click.Choice(INGEST_TOOL_CHOICES),
+    callback=_parse_tool_choices,
     default=["all"],
-    help="Which tools to include. Repeat for multiple, e.g. -t claude -t codex",
+    help=(
+        "Which tools to include. Comma-separated or repeated, e.g. "
+        "-t claude,codex or -t claude -t codex. Choices: "
+        + ", ".join(INGEST_TOOL_CHOICES)
+    ),
 )
 @click.option("--since", type=click.DateTime(formats=["%Y-%m-%d"]), default=None,
               help="Start date filter (YYYY-MM-DD)")

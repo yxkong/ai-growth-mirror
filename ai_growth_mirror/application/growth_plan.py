@@ -140,7 +140,7 @@ def build_growth_plan(
     _link_friction_synthesis_ids(priorities, prompt_coach)
 
     headline = i18n.get("headline", "")
-    next_focus = priorities[0].title if priorities else i18n.get("next_focus_fallback", "")
+    next_focus = priorities[0].title if priorities else ""
     return GrowthPlanView(
         headline=headline,
         next_focus=next_focus,
@@ -523,5 +523,5 @@ def _priority_title(title: str, key: str, linked_deficits) -> str:
     if linked_deficits and linked_deficits[0].category == "missing-acceptance-criteria":
         return "把“我要你优化”改成“什么结果算通过”"
     if linked_deficits and linked_deficits[0].category in {"missing-context", "vague-request"}:
-        return "需求表达训练"
+        return "协作框定训练"
     return title or key

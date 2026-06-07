@@ -104,8 +104,8 @@ def compare_snapshots(
     right_source = load_snapshot_source(archive_root / SNAPSHOTS_DIRNAME / right_snapshot_id)
     right_snapshot_dir = archive_root / SNAPSHOTS_DIRNAME / right_snapshot_id
     right_normalized = _read_json(right_snapshot_dir / "normalized-summary.json", default={})
-    current_prompt_coach = (
-        right_normalized.get("prompt_coach", {})
+    current_training_evidence = (
+        right_normalized.get("training_evidence", {})
         if isinstance(right_normalized, dict)
         else {}
     )
@@ -114,7 +114,7 @@ def compare_snapshots(
         left_source=left_source,
         right_source=right_source,
         catalogs=catalogs,
-        current_prompt_coach_payload=current_prompt_coach,
+        current_training_evidence_payload=current_training_evidence,
     )
     comparisons_root = archive_root / COMPARISONS_DIRNAME
     comparisons_root.mkdir(parents=True, exist_ok=True)
@@ -158,8 +158,8 @@ def build_snapshot_comparison(
         normalized_summary=right_normalized_summary or {},
     )
     catalogs = load_report_label_catalogs(language)
-    current_prompt_coach = (
-        right_normalized_summary.get("prompt_coach", {})
+    current_training_evidence = (
+        right_normalized_summary.get("training_evidence", {})
         if isinstance(right_normalized_summary, dict)
         else {}
     )
@@ -167,7 +167,7 @@ def build_snapshot_comparison(
         left_source=left_source,
         right_source=right_source,
         catalogs=catalogs,
-        current_prompt_coach_payload=current_prompt_coach,
+        current_training_evidence_payload=current_training_evidence,
     )
     return page.data
 
@@ -292,11 +292,11 @@ def _snapshot_source_from_payloads(
     stats = report.get("stats", {}) if isinstance(report, dict) else {}
     coverage = report.get("coverage", {}) if isinstance(report, dict) else {}
     agent_asset = stats.get("agent_asset") or {}
-    prompt_coach = normalized_summary.get("prompt_coach", {}) if isinstance(normalized_summary, dict) else {}
+    training_evidence = normalized_summary.get("training_evidence", {}) if isinstance(normalized_summary, dict) else {}
     profile_prompt_coach = profile.get("prompt_coach", {}) if isinstance(profile, dict) else {}
     prompt_quality_dimensions = _prompt_quality_dimensions_from_payloads(
         stats=stats,
-        prompt_coach=prompt_coach,
+        prompt_coach=training_evidence,
         profile_prompt_coach=profile_prompt_coach,
     )
     actionable_friction_counts = _build_actionable_friction_counts(
@@ -364,7 +364,7 @@ def _snapshot_source_from_payloads(
             report=report,
             normalized_summary=normalized_summary,
             summary=summary,
-            prompt_coach=prompt_coach,
+            training_evidence=training_evidence,
         ),
         sample_count=int(coverage.get("session_read_count", coverage.get("session_count", stats.get("session_count", 0))) or 0),
         human_intervention_session_rate=_as_float(stats.get("human_intervention_session_rate")),
@@ -379,7 +379,7 @@ def _build_archive_evidence(
     report: dict[str, Any],
     normalized_summary: dict[str, Any],
     summary: dict[str, Any],
-    prompt_coach: dict[str, Any],
+    training_evidence: dict[str, Any],
 ) -> dict[str, list[str]]:
     rows: dict[str, list[str]] = {
         "overall": [str(summary.get("headline", "")).strip()],
@@ -402,18 +402,18 @@ def _build_archive_evidence(
             description = str(signal.get("description", "")).strip()
             if description:
                 _push(rows, "overall", description)
-    evidence_summary = str(prompt_coach.get("evidence_summary", "")).strip()
+    evidence_summary = str(training_evidence.get("evidence_summary", "")).strip()
     if evidence_summary:
         _push(rows, "prompt_quality", evidence_summary)
-    for takeaway in prompt_coach.get("takeaways", [])[:3]:
+    for takeaway in training_evidence.get("takeaways", [])[:3]:
         evidence = str(takeaway.get("evidence", "")).strip()
         if evidence:
             _push(rows, "prompt_quality", evidence)
-    for deficit in prompt_coach.get("top_deficits", [])[:3]:
+    for deficit in training_evidence.get("top_deficits", [])[:3]:
         description = str(deficit.get("description", "")).strip()
         if description:
             _push(rows, "prompt_quality", description)
-    for card in prompt_coach.get("rewrite_cards", [])[:3]:
+    for card in training_evidence.get("rewrite_cards", [])[:3]:
         why = str(card.get("why", "")).strip()
         if why:
             _push(rows, "prompt_quality", why)

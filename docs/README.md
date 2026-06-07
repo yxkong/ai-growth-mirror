@@ -7,7 +7,7 @@ updated_at: 2026-06-06
 
 # AI Growth Mirror 文档入口
 
-> 本目录作为 AI 成长镜（AI Growth Mirror）的设计、规范与配置文档库。通过结构化事实与五轴模型，帮助用户量化和提升与 AI 的协作水平。
+> 本目录作为 AI 成长镜（AI Growth Mirror）的设计、规范与配置文档库。通过结构化事实与六轴 Agentic 成熟度模型，帮助用户量化和提升与 AI 的协作水平。
 
 ## 核心真源索引
 

@@ -6,16 +6,15 @@
 #   - heuristic/offline mode: show title + practice_prompt; why/actions left empty
 
 headline: ""
-next_focus_fallback: "Consolidate existing AI collaboration habits"
 
 priorities:
   collaboration_framing:
     title: "Collaboration Framing"
     why: ""
-    success_signal: "State direction and core context clearly to guide the AI to lock goals and produce code within 3 turns."
-    stop_doing: "Giving overly broad direction that leaves the AI wandering or failing to lock onto actionable tasks in early turns."
+    success_signal: "Whether the task is design, analysis, or implementation, the goal, boundary, input material, and acceptance method are aligned early."
+    stop_doing: "Giving overly broad direction that leaves the AI wandering or failing to lock onto a useful deliverable early."
     week_1_actions: []
-    practice_prompt: "Before coding, check whether the direction and context in this request are clear. If you have doubts, ask questions to help us lock goals and start producing code within 3 turns."
+    practice_prompt: "First classify whether this task is design, analysis, or implementation, then check whether the goal, boundary, input material, and acceptance method are clear. If key information is missing, list the gaps and ask before producing output."
 
   execution_driving:
     title: "Execution driving"

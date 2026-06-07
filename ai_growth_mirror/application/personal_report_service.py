@@ -130,7 +130,8 @@ def generate_personal_report(
     )
     summary_payload = build_personal_summary_payload(view)
     core_payload["growth_trajectory"] = summary_payload.get("growth_trajectory", {"available": False})
-    core_payload["prompt_coach"] = summary_payload.get("prompt_coach", {})
+    if "training_evidence" in summary_payload:
+        core_payload["training_evidence"] = summary_payload["training_evidence"]
     core_payload["growth_plan"] = summary_payload.get("growth_plan", {})
     if write_sidecar:
         sidecar_path = output_path.with_suffix(".json")

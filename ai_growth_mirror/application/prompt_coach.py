@@ -384,13 +384,13 @@ def _build_rewrite_cards(
         samples.extend(
             PromptLensTakeaway(
                 type="improve",
-                category="request_specificity",
+                category=getattr(item, "axis_key", "") or "collaboration_framing",
                 label=item.label,
                 original=item.evidence,
                 better_prompt=item.better_prompt,
                 why=item.message,
             )
-            for item in getattr(coaching, "prompt_coach_takeaways", [])
+            for item in getattr(coaching, "framing_evidence_takeaways", [])
             if getattr(item, "better_prompt", "")
         )
     for index, item in enumerate(samples, start=1):

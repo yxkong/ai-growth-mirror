@@ -37,8 +37,8 @@
 | **v0.4.2** | 1.2 | 缺失型指标归一化、防颠簸缓存与多端隔离 | ✅ 已发布 |
 | **v0.5.0** | 1.2 | 免部署单文件交互式报告 (Scroll Spy / Deficit 联动) | ✅ 已发布 |
 | **v0.6.0** | 1.3 | 训练回看与环比增量闭环 (Practice Feedback Loop) | ✅ 已发布 |
-| **v0.7.0** | 1.4 | **Agentic 操作成熟度体系重构**（六轴 + 三层模型 + environmental-recovery） | 📅 规划中 |
-| **v0.8.0** | 1.4 | `collaboration_framing` 重定义 + `goal_locking_speed` 新信号 | 📅 规划中 |
+| **v0.7.0** | 1.4 | **Agentic 操作成熟度体系重构**（六轴 + 三层模型 + environmental-recovery） | ✅ 已发布 |
+| **v0.8.0** | 1.4 | `collaboration_framing` 重定义 + `goal_locking_speed` 新信号 | ✅ 已发布 |
 | **v0.9.0** | 1.4 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
 | **v1.0.0+** | 2.0 | 插件市场与开放平台 API | 📅 长期规划 |
 
@@ -70,9 +70,9 @@
 | 版本 | 报告新增/变化内容 | 用户能看到什么 | 闭环依据 |
 |------|-----------------|--------------|---------|
 | **v0.5** ✅ | 五轴雷达交互 + Scroll Spy + Deficit 联动跳转 | 点击短板即跳至改写建议卡片；雷达 hover 显示子维度事实 | 报告交互可用性 |
-| **v0.6** 🏃 | 训练回看折叠区块 + 环比 delta 卡片 + CLI status | 上期建议是否落地（improved/partial/unchanged）；六轴分趋势折线 | 教练建议可追踪 |
-| **v0.7** 📅 | **六边形雷达**（加 agentic_system 轴）+ environmental-recovery 修复 | 第六轴「Agentic 系统化」独立展示；恢复推进不再被误判为用户失误 | Agentic 评估完整性 |
-| **v0.8** 📅 | `collaboration_framing` 重命名 + goal_locking_speed 信号 | 雷达轴标签从「任务表达」改为「协作框定」；tooltip 展示目标锁定速度 | 多轮协作模式识别 |
+| **v0.6** ✅ | 训练回看折叠区块 + 环比 delta 卡片 + CLI status | 上期建议是否落地（improved/partial/unchanged）；六轴分趋势折线 | 教练建议可追踪 |
+| **v0.7** ✅ | **六边形雷达**（加 agentic_system 轴）+ environmental-recovery 修复 | 第六轴「Agentic 系统化」独立展示；恢复推进不再被误判为用户失误 | Agentic 评估完整性 |
+| **v0.8** ✅ | `collaboration_framing` 重命名 + goal_locking_speed 信号 | 雷达轴标签从「任务表达」改为「协作框定」；tooltip 展示目标锁定速度 | 多轮协作模式识别 |
 | **v0.9** 📅 | 跨机器合并视图 | 多台电脑的会话合并进同一报告；不同设备的能力分布对比 | 多端工作者需求 |
 | **v1.0** 📅 | 社区基准对标 + 插件扩展轴 | "您的 Agentic 系统化能力处于全球前 30%"；第三方自定义轴 | 平台化开放 |
 
@@ -85,7 +85,7 @@
   - **雷达图悬停交互**：五轴雷达图 Hover 显示各轴评分因子与子维度事实。
   - **原生暗黑模式 (Dark Mode)**：支持系统级暗色主题适配及手动切换。
 
-### 4.2 v0.6.0 — 训练环比增量闭环 (Practice Feedback Loop) 🏃
+### 4.2 v0.6.0 — 训练环比增量闭环 (Practice Feedback Loop) ✅
 
 > 详细设计见 [v0.6.0-DESIGN.md](v0.6.0-DESIGN.md)
 
@@ -105,7 +105,7 @@
   - **CLI `status` 命令**：`ai-growth-mirror status` 即时显示样本收集进度（< 100ms，不触发完整重算）+ 本周来自上期 Action Contract 的练习提示。
   - **报告内训练回看区块**：`#section-growth-plan` 下方新增可折叠"上期训练回看"，展示 contract 执行效果列表。
 
-### 4.3 v0.7.0 — Agentic 操作成熟度体系重构 📅
+### 4.3 v0.7.0 — Agentic 操作成熟度体系重构 ✅
 
 > 详细设计见 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)
 
@@ -125,12 +125,12 @@
 - **environmental-recovery 修复**：「继续/重试/恢复推进」类消息归入 `environmental`，不再误生成 `off-track`
 - **六边形雷达图**：SVG 从五边形升级为六边形
 
-### 4.4 v0.8.0 — `collaboration_framing` 重定义 📅
+### 4.4 v0.8.0 — `collaboration_framing` 重定义 ✅
 
 * **核心目标**：`intent_clarity`（任务表达）重定义为 `collaboration_framing`（协作框定能力），内涵从「首轮完备度」扩展为「多轮协作启动质量」。
 * **主要变更**：
   - `active_clarification_rate` 从补丁加成变为 `collaboration_framing` 最大权重子项（0.34）
-  - 新增 `goal_locking_speed` 信号：N 轮内让 AI 开始产出代码的速度
+  - 新增 `goal_locking_speed` 信号：前期对齐目标、边界与可交付产出路径的速度；工程会话可用首次文件写入作为可观测代理
   - `tool_leverage_bonus` 和 `workflow_maturity_bonus` 并入 `agentic_system`，消除外挂加分
 
 ---
@@ -158,6 +158,7 @@
 
 | 日期 | 产品版本 | 缓存 Schema | 变更概要 |
 |------|---------|-------------|---------|
+| 2026-06-07 | v0.8.0（发布收口） | 1.4 | **v0.7.0 / v0.8.0 发布状态对齐**：版本总表与报告内容表中 v0.7/v0.8 由「📅 规划中」转 ✅ 已发布；六轴权重定稿 `14/25/20/20/10/11`；与 README、ARCHITECTURE_PRINCIPLES、DETAILED_DESIGN 同步六轴口径。 |
 | 2026-06-07 | v0.7.0（规划） | 1.4 | **Agentic 操作成熟度体系重构规划**：产品定位更新为"Agentic 操作成熟度评估"；三层成熟度模型；`agentic_system` 升格第六轴（10%）；`intent_clarity` 降权 20%→15%；`execution_driving` 升权 22%→24%；`environmental-recovery` 修复方案；v0.8.0 `collaboration_framing` 预留；新增 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)。 |
 | 2026-06-07 | v0.6.0（收口） | 1.3 | **v0.6.0 发布收口对齐**：主动澄清加成在雷达 tooltip 透明展示；`summary.json` 补 `active_clarification_rate`/`intent_clarity_boost`；LLM 与 heuristic 共用 `detect_active_clarification`；Schema 1.3；新增 `test_cli_status.py`。落地进度清单全部转 ✅。 |
 | 2026-06-06 | v0.5.0 | 1.2 | **v0.5.0 发布收口**：标记免部署交互式报告为已发布；明确 v0.5→v0.6→v0.7 演进逻辑；补充 v0.6.0 落地进度清单。 |

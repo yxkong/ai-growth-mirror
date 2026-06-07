@@ -155,6 +155,7 @@ class _RolloutAccumulator:
     unique_skills_used: list[str] = field(default_factory=list)
     tool_errors: int = 0
     tool_error_categories: dict[str, int] = field(default_factory=dict)
+    turns_until_first_file_write: Optional[int] = None
     _written_paths: set[str] = field(default_factory=set)
     _last_timestamp: Optional[datetime] = None
     _saw_write: bool = False
@@ -200,6 +201,8 @@ class _RolloutAccumulator:
 
         if name in WRITE_TOOL_NAMES or any(token in name for token in ("edit", "write", "patch")):
             self._saw_write = True
+            if self.turns_until_first_file_write is None:
+                self.turns_until_first_file_write = max(1, self.user_message_count)
         if name in EXEC_TOOL_NAMES or any(token in name for token in ("bash", "shell", "command", "exec")):
             self._saw_exec = True
             command = _find_command(payload).lower()
@@ -286,6 +289,7 @@ class _RolloutAccumulator:
             unique_skills_used=self.unique_skills_used,
             tool_errors=self.tool_errors,
             tool_error_categories=self.tool_error_categories,
+            turns_until_first_file_write=self.turns_until_first_file_write,
         )
         self._enrich(record)
         return record
