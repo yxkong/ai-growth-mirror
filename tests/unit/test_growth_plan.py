@@ -13,11 +13,12 @@ def test_growth_plan_falls_back_to_consolidation_when_no_gaps():
     plan = build_growth_plan(
         stats=stats,
         capability_scores={
-            "intent_clarity": 72,
+            "collaboration_framing": 72,
             "execution_driving": 70,
             "implementation_depth": 66,
             "delivery_closure": 74,
             "adaptive_recovery": 68,
+            "agentic_system": 50,
         },
         catalogs=load_report_label_catalogs("en"),
     )
@@ -40,11 +41,12 @@ def test_growth_plan_prefers_lowest_prompt_dimension_before_capability_gaps():
     plan = build_growth_plan(
         stats=stats,
         capability_scores={
-            "intent_clarity": 64,
+            "collaboration_framing": 64,
             "execution_driving": 52,
             "implementation_depth": 49,
             "delivery_closure": 40,
             "adaptive_recovery": 30,
+            "agentic_system": 50,
         },
         catalogs=load_report_label_catalogs("zh"),
     )
@@ -69,11 +71,12 @@ def test_growth_plan_collapses_friction_and_correction_quality_into_one_track():
     plan = build_growth_plan(
         stats=stats,
         capability_scores={
-            "intent_clarity": 72,
+            "collaboration_framing": 72,
             "execution_driving": 70,
             "implementation_depth": 66,
             "delivery_closure": 74,
             "adaptive_recovery": 60,
+            "agentic_system": 50,
         },
         catalogs=load_report_label_catalogs("zh"),
     )
@@ -97,11 +100,12 @@ def test_growth_plan_promotes_agentic_system_action_contract():
     plan = build_growth_plan(
         stats=stats,
         capability_scores={
-            "intent_clarity": 70,
+            "collaboration_framing": 70,
             "execution_driving": 76,
             "implementation_depth": 80,
             "delivery_closure": 72,
             "adaptive_recovery": 68,
+            "agentic_system": 44,
         },
         catalogs=load_report_label_catalogs("zh"),
     )

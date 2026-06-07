@@ -123,9 +123,6 @@ class GrowthProfile:
 
     active_clarification_count: int = 0
     active_clarification_rate: float = 0.0
-    # +N boost applied to intent_clarity from the active-clarification pattern
-    # (v0.6.0 G-3). Stored so the report can disclose it transparently.
-    intent_clarity_boost: float = 0.0
 
     # ── Enhanced behavioral metrics ──────────────────────────────────────────
 
@@ -262,6 +259,7 @@ class GrowthProfile:
     # Prompt quality (informational — not scored, context-dependent)
     constraint_prompt_rate: float = 0.0
     code_context_rate: float = 0.0  # fraction with file paths / code / errors in first prompt
+    goal_locking_speed: float = 0.0
     # Average word count of opening prompts
     avg_prompt_word_count: float = 0.0
 
@@ -282,7 +280,7 @@ class GrowthProfile:
     # Level boundaries: L1 0-37 / L2 38-55 / L3 56-74 / L4 75-89 / L5 90-100 (see scorer._LEVEL_MIN_SCORE).
     growth_level: str = ""
     mirror_score: int = 0
-    # Per-axis sub-scores. Keys: intent_clarity / execution_driving /
+    # Per-axis sub-scores. Keys: collaboration_framing / execution_driving /
     # implementation_depth / delivery_closure / adaptive_recovery. Values are
     # floats (pre-round) and drive the report capability section.
     agentic_sub_scores: dict[str, float] = field(default_factory=dict)

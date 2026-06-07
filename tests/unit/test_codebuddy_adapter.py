@@ -251,6 +251,9 @@ def test_codebuddy_adapter_parse_transcript_basic(tmp_path: Path):
     assert len(session.top_user_messages) == 2
     assert "Fix the API endpoint in app.py" in session.top_user_messages[0]
     assert "Add tests for the API" in session.top_user_messages[1]
+    # First write (edit) happens right after the 1st user message -> precise
+    # turn count instead of the coarse files_modified>0 fallback.
+    assert session.turns_until_first_file_write == 1
 
 
 def test_codebuddy_adapter_parse_transcript_tool_counts(tmp_path: Path):

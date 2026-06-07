@@ -351,7 +351,7 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
         if len(sessions) < MIN_SESSIONS_WARN:
             progress(
                 f"[Warn] Only {len(sessions)} sessions found (recommended: >={MIN_SESSIONS_WARN}). "
-                "Five-axis mirror score and section insights may be less stable."
+                "Six-axis mirror score and section insights may be less stable."
             )
 
         progress(f"\nTotal: {len(sessions)} sessions")

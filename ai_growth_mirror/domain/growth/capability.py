@@ -9,16 +9,17 @@ def compute_capability_scores(stats: GrowthProfile) -> dict[str, float]:
     scores = stats.agentic_sub_scores or {}
     if scores:
         return {
-            "intent_clarity": min(round(scores.get("intent_clarity", 0.0), 1), 100.0),
+            "collaboration_framing": min(round(scores.get("collaboration_framing", 0.0), 1), 100.0),
             "execution_driving": min(round(scores.get("execution_driving", 0.0), 1), 100.0),
             "implementation_depth": min(round(scores.get("implementation_depth", 0.0), 1), 100.0),
             "delivery_closure": min(round(scores.get("delivery_closure", 0.0), 1), 100.0),
             "adaptive_recovery": min(round(scores.get("adaptive_recovery", 0.0), 1), 100.0),
+            "agentic_system": min(round(scores.get("agentic_system", 0.0), 1), 100.0),
         }
     if stats.radar_axes:
         return {axis.key: axis.score for axis in stats.radar_axes}
     return {
-        "intent_clarity": min(
+        "collaboration_framing": min(
             (
                 (stats.constraint_prompt_rate if hasattr(stats, "constraint_prompt_rate") else 0.0) * 50
                 + (stats.code_context_rate or 0.0) * 50
@@ -56,4 +57,5 @@ def compute_capability_scores(stats: GrowthProfile) -> dict[str, float]:
             ),
             100.0,
         ),
+        "agentic_system": 0.0,
     }

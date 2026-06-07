@@ -47,7 +47,7 @@ class CollaborationCapabilityProfile:
     @classmethod
     def from_capability_scores(cls, capability_scores: dict[str, float]) -> "CollaborationCapabilityProfile":
         return cls(
-            planning_score=capability_scores.get("intent_clarity", 0.0),
+            planning_score=capability_scores.get("collaboration_framing", 0.0),
             orchestration_score=capability_scores.get("execution_driving", 0.0),
             evidence_score=capability_scores.get("delivery_closure", 0.0),
             reuse_score=capability_scores.get("adaptive_recovery", 0.0),

@@ -1,8 +1,8 @@
 capability_meta:
-  intent_clarity:
-    label: "任务表达"
-    explanation: "衡量你是否能把目标、边界与验收条件清楚前置给 AI。"
-    next_action: "首轮固定补齐：目标、相关文件、约束、验收标准。"
+  collaboration_framing:
+    label: "协作框定"
+    explanation: "衡量你在多轮协作中，是否能快速框定方向、提供环境上下文，并加速目标锁定。"
+    next_action: "引导 AI 时：先明确任务类型、目标边界、输入材料和验收方式，再进入设计、分析或实现产出。"
   execution_driving:
     label: "协作驱动"
     explanation: "衡量你是否会主动组织协作节奏，而不是被 AI 当前回答牵着走。"
@@ -19,12 +19,16 @@ capability_meta:
     label: "恢复推进"
     explanation: "衡量你在偏航、报错或阻塞时，能否快速基于新证据切回正确路径。"
     next_action: "纠偏时固定说清：哪里错了、有什么新证据、下一步怎么走。"
+  agentic_system:
+    label: "Agentic 系统化"
+    explanation: "衡量你是否能使用和沉淀可复用的 AI 资产（如 skill、workflow、MCP 插件等）来赋能 AI 自主推进。"
+    next_action: "尝试用 skill/workflow/MCP 沉淀可复用协作方法。"
 
 radar_axes:
-  intent_clarity:
-    reason_high: "目标、约束与验收通常能前置给到 AI。"
-    reason_low: "任务上下文经常需要在中途补齐。"
-    clarification_boost_note: "（含 +{boost} 分主动澄清加成：{rate}% 的会话通过多轮追加约束补齐了意图）"
+  collaboration_framing:
+    reason_high: "你已会快速向 AI 框定方向，多轮交互中能提供有效上下文并快速锁定目标。"
+    reason_low: "引导方向偏宽泛，AI 容易在前期轮次中多次迷茫或无法锁定有效操作。"
+    tooltip: "轴分 {score} · 方向清晰 {direction_clarity_rate}% · 上下文注入 {context_grounding_rate}% · 目标锁定速度 {goal_locking_speed}分 · 主动澄清率 {active_clarification_rate}%"
   execution_driving:
     reason_high: "你已经会主动组织 AI 的推进节奏和工具路径。"
     reason_low: "协作仍容易停在泛讨论，推进链不够稳定。"
@@ -37,13 +41,23 @@ radar_axes:
   adaptive_recovery:
     reason_high: "遇到偏航或阻塞时，你通常能把协作拉回正轨。"
     reason_low: "偏航后的纠偏和新证据补充还不够锐利。"
+  agentic_system:
+    reason_high: "你已开始构建和复用 skill、workflow、MCP 等 Agent 资产来做系统化人机协作。"
+    reason_low: "较少沉淀和复用结构化 AI 资产，更多依赖单次对话的即兴发挥。"
+    tooltip: "轴分 {score} · skill 使用率 {skill_usage_pct}% · workflow 结构化 {structured_pct}% · 资产创作 {asset_authoring_pct}%"
+    gap_reason: "Agentic 系统化能力偏弱：尝试用 skill/workflow/MCP 沉淀可复用协作方法"
 
 growth_gaps:
   framing_gap:
-    label: "任务表达短板"
+    label: "协作框定短板"
     evidence_summary: "首轮目标、约束或验收仍会缺项。"
     why_it_happens: "任务 framing 还不够稳定，导致中途补背景成本偏高。"
     suggested_action: "把目标、相关文件、约束、验收标准做成首轮固定骨架。"
+  agentic_system_gap:
+    label: "Agentic 系统化短板"
+    evidence_summary: "可复用的 skill / workflow / MCP 资产调用还不稳定。"
+    why_it_happens: "更多依赖单次对话的即兴发挥，缺少把有效做法沉淀成资产并复用。"
+    suggested_action: "把高频协作模式沉淀为 skill / workflow / 规则，并在相似任务中主动复用。"
   workflow_composition_gap:
     label: "协作编排短板"
     evidence_summary: "推进节奏还会受当前回答牵动。"
@@ -196,7 +210,7 @@ wins:
   cards:
     strongest_dim:
       title: "你已经把“{label}”做成稳定习惯"
-      evidence: "该维度得分 {score:.1f}，是当前 5 个核心协作轴中的最高项（系统化能力层另列）。"
+      evidence: "该维度得分 {score:.1f}，是当前六个协作能力轴中的最高项。"
     delivery_closure:
       title: "你开始把验证带进默认流程"
       evidence: "当前验证行为率约 {pct}%。"
@@ -334,23 +348,23 @@ growth_trajectory:
       axis_schema_mismatch: "快照跨过评分轴 schema 变化，不能直接做强趋势判断。"
       legacy_axis_schema: "部分历史快照仍使用旧能力轴。"
       missing_usage: "usage 数据覆盖不完整。"
-      prompt_proxy: "Prompt Quality 主要来自代理回填或样本不足。"
-      prompt_mixed: "Prompt Quality 来源混合，需要保留边界感。"
+      prompt_proxy: "协作输入质量主要来自代理回填或样本不足。"
+      prompt_mixed: "协作输入质量来源混合，需要保留边界感。"
   axis:
     up: "{label} 较上期提升 {delta}，说明这条能力正在变得更稳定；下一步要继续把这种做法复制到更多任务里。"
     down: "{label} 较上期回落 {delta}，说明它还没有成为默认习惯；接下来优先把「{next_action}」补成稳定动作。"
     flat: "{label} 基本持平，说明当前还处于守成阶段；若想继续抬升，需要针对这条轴做刻意训练。"
   prompt_quality:
-    headline: "Prompt Quality 变化"
-    improved: "Prompt Quality 整体在提升（{delta}），说明输入结构和纠偏质量在变好。"
-    regressed: "Prompt Quality 出现回落（{delta}），说明输入骨架或纠偏边界还不够稳定。"
-    stable: "Prompt Quality 基本持平，说明输入习惯尚未出现新的跃迁。"
-    insufficient: "Prompt Quality 样本不足，本次只保留来源说明，不给过度确定判断。"
+    headline: "协作输入质量变化"
+    improved: "协作输入质量整体在提升（{delta}），说明输入结构和纠偏质量在变好。"
+    regressed: "协作输入质量出现回落（{delta}），说明输入骨架或纠偏边界还不够稳定。"
+    stable: "协作输入质量基本持平，说明输入习惯尚未出现新的跃迁。"
+    insufficient: "协作输入质量样本不足，本次只保留来源说明，不给过度确定判断。"
     source_note: "上期 LLM {prev_llm} / heuristic {prev_heuristic} / light {prev_light}；本期 LLM {curr_llm} / heuristic {curr_heuristic} / light {curr_light}"
     source_note_compare: "{prev_label}：{previous} {curr_label}：{current}"
-    confidence_high: "Prompt Quality 主要来自 LLM 语义评估，可直接参考。"
-    confidence_medium: "Prompt Quality 同时包含 LLM 与 heuristic 代理回填，需要保留边界说明。"
-    confidence_low: "Prompt Quality 样本过少或主要依赖 heuristic，结论只供训练参考。"
+    confidence_high: "协作输入质量主要来自 LLM 语义评估，可直接参考。"
+    confidence_medium: "协作输入质量同时包含 LLM 与 heuristic 代理回填，需要保留边界说明。"
+    confidence_low: "协作输入质量样本过少或主要依赖 heuristic，结论只供训练参考。"
   friction:
     more: "摩擦总量在上升（{delta}），说明当前阻塞还没有被有效吸收。"
     less: "摩擦总量在下降（{delta}），说明你正在减少无效返工和阻塞。"
@@ -399,7 +413,7 @@ growth_trajectory:
       weakest_axis: "它仍然是当前最弱的一轴。"
       regressed_axis: "它也是对比上期回落最明显的一轴。"
       friction_hotspot: "相关阻塞还在持续出现。"
-      prompt_gap: "Prompt Quality 在这条能力上的支撑不足。"
+      prompt_gap: "协作输入质量在这条能力上的支撑不足。"
       method_gap: "方法沉淀没有跟上这条能力的需求。"
   trend:
     score_label: "协作指数"
@@ -418,7 +432,7 @@ growth_trajectory:
       stable_band: "近 30 天整体波动不大，当前更像在稳住已有习惯。"
       steady_improvement: "近 30 天整体持续抬升，说明稳定方法在逐步成型。"
       improving_with_swings: "虽然有波动，但整体还在往上走，说明你在试出更有效的协作方式。"
-      overall_up_recent_pullback: "近 30 天整体有提升，但最近一次出现回撤。建议优先观察这次回撤是否来自任务难度变化、样本量变化，还是需求表达 / 交付收口波动。"
+      overall_up_recent_pullback: "近 30 天整体有提升，但最近一次出现回撤。建议优先观察这次回撤是否来自任务难度变化、样本量变化，还是协作框定 / 交付收口波动。"
       phased_pullback: "最近几次出现阶段性回落，先不要过度负面解读，优先确认是任务类型变化还是收口动作没有跟上。"
       declining_with_swings: "最近有明显回撤，而且夹杂波动，优先任务是止住退化。"
       steady_decline: "近 30 天整体持续回落，说明当前做法还没稳住。"
@@ -441,7 +455,7 @@ prompt_coach:
   label_friction_synthesis: "摩擦综合判断"
   label_generated_by: "生成方式"
   label_universal_template: "通用提需求模板"
-  label_pq_source_detail: "Prompt Quality 来源明细"
+  label_pq_source_detail: "协作输入质量来源明细"
   strength_card:
     label_prefix: "继续保留：{label}"
     evidence: "这一维度是你当前最稳定的 Prompt 长板，说明它已经开始形成习惯。"
@@ -598,7 +612,7 @@ prompt_coach:
     llm_only: "本期共覆盖 {total} 个会话，全部来自 LLM 语义评估。"
     heuristic_only: "本期共覆盖 {total} 个会话，当前全部由代理信号回填，其中轻量覆盖 {light} 个。"
   source_truth:
-    prefix: "本期 {total} 个会话纳入 Prompt 评估："
+    prefix: "本期 {total} 个会话纳入协作输入评估："
     llm_evaluated: "{n} 个完成 LLM 语义判断；"
     insufficient: "{n} 个因会话过短改用轻量代理；"
     llm_failed: "{n} 个 LLM 评估失败已回退代理；"
@@ -676,7 +690,7 @@ prompt_coach:
         light: "先别急着固化"
     task_type_labels:
       code_change: "代码改动"
-      config_or_prompt_change: "Prompt / 规则 / 配置调整"
+      config_or_prompt_change: "协作输入 / 规则 / 配置调整"
       design_or_requirements: "需求 / 设计类任务"
       writing_or_content: "写作 / 内容任务"
       exploration_or_analysis: "探索 / 分析任务"
@@ -767,17 +781,6 @@ prompt_coach:
         problem_map:
           context_provision: "索引入口已经提供了流程背景，当前更该补的是本次任务变量与输入材料。"
           request_specificity: "本次变量已经出现，下一步是把动作顺序、完成定义和收口方式补得更明确。"
-    rewrite_fallbacks:
-      context_provision:
-        scene: "requirements_design"
-        problem: "首轮背景不足，AI 需要先补问。"
-        better_prompt: "背景：...\n当前问题：...\n目标结果：...\n约束条件：...\n参考材料：...\n验收标准：...\n输出格式：..."
-        why: "把背景和验收写在第一条，AI 才能直接进入设计。"
-      request_specificity:
-        scene: "code_review"
-        problem: "要求太泛，AI 不知道要先诊断还是先产出。"
-        better_prompt: "请先定位问题，再给最小修改建议，最后按验收标准说明是否通过。"
-        why: "动作顺序明确后，AI 更容易稳定交付。"
     universal_template:
       title: "可复制的通用提需求模板"
       common_gap: "最常见缺口是背景、验收和输出格式没有一起说清。"
@@ -912,12 +915,13 @@ agent_asset:
   summary: "共扫描到 {skill_count} 个技能、{prompt_count} 个提示词、{rule_count} 个规则文件。"
 
 methodology:
-  title: "AI Growth Mirror 的判断只看四件事"
+  title: "AI Growth Mirror 的判断围绕四个协作支柱（展开为六轴雷达度量）"
   lines:
     - "Context Frame：是否在协作启动与对齐阶段建立清晰的目标、约束和验收标准（可通过单轮精准或多轮澄清完成）。"
     - "Flow Orchestration：是否能让 AI 连续推进，而不是每一步都靠人工救火。"
     - "Proof Loop：是否做验证、测试、回看，避免停留在“看起来可行”。"
     - "Method Asset：是否把有效做法沉淀成模板、规则、脚本或可复用流程。"
+    - "这四个支柱会展开成六轴雷达来打分：Context Frame → 协作框定；Flow Orchestration → 协作驱动 + 实现下潜；Proof Loop → 交付收口 + 恢复推进；Method Asset → Agentic 系统化。"
 
 pattern_labels:
   deep_delegator: "深度委托"
@@ -959,14 +963,14 @@ level_axis_metrics:
   labels:
     agentic_system: "Agentic 系统成熟度"
   explanations:
-    intent_clarity: "看你是否能把目标、约束、验收和上下文前置清楚。"
+    collaboration_framing: "看你是否能快速框定方向、注入环境上下文，并加速目标锁定。"
     execution_driving: "看你是否会主动组织推进节奏，并调动 AI / 工具能力。"
     implementation_depth: "看你是否真的进入代码、实现链路和边界，而不是停留在表层建议。"
     delivery_closure: "看结果是否被带到验证、结论和可交付状态。"
     adaptive_recovery: "看你在偏航、报错或阻塞时，能否基于新证据恢复推进。"
     agentic_system: "看真实任务里是否稳定调动 skill、workflow、工具和方法资产，而不是只看目录里有多少文件。"
   current_values:
-    intent_clarity: "轴分 {score} · 约束前置 {constraint_rate}% · 代码上下文 {code_context_rate}% · 具体度 {request_specificity}%"
+    collaboration_framing: "轴分 {score} · 方向清晰 {direction_clarity_rate}% · 上下文注入 {context_grounding_rate}% · 目标锁定速度 {goal_locking_speed}分 · 主动澄清率 {active_clarification_rate}%"
     execution_driving: "轴分 {score} · 平均链 {avg_chain} · 重会话 {heavy_sessions} · subagent {subagent_count} · MCP {mcp_rate}%"
     implementation_depth: "轴分 {score} · 人均改动文件 {files_per_session} · token 体量 {token_volume_m}M · 代码验证 {code_verification_rate_pct}%"
     delivery_closure: "轴分 {score} · 加权完成率 {completion_rate}% · 验证率 {verification_rate}% · 测试率 {test_rate}%"
@@ -977,28 +981,28 @@ level_axis_metrics:
     agentic_detection_note: "方法指纹未追踪（检测依赖 ReadFile 读取 SKILL.md 的记录；历史会话缓存刷新后可见）"
   thresholds:
     L2:
-      intent_clarity: 42
+      collaboration_framing: 42
       execution_driving: 45
       implementation_depth: 40
       delivery_closure: 40
       adaptive_recovery: 38
       agentic_system: 35
     L3:
-      intent_clarity: 56
+      collaboration_framing: 56
       execution_driving: 58
       implementation_depth: 55
       delivery_closure: 55
       adaptive_recovery: 52
       agentic_system: 52
     L4:
-      intent_clarity: 72
+      collaboration_framing: 72
       execution_driving: 74
       implementation_depth: 70
       delivery_closure: 70
       adaptive_recovery: 68
       agentic_system: 75
     L5:
-      intent_clarity: 86
+      collaboration_framing: 86
       execution_driving: 86
       implementation_depth: 84
       delivery_closure: 84
@@ -1006,9 +1010,9 @@ level_axis_metrics:
       agentic_system: 88
   targets:
     L2:
-      intent_clarity:
-        target: "把目标、相关文件、约束和验收说清楚"
-        hint: "开始减少中途补背景"
+      collaboration_framing:
+        target: "能在多轮交互中给出核心方向与上下文"
+        hint: "目标、边界和验收方式能更早对齐"
       execution_driving:
         target: "出现稳定推进链，且开始主动组织步骤"
         hint: "从等待回答走向驱动协作"
@@ -1025,9 +1029,9 @@ level_axis_metrics:
         target: "开始在真实任务里使用 skill、workflow 或高杠杆工具"
         hint: "先看使用痕迹，不用资产库存替代能力"
     L3:
-      intent_clarity:
-        target: "任务 framing 稳定，首轮上下文更完整"
-        hint: "AI 更少需要先补问"
+      collaboration_framing:
+        target: "任务 framing 稳定，能在 5 轮内引导 AI 锁定目标"
+        hint: "协作方向感增强"
       execution_driving:
         target: "复杂任务能按固定节奏推进"
         hint: "开始具备稳定编排感"
@@ -1044,9 +1048,9 @@ level_axis_metrics:
         target: "多次任务里出现可重复的方法、技能或 workflow 调用"
         hint: "从偶发使用走向稳定复用"
     L4:
-      intent_clarity:
-        target: "高复杂任务也能前置清楚目标和边界"
-        hint: "上下文组织开始体现经验"
+      collaboration_framing:
+        target: "复杂任务能先清晰框定环境、目标边界和验收方式"
+        hint: "多轮交互体现高效框定能力"
       execution_driving:
         target: "会主动调动 subagent、MCP、计划等高杠杆能力"
         hint: "你在组织一次协作，而不是只在发请求"
@@ -1063,9 +1067,9 @@ level_axis_metrics:
         target: "能组合 skill、workflow、工具和上下文资产推进复杂任务"
         hint: "能力系统开始参与真实交付"
     L5:
-      intent_clarity:
-        target: "复杂任务 framing 已具备高度稳定性和迁移性"
-        hint: "输入本身就是高杠杆能力"
+      collaboration_framing:
+        target: "复杂任务首轮或极速锁定，具备极高多轮框定效率"
+        hint: "人机意图对齐成本极低"
       execution_driving:
         target: "能稳定编排多工具、多模型、多路径协作"
         hint: "高杠杆推进已可复制"

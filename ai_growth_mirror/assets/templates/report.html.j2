@@ -9,7 +9,7 @@
       try {
         storedTheme = localStorage.getItem('growth-mirror-theme');
       } catch (e) {
-        console.warn('localStorage access failed, using In-Memory fallback.');
+        console.warn('localStorage access failed; theme state will stay in memory.');
       }
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       let activeTheme = 'dark';
@@ -1213,8 +1213,11 @@
         </div>
         <div class="overview-card overview-card--method">
           <h3>{{ view.labels['label_overview_method'] }}</h3>
+          {% if view.level_evidence.methodology_title %}
+          <p>{{ view.level_evidence.methodology_title }}</p>
+          {% endif %}
           <ul class="overview-list">
-            {% for line in view.level_evidence.methodology_lines[:2] %}
+            {% for line in view.level_evidence.methodology_lines[-1:] %}
             <li>{{ line }}</li>
             {% endfor %}
           </ul>
@@ -1351,10 +1354,19 @@
         <div class="grid-1" style="display:grid; gap:16px;">
           <div class="card">
             <h3>{{ view.labels['label_gap_rankings'] }}</h3>
+            {% set gap_axis_targets = {
+              'framing_gap': 'collaboration_framing',
+              'workflow_composition_gap': 'execution_driving',
+              'code_penetration_gap': 'implementation_depth',
+              'verification_gap': 'delivery_closure',
+              'closure_gap': 'delivery_closure',
+              'debug_recovery_gap': 'adaptive_recovery',
+              'agentic_system_gap': 'agentic_system'
+            } %}
             {% for gap in view.gap_rankings[:3] %}
             <div style="padding:10px 0; border-bottom:1px solid var(--separator);">
               <div style="display:flex; justify-content:space-between; gap:12px;">
-                <strong class="jump-link" data-target="{{ gap.key }}">{{ gap.label }}</strong>
+                <strong class="jump-link" data-target="{{ gap_axis_targets.get(gap.key, gap.key) }}">{{ gap.label }}</strong>
                 <span class="pill">Top {{ gap.rank }}</span>
               </div>
               <p class="meta-text">{{ gap.evidence_summary }}</p>
@@ -1365,7 +1377,7 @@
         </div>
       </div>
       <div class="card" style="margin-top:18px">
-        <h3>{{ view.labels['label_your_5_axes'] }}</h3>
+        <h3>{{ view.labels['label_your_axes'] }}</h3>
         <div class="note">{{ view.labels['label_strongest_dim_prefix'] }}{{ view.capability.strongest_label }} · {{ view.labels['label_weakest_dim_prefix'] }}{{ view.capability.weakest_label }}</div>
         {% for dim in view.capability.dimensions %}
         <div class="metric" id="{{ dim.key }}">
@@ -1558,7 +1570,7 @@
           <p class="small">{{ view.growth_trajectory.trend.score_series.previous_value }} → {{ view.growth_trajectory.trend.score_series.latest_value }} · {{ view.growth_trajectory.trend.score_series.trend_label }}</p>
         </div>
         <div class="card">
-          <h3>{{ view.labels.get('label_axis_trend', '五轴趋势') }}</h3>
+          <h3>{{ view.labels.get('label_axis_trend', '六轴趋势') }}</h3>
           {% for series in view.growth_trajectory.trend.axis_series %}
           <div class="metric">
             <div class="metric-head">
@@ -1617,135 +1629,6 @@
       {% endif %}
     </section>
     {% endif %}
-
-    <section class="section" id="section-prompt-coach">
-      <h2 class="section-title">{{ view.labels['section_prompt_coach'] }}</h2>
-      <p class="coach-headline">{{ view.prompt_coach.headline }}</p>
-      {% if view.prompt_coach.source_note %}
-      <p class="small muted">{{ view.prompt_coach.source_note }}</p>
-      {% endif %}
-      {% if view.prompt_coach.available %}
-      <div class="grid-2">
-        <div class="coach-card">
-          <h3>{{ view.labels['label_current_read'] }}</h3>
-          <p class="coach-evidence">{{ view.prompt_coach.evidence_summary }}</p>
-          {% if view.prompt_coach.prompt_style %}
-          <p class="small"><strong>{{ view.labels.get('label_prompt_style', 'Prompt 类型') }}</strong>{{ view.prompt_coach.prompt_style.label }}</p>
-          {% endif %}
-          {% if view.prompt_coach.light_state_note %}
-          <div class="note">{{ view.prompt_coach.light_state_note }}</div>
-          {% endif %}
-          {% if view.prompt_coach.prompt_style %}
-          <div class="note" style="margin-top:12px">
-            {{ view.prompt_coach.prompt_style.coaching_message }}
-            {% if view.prompt_coach.prompt_style.evidence %}
-            <div class="small" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
-              {% for item in view.prompt_coach.prompt_style.evidence[:3] %}
-              <span class="chip">{{ item }}</span>
-              {% endfor %}
-            </div>
-            {% endif %}
-          </div>
-          {% endif %}
-          {% if view.prompt_coach.closure_guidance %}
-          <div class="note" style="margin-top:12px">
-            <strong>{{ view.labels.get('label_closure_guidance', '收口方式建议') }}</strong>{{ view.prompt_coach.closure_guidance.coaching_message }}
-            {% if view.prompt_coach.closure_guidance.mode %}
-            <p class="small muted" style="margin-top:8px">{{ view.labels.get('label_closure_mode_' ~ view.prompt_coach.closure_guidance.mode, '') }}</p>
-            {% endif %}
-          </div>
-          {% endif %}
-        </div>
-        <div class="card">
-          <h3>{{ view.labels.get('label_top_deficits', view.labels['label_frequent_deficits']) }}</h3>
-          {% for deficit in view.prompt_coach.top_deficits[:2] %}
-          <div class="metric" id="{{ deficit.id }}">
-            <div class="metric-head">
-              <strong>{{ deficit.label }}</strong>
-              <span>{{ deficit.confidence }}</span>
-            </div>
-            <p class="small">{{ deficit.description }}</p>
-            <p class="small muted">{{ deficit.impact }}</p>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      {% if view.prompt_coach.friction_synthesis %}
-      <div class="card" style="margin-top:18px">
-        <h3>{{ view.labels.get('label_friction_synthesis', '提需求摩擦综合判断') }}</h3>
-        {% for item in view.prompt_coach.friction_synthesis[:2] %}
-        <div class="metric" style="margin-top:12px" id="{{ item.id }}">
-          <p><strong>{{ item.label }}</strong></p>
-          <p class="small">{{ item.explanation }}</p>
-          <p class="small muted"><strong>{{ view.labels.get('label_next_actions', '下一步') }}：</strong>{{ item.next_action }}</p>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      {% set real_rewrite_cards = view.prompt_coach.rewrite_cards | selectattr('original') | list %}
-      {% if real_rewrite_cards %}
-      <div class="grid-2" style="margin-top:18px">
-        {% for card in real_rewrite_cards[:2] %}
-        <div class="coach-card" id="{{ card.id }}">
-          <h3>{{ view.labels.get('label_scene', '场景') }} · {{ card.scene }}</h3>
-          {% if card.original %}
-          <p class="small"><strong>{{ view.labels.get('label_original_prompt', '原始提法') }}</strong></p>
-          <div class="code">{{ card.original }}</div>
-          {% endif %}
-          <p class="coach-tip"><strong>{{ view.labels.get('label_problem', '问题') }}</strong>{{ card.problem }}</p>
-          <p class="coach-tip"><strong>{{ view.labels['label_better_prompt'] }}</strong></p>
-          <div class="code">{{ card.better_prompt }}</div>
-          <p class="coach-tip"><strong>{{ view.labels['label_why_shows_up'] }}</strong>{{ card.why }}</p>
-          <p class="small muted">{{ view.labels.get('label_confidence_note', '置信说明：') }}{{ card.confidence }} · {{ card.source_note }}</p>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      {% if view.prompt_coach.prompt_style and view.prompt_coach.prompt_style.suggested_next_prompt %}
-      <div class="grid-2" style="margin-top:18px">
-        <div class="card">
-          <h3>{{ view.labels.get('label_suggested_next_prompt', '下次可以这样问') }}</h3>
-          <div class="code">{{ view.prompt_coach.prompt_style.suggested_next_prompt }}</div>
-        </div>
-        <div class="card">
-          <h3>{{ view.labels.get('label_preflight_checklist', '发送前自检') }}</h3>
-          <ul class="list">
-            {% for item in view.prompt_coach.preflight_checklist[:4] %}
-            <li>{{ item.text }}</li>
-            {% endfor %}
-          </ul>
-          {% if view.prompt_coach.closure_guidance and view.prompt_coach.closure_guidance.missing_closure_methods %}
-          <p class="small muted"><strong>{{ view.labels.get('label_missing_closure', '当前更适合补：') }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
-          {% endif %}
-          {% if view.prompt_coach.recommended_training_inputs %}
-          <div class="note note--growth" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
-          {% endif %}
-        </div>
-      </div>
-      {% else %}
-      <div class="card" style="margin-top:18px">
-        <h3>{{ view.labels.get('label_preflight_checklist', '发送前自检') }}</h3>
-        <ul class="list">
-          {% for item in view.prompt_coach.preflight_checklist[:4] %}
-          <li>{{ item.text }}</li>
-          {% endfor %}
-        </ul>
-        {% if view.prompt_coach.closure_guidance and view.prompt_coach.closure_guidance.missing_closure_methods %}
-        <p class="small muted"><strong>{{ view.labels.get('label_missing_closure', '当前更适合补：') }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
-        {% endif %}
-        {% if view.prompt_coach.recommended_training_inputs %}
-        <div class="note note--growth" style="margin-top:12px">{{ view.prompt_coach.recommended_training_inputs[:2] | join(' ') }}</div>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      {% else %}
-      <div class="note">{{ view.prompt_coach.headline }}</div>
-      {% endif %}
-    </section>
 
     <section class="section" id="section-growth-plan">
       <h2 class="section-title">{{ view.labels['section_growth_plan'] }}</h2>
@@ -1825,6 +1708,76 @@
       </div>
       {% endfor %}
 
+      {% set has_training_evidence = (
+        view.prompt_coach.evidence_summary
+        or view.prompt_coach.light_state_note
+        or view.prompt_coach.top_deficits
+        or view.prompt_coach.friction_synthesis
+        or view.prompt_coach.closure_guidance
+      ) %}
+      {% if has_training_evidence %}
+      <div class="card" style="margin-top:24px" id="training-evidence-supplement">
+        <h3>{{ view.labels['label_training_evidence'] }}</h3>
+        {% if view.prompt_coach.source_note %}
+        <p class="small muted">{{ view.prompt_coach.source_note }}</p>
+        {% endif %}
+        <div class="grid-2" style="margin-top:12px">
+          {% if view.prompt_coach.evidence_summary or view.prompt_coach.closure_guidance or view.prompt_coach.light_state_note %}
+          <div class="coach-card">
+            {% if view.prompt_coach.evidence_summary %}
+            <h4>{{ view.labels['label_current_read'] }}</h4>
+            <p class="coach-evidence">{{ view.prompt_coach.evidence_summary }}</p>
+            {% endif %}
+            {% if view.prompt_coach.light_state_note %}
+            <div class="note">{{ view.prompt_coach.light_state_note }}</div>
+            {% endif %}
+            {% if view.prompt_coach.closure_guidance and view.prompt_coach.closure_guidance.coaching_message %}
+            <div class="note" style="margin-top:12px">
+              <strong>{{ view.labels['label_closure_guidance'] }}</strong>{{ view.prompt_coach.closure_guidance.coaching_message }}
+              {% if view.prompt_coach.closure_guidance.mode %}
+              <p class="small muted" style="margin-top:8px">{{ view.labels.get('label_closure_mode_' ~ view.prompt_coach.closure_guidance.mode, '') }}</p>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if view.prompt_coach.top_deficits %}
+          <div class="card">
+            <h4>{{ view.labels['label_top_deficits'] }}</h4>
+            {% for deficit in view.prompt_coach.top_deficits[:2] %}
+            <div class="metric" id="{{ deficit.id }}">
+              <div class="metric-head">
+                <strong>{{ deficit.label }}</strong>
+                <span>{{ deficit.confidence }}</span>
+              </div>
+              <p class="small">{{ deficit.description }}</p>
+              <p class="small muted">{{ deficit.impact }}</p>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if view.prompt_coach.friction_synthesis %}
+        <div style="margin-top:18px">
+          <h4>{{ view.labels['label_friction_synthesis'] }}</h4>
+          {% for item in view.prompt_coach.friction_synthesis[:2] %}
+          <div class="metric" style="margin-top:12px" id="{{ item.id }}">
+            <p><strong>{{ item.label }}</strong></p>
+            <p class="small">{{ item.explanation }}</p>
+            <p class="small muted"><strong>{{ view.labels['label_next_actions'] }}：</strong>{{ item.next_action }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if view.prompt_coach.closure_guidance and view.prompt_coach.closure_guidance.missing_closure_methods %}
+        <p class="small muted" style="margin-top:12px"><strong>{{ view.labels['label_missing_closure'] }}</strong>{{ view.prompt_coach.closure_guidance.missing_closure_methods | join(' / ') }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if view.growth_trajectory and view.growth_trajectory.available and view.growth_trajectory.data.latest_vs_previous.contract_outcomes %}
       <!-- 上期训练回看折叠区块 -->
       <details class="section-toggle" style="margin-top:16px" {% if view.growth_trajectory and view.growth_trajectory.available %}open{% endif %}>
         <summary>
@@ -1833,32 +1786,27 @@
           </span>
         </summary>
         <div style="margin-top: 12px;">
-          {% if view.growth_trajectory and view.growth_trajectory.available and view.growth_trajectory.data.latest_vs_previous.contract_outcomes %}
-            {% for outcome in view.growth_trajectory.data.latest_vs_previous.contract_outcomes %}
-            <div class="card" style="margin-bottom:12px; border-left: 4px solid {% if outcome.status == 'improved' %}var(--success, #10b981){% elif outcome.status == 'partial' %}var(--warning, #f59e0b){% else %}var(--muted, #9ca3af){% endif %};">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
-                <h4 style="margin:0; font-size:1.05em;">{{ outcome.title }}</h4>
-                <span class="pill" style="font-size:0.85em; background-color:{% if outcome.status == 'improved' %}rgba(16,185,129,0.1){% elif outcome.status == 'partial' %}rgba(245,158,11,0.1){% else %}rgba(156,163,175,0.1){% endif %}; color:{% if outcome.status == 'improved' %}var(--success, #10b981){% elif outcome.status == 'partial' %}var(--warning, #f59e0b){% else %}var(--text-muted, #6b7280){% endif %};">
-                  {{ view.labels.get('label_contract_status_' ~ outcome.status, outcome.status) }}
-                </span>
-              </div>
-              <p style="margin:4px 0; font-size:0.95em;">{{ outcome.explanation }}</p>
-              <div style="display:flex; gap:16px; margin-top:8px; font-size:0.85em; color:var(--text-muted, #6b7280); flex-wrap:wrap;">
-                <span>{{ view.labels.get('label_contract_axis', '目标轴') }}: {{ outcome.axis_label }}</span>
-                {% if outcome.previous_score is not none and outcome.current_score is not none %}
-                <span>{{ view.labels.get('label_contract_axis_delta', '轴分对比') }}: {{ outcome.previous_score | round(1) }} → {{ outcome.current_score | round(1) }} ({% if outcome.delta >= 0 %}+{% endif %}{{ outcome.delta | round(1) }})</span>
-                {% endif %}
-                <span>{{ view.labels.get('label_confidence', '置信度') }}: {{ view.labels.get('label_confidence_' ~ outcome.confidence, outcome.confidence) }}</span>
-              </div>
+          {% for outcome in view.growth_trajectory.data.latest_vs_previous.contract_outcomes %}
+          <div class="card" style="margin-bottom:12px; border-left: 4px solid {% if outcome.status == 'improved' %}var(--success, #10b981){% elif outcome.status == 'partial' %}var(--warning, #f59e0b){% else %}var(--muted, #9ca3af){% endif %};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+              <h4 style="margin:0; font-size:1.05em;">{{ outcome.title }}</h4>
+              <span class="pill" style="font-size:0.85em; background-color:{% if outcome.status == 'improved' %}rgba(16,185,129,0.1){% elif outcome.status == 'partial' %}rgba(245,158,11,0.1){% else %}rgba(156,163,175,0.1){% endif %}; color:{% if outcome.status == 'improved' %}var(--success, #10b981){% elif outcome.status == 'partial' %}var(--warning, #f59e0b){% else %}var(--text-muted, #6b7280){% endif %};">
+                {{ view.labels.get('label_contract_status_' ~ outcome.status, outcome.status) }}
+              </span>
             </div>
-            {% endfor %}
-          {% else %}
-            <div class="card" style="padding:16px; text-align:center; color:var(--text-muted, #6b7280);">
-              {{ view.labels.get('label_prior_contract_empty', '首次生成，暂无回看 (No historical contracts available)') }}
+            <p style="margin:4px 0; font-size:0.95em;">{{ outcome.explanation }}</p>
+            <div style="display:flex; gap:16px; margin-top:8px; font-size:0.85em; color:var(--text-muted, #6b7280); flex-wrap:wrap;">
+              <span>{{ view.labels.get('label_contract_axis', '目标轴') }}: {{ outcome.axis_label }}</span>
+              {% if outcome.previous_score is not none and outcome.current_score is not none %}
+              <span>{{ view.labels.get('label_contract_axis_delta', '轴分对比') }}: {{ outcome.previous_score | round(1) }} → {{ outcome.current_score | round(1) }} ({% if outcome.delta >= 0 %}+{% endif %}{{ outcome.delta | round(1) }})</span>
+              {% endif %}
+              <span>{{ view.labels.get('label_confidence', '置信度') }}: {{ view.labels.get('label_confidence_' ~ outcome.confidence, outcome.confidence) }}</span>
             </div>
-          {% endif %}
+          </div>
+          {% endfor %}
         </div>
       </details>
+      {% endif %}
     </section>
 
     <section class="section" id="section-friction">
@@ -1922,8 +1870,8 @@
       <div class="card-grid-3">
         <div class="card">
           <h3>{{ view.labels['label_recent_projects'] }}</h3>
-          {% if view.work_focus.projects %}
-          {% for item in view.work_focus.projects %}
+          {% if view.work_focus.recent_work %}
+          {% for item in view.work_focus.recent_work %}
           <span class="pill">{{ item }}</span>
           {% endfor %}
           {% else %}
@@ -2096,7 +2044,7 @@
   </script>
   <script>
     (function () {
-      // 1. DTO parsing and defensive fallback
+      // 1. DTO parsing
       function parseData() {
         const el = document.getElementById('report-data');
         if (!el) return { radar_axes: [], gap_rankings: [] };

@@ -71,7 +71,7 @@ class TestDiagnosisCandidatePacket:
             agentic_system_score=42.0,
         )
         cap_scores = {
-            "intent_clarity": 33.8,
+            "collaboration_framing": 33.8,
             "execution_driving": 92.6,
             "implementation_depth": 89.3,
             "delivery_closure": 51.3,
@@ -102,7 +102,7 @@ class TestDiagnosisCandidatePacket:
             human_intervention_session_rate=0.40,
             human_intervention_session_count=4,
         )
-        cap_scores = {k: 70.0 for k in ["intent_clarity", "execution_driving", "implementation_depth", "delivery_closure", "adaptive_recovery"]}
+        cap_scores = {k: 70.0 for k in ["collaboration_framing", "execution_driving", "implementation_depth", "delivery_closure", "adaptive_recovery"]}
         ranked = rank_growth_priorities(stats, cap_scores)
         packet = build_diagnosis_candidate_packet(stats, cap_scores, ranked)
 
@@ -119,12 +119,12 @@ class TestDiagnosisCandidatePacket:
                 "explanation": "User rarely defines acceptance criteria.",
                 "confidence": 82,
                 "evidence_refs": ["verification_behavior_rate=28%", "missing-acceptance-criteria=5"],
-                "why_not_other_diagnosis": "intent_clarity_gap has higher scores than threshold.",
+                "why_not_other_diagnosis": "collaboration_framing_gap has higher scores than threshold.",
                 "next_action": "Start every task with explicit acceptance criteria.",
             },
             "secondary_diagnoses": [
                 {
-                    "code": "intent_clarity_gap",
+                    "code": "collaboration_framing_gap",
                     "label": "Intent clarity",
                     "explanation": "Some vague requests observed.",
                     "confidence": 60,
@@ -143,7 +143,7 @@ class TestDiagnosisCandidatePacket:
         assert result.primary.why_not_other_diagnosis != ""
         assert result.synthesis_confidence == "high"
         assert len(result.secondary) == 1
-        assert result.secondary[0].code == "intent_clarity_gap"
+        assert result.secondary[0].code == "collaboration_framing_gap"
 
     def test_rule_fallback_diagnosis_produces_result_without_llm(self):
         from ai_growth_mirror.domain.growth.diagnosis import (
@@ -416,7 +416,7 @@ class TestActionContractGenerator:
         stats = self._make_stats(
             pq_deficit_counts={"missing-acceptance-criteria": 8, "vague-request": 4, "scope-drift": 2},
         )
-        cap_scores = {"delivery_closure": 51.0, "intent_clarity": 60.0}
+        cap_scores = {"delivery_closure": 51.0, "collaboration_framing": 60.0}
         report = generate_action_contracts(stats, cap_scores)
 
         assert len(report.items) > 0
@@ -586,13 +586,13 @@ class TestHumanCostTrend:
             human_intervention_rate=0.30,
             snapshot_id="s1",
             created_at="2026-05-01T10:00:00",
-            axis_scores={"intent_clarity": 50.0, "execution_driving": 70.0, "implementation_depth": 60.0, "delivery_closure": 55.0, "adaptive_recovery": 52.0},
+            axis_scores={"collaboration_framing": 50.0, "execution_driving": 70.0, "implementation_depth": 60.0, "delivery_closure": 55.0, "adaptive_recovery": 52.0},
         )
         curr = self._make_snapshot_source(
             human_intervention_rate=0.15,
             snapshot_id="s2",
             created_at="2026-06-01T10:00:00",
-            axis_scores={"intent_clarity": 55.0, "execution_driving": 72.0, "implementation_depth": 62.0, "delivery_closure": 60.0, "adaptive_recovery": 55.0},
+            axis_scores={"collaboration_framing": 55.0, "execution_driving": 72.0, "implementation_depth": 62.0, "delivery_closure": 60.0, "adaptive_recovery": 55.0},
         )
         comparison = compare_snapshot_sources(prev, curr)
 
@@ -613,7 +613,7 @@ class TestHumanCostTrend:
                 growth_level="L3",
                 mirror_score=65 + i * 5,
                 axis_scores={
-                    "intent_clarity": 50.0, "execution_driving": 70.0,
+                    "collaboration_framing": 50.0, "execution_driving": 70.0,
                     "implementation_depth": 60.0, "delivery_closure": 55.0, "adaptive_recovery": 52.0,
                 },
             )
@@ -666,12 +666,12 @@ class TestReviewRegressions:
         from ai_growth_mirror.domain.growth.diagnosis import _resolve_axis_score
 
         stats = _make_stats(agentic_system_score=42.0)
-        cap = {"intent_clarity": 60.0, "adaptive_recovery": 55.0}
+        cap = {"collaboration_framing": 60.0, "adaptive_recovery": 55.0}
         pq = {"correction_quality": 48.0}
 
         assert _resolve_axis_score("agentic_system", stats=stats, capability_scores=cap, pq_dims=pq) == 42.0
         assert _resolve_axis_score("friction", stats=stats, capability_scores=cap, pq_dims=pq) == 48.0
-        assert _resolve_axis_score("intent_clarity", stats=stats, capability_scores=cap, pq_dims=pq) == 60.0
+        assert _resolve_axis_score("collaboration_framing", stats=stats, capability_scores=cap, pq_dims=pq) == 60.0
 
     def test_axis_deltas_empty_for_incomparable_schema(self):
         """Legacy-schema snapshots must not fabricate 0 -> N axis deltas."""
@@ -691,7 +691,7 @@ class TestReviewRegressions:
             growth_level="L3",
             mirror_score=68,
             axis_scores={
-                "intent_clarity": 60.0, "execution_driving": 70.0,
+                "collaboration_framing": 60.0, "execution_driving": 70.0,
                 "implementation_depth": 65.0, "delivery_closure": 55.0, "adaptive_recovery": 52.0,
             },
         )
@@ -717,7 +717,7 @@ class TestReviewRegressions:
             growth_level="L3",
             mirror_score=68,
             axis_scores={
-                "intent_clarity": 60.0, "execution_driving": 70.0,
+                "collaboration_framing": 60.0, "execution_driving": 70.0,
                 "implementation_depth": 65.0, "delivery_closure": 55.0, "adaptive_recovery": 52.0,
             },
         )
@@ -768,7 +768,7 @@ class TestReviewRegressions:
             _dedupe_action_contracts_across_priorities,
         )
 
-        p1 = GrowthPriorityView(key="intent_clarity", title="t1", why="w1")
+        p1 = GrowthPriorityView(key="collaboration_framing", title="t1", why="w1")
         p1.action_contract = ["RULE: clarify intent", "shared synthesis line"]
         p2 = GrowthPriorityView(key="execution_driving", title="t2", why="w2")
         p2.action_contract = ["shared synthesis line", "WORKFLOW: drive execution"]
@@ -836,7 +836,7 @@ class TestReviewRegressions:
             verification_behavior_rate=0.8,
         )
         cap = {
-            "intent_clarity": 80.0, "execution_driving": 82.0,
+            "collaboration_framing": 80.0, "execution_driving": 82.0,
             "implementation_depth": 85.0, "delivery_closure": 80.0, "adaptive_recovery": 78.0,
         }
         # code_penetration_gap normalizes to implementation_depth (strength → no deficit contracts)
@@ -844,3 +844,51 @@ class TestReviewRegressions:
         joined = "\n".join(lines)
         assert "missing-context" not in joined.lower()
         assert "missing_context" not in joined.lower()
+
+    def test_old_snapshot_compat(self):
+        """Old v0.6 5-axis snapshots compared with v0.7 6-axis snapshots should not crash and should skip agentic_system delta."""
+        from ai_growth_mirror.domain.snapshots.model import SnapshotSource
+        from ai_growth_mirror.domain.snapshots.comparison import compare_snapshot_sources
+
+        old_snapshot = SnapshotSource(
+            snapshot_id="old_v0.6",
+            created_at="2026-05-01T10:00:00",
+            growth_level="L3",
+            mirror_score=60,
+            axis_scores={
+                "intent_clarity": 60.0,
+                "execution_driving": 70.0,
+                "implementation_depth": 65.0,
+                "delivery_closure": 55.0,
+                "adaptive_recovery": 52.0,
+            },
+        )
+        new_snapshot = SnapshotSource(
+            snapshot_id="new_v0.7",
+            created_at="2026-06-01T10:00:00",
+            growth_level="L3",
+            mirror_score=68,
+            axis_scores={
+                "collaboration_framing": 62.0,
+                "execution_driving": 72.0,
+                "implementation_depth": 68.0,
+                "delivery_closure": 58.0,
+                "adaptive_recovery": 55.0,
+                "agentic_system": 50.0,
+            },
+        )
+        comparison = compare_snapshot_sources(old_snapshot, new_snapshot)
+        assert comparison is not None
+        # Should only have 5 deltas since agentic_system was missing in previous snapshot
+        assert len(comparison.axis_deltas) == 5
+        # agentic_system must not be in the axis delta keys
+        delta_keys = {item.key for item in comparison.axis_deltas}
+        assert "agentic_system" not in delta_keys
+        # Check that other deltas are computed correctly
+        intent_delta = next(item for item in comparison.axis_deltas if item.key == "collaboration_framing")
+        assert intent_delta.delta == 2.0
+
+    def test_weights_sum_to_one(self):
+        """Verify that capability weights defined in comparison.py sum to 1.0."""
+        from ai_growth_mirror.domain.snapshots.comparison import AXIS_WEIGHTS
+        assert abs(sum(AXIS_WEIGHTS.values()) - 1.0) < 1e-6

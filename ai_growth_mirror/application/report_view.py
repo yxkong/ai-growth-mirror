@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -59,11 +60,12 @@ def _pattern_label(pattern: str, catalogs: ReportLabelCatalogs) -> str:
 
 
 _CAPABILITY_ORDER = [
-    "intent_clarity",
+    "collaboration_framing",
     "execution_driving",
     "implementation_depth",
     "delivery_closure",
     "adaptive_recovery",
+    "agentic_system",
 ]
 
 
@@ -77,14 +79,25 @@ def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
             "reason_high" if axis.score >= 65 else "reason_low",
             "",
         )
-        if axis.key == "intent_clarity" and stats.intent_clarity_boost > 0.0:
-            note_template = axis_i18n.get("clarification_boost_note", "")
-            if note_template:
-                note = note_template.format(
-                    boost=round(stats.intent_clarity_boost, 1),
-                    rate=round(stats.active_clarification_rate * 100),
+        if axis.key == "collaboration_framing":
+            tooltip_template = axis_i18n.get("tooltip", "")
+            if tooltip_template:
+                short_reason = tooltip_template.format(
+                    score=round(axis.score, 1),
+                    direction_clarity_rate=round(stats.constraint_prompt_rate * 100),
+                    context_grounding_rate=round(stats.code_context_rate * 100),
+                    goal_locking_speed=round(stats.goal_locking_speed, 1),
+                    active_clarification_rate=round(stats.active_clarification_rate * 100),
                 )
-                short_reason = (short_reason + " " + note).strip()
+        elif axis.key == "agentic_system":
+            tooltip_template = axis_i18n.get("tooltip", "")
+            if tooltip_template:
+                short_reason = tooltip_template.format(
+                    score=round(axis.score, 1),
+                    skill_usage_pct=round(stats.skill_usage_session_rate * 100),
+                    structured_pct=round(stats.workflow_fingerprint_session_rate * 100),
+                    asset_authoring_pct=round(stats.asset_authoring_session_rate * 100),
+                )
         axes.append(
             RadarAxis(
                 key=axis.key,
@@ -475,7 +488,7 @@ class FocusAreaView:
 @dataclass
 class WorkFocusSectionView:
     headline: str
-    projects: list[str] = field(default_factory=list)
+    recent_work: list[str] = field(default_factory=list)
     goal_mix: list[FocusAreaView] = field(default_factory=list)
     tools: list[FocusAreaView] = field(default_factory=list)
     languages: list[FocusAreaView] = field(default_factory=list)
@@ -601,7 +614,7 @@ class PersonalReportView:
     hide_wechat: bool = False
     hide_email: bool = False
     active_clarification_rate: float = 0.0
-    intent_clarity_boost: float = 0.0
+    goal_locking_speed: float = 0.0
 
 
 def build_agent_asset_footprint(
@@ -698,7 +711,7 @@ def build_personal_report_view(
     collaboration_rhythm = _build_collaboration_rhythm(stats, catalogs)
     usage = _build_usage_section(stats, catalogs)
     usage.coverage_note = _build_usage_coverage_note(sessions, catalogs)
-    work_focus = _build_work_focus(stats, redact, catalogs)
+    work_focus = _build_work_focus(stats, sessions, redact, catalogs)
     style_lens = _build_style_lens(stats, capability_scores, agent_asset=asset_stats, catalogs=catalogs)
     wins = _build_wins(
         stats=stats,
@@ -807,7 +820,7 @@ def build_personal_report_view(
         hide_wechat=hide_wechat,
         hide_email=hide_email,
         active_clarification_rate=stats.active_clarification_rate,
-        intent_clarity_boost=stats.intent_clarity_boost,
+        goal_locking_speed=getattr(stats, "goal_locking_speed", 0.0),
     )
 
 
@@ -838,8 +851,10 @@ def _build_capability_section(
         score = capability_scores.get(key, 0.0)
         if stats is None:
             has_data = True
-        elif key == "intent_clarity":
+        elif key == "collaboration_framing":
             has_data = pq_evaluated > 0
+        elif key == "agentic_system":
+            has_data = stats is not None and "agentic_system" in stats.agentic_sub_scores and stats.session_count > 0
         else:
             has_data = session_count > 0 and (pq_evaluated > 0 or has_outcome_signals)
         if has_data and score == 0.0 and not has_outcome_signals and pq_evaluated == 0:
@@ -879,7 +894,7 @@ def _build_prompt_coach_from_coaching(
             for name, count in sorted(stats.pq_deficit_counts.items(), key=lambda item: (-item[1], item[0]))[:3]
         ]
     else:
-        weakest_label = coaching.prompt_coach_takeaways[0].label if coaching.prompt_coach_takeaways else ""
+        weakest_label = coaching.framing_evidence_takeaways[0].label if coaching.framing_evidence_takeaways else ""
         strongest_label = ""
         weak_dimensions = [weakest_label] if weakest_label else []
         deficits = []
@@ -893,15 +908,15 @@ def _build_prompt_coach_from_coaching(
             action=t.action,
             better_prompt=t.better_prompt,
         )
-        for t in coaching.prompt_coach_takeaways
+        for t in coaching.framing_evidence_takeaways
     ]
     pc_i18n = _view_i18n(catalogs).get("prompt_coach", {}).get("from_coaching", {})
     return PromptCoachView(
         available=True,
-        headline=coaching.prompt_coach_headline,
+        headline=coaching.framing_evidence_headline,
         strongest_label=strongest_label,
         weakest_label=weakest_label,
-        evidence_summary=coaching.prompt_coach_evidence,
+        evidence_summary=coaching.framing_evidence_summary,
         strength_habit="",
         source_note=_prompt_quality_source_note(stats, pc_i18n.get("source_note", ""), catalogs),
         weak_dimensions=weak_dimensions,
@@ -962,15 +977,11 @@ def _build_summary(
         "weakest": weakest,
         "next_focus": growth_plan.next_focus,
     }
-    share_lines = (
-        list(coaching.share_lines)
-        if coaching and coaching.share_lines
-        else [
-            share_i18n.get("line1", "").format(**share_fmt),
-            share_i18n.get("line2", "").format(**share_fmt),
-            share_i18n.get("line3", "").format(**share_fmt),
-        ]
-    )
+    share_lines = [
+        share_i18n.get("line1", "").format(**share_fmt),
+        share_i18n.get("line2", "").format(**share_fmt),
+        share_i18n.get("line3", "").format(**share_fmt),
+    ]
     return PersonalSummaryView(
         title=s_i18n.get("title", ""),
         subtitle=tool_display_name,
@@ -1020,17 +1031,11 @@ def _build_report_sections(
                 labels.get("section_growth_delta", "Growth trajectory"),
             )
         )
-    primary_sections.extend(
-        [
-            ReportSectionLinkView(
-                "section-prompt-coach",
-                labels.get("section_prompt_coach", "Prompt growth coach"),
-            ),
-            ReportSectionLinkView(
-                "section-growth-plan",
-                labels.get("section_growth_plan", "Next practice sprint"),
-            ),
-        ]
+    primary_sections.append(
+        ReportSectionLinkView(
+            "section-growth-plan",
+            labels.get("section_growth_plan", "Next practice sprint"),
+        ),
     )
     appendix_sections = [
         ReportSectionLinkView("section-level-guide", labels.get("section_level_guide", "Collaboration level guide"), nav_visible=False, kind="appendix"),
@@ -1600,10 +1605,11 @@ def _build_usage_section(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
 
 def _build_work_focus(
     stats: GrowthProfile,
+    sessions: list[SessionRecord],
     redact: bool,
     catalogs: ReportLabelCatalogs,
 ) -> WorkFocusSectionView:
-    top_projects = [] if redact else _rollup_projects(stats.top_projects[:8])[:4]
+    recent_work = [] if redact else _recent_work_items(sessions)[:4]
     total_goal_signals = max(sum(stats.goal_category_counts.values()), 1)
     top_goals = [
         FocusAreaView(
@@ -1623,7 +1629,7 @@ def _build_work_focus(
     primary_goal = top_goals[0].label if top_goals else work_focus_i18n.get("default_goal", "Implementation")
     primary_tool = top_tools[0].label if top_tools else work_focus_i18n.get("default_tool", "Terminal execution")
     headline = work_focus_i18n.get("headline", "").format(primary_goal=primary_goal, primary_tool=primary_tool)
-    return WorkFocusSectionView(headline=headline, projects=top_projects, goal_mix=top_goals, tools=top_tools, languages=top_languages)
+    return WorkFocusSectionView(headline=headline, recent_work=recent_work, goal_mix=top_goals, tools=top_tools, languages=top_languages)
 
 
 def _build_wins(
@@ -1858,11 +1864,12 @@ def _build_level_axis_metrics(
         * 100
     )
     current_values = {
-        "intent_clarity": current_value_templates.get("intent_clarity", "").format(
-            score=round(axis_scores.get("intent_clarity", 0.0)),
-            constraint_rate=round((stats.constraint_prompt_rate or 0.0) * 100),
-            code_context_rate=round((stats.code_context_rate or 0.0) * 100),
-            request_specificity=round(prompt_dims.get("request_specificity", 50.0)),
+        "collaboration_framing": current_value_templates.get("collaboration_framing", "").format(
+            score=round(axis_scores.get("collaboration_framing", 0.0)),
+            direction_clarity_rate=round((stats.constraint_prompt_rate or 0.0) * 100),
+            context_grounding_rate=round((stats.code_context_rate or 0.0) * 100),
+            goal_locking_speed=round((getattr(stats, "goal_locking_speed", 0.0) or 0.0), 1),
+            active_clarification_rate=round((stats.active_clarification_rate or 0.0) * 100),
         ),
         "execution_driving": current_value_templates.get("execution_driving", "").format(
             score=round(axis_scores.get("execution_driving", 0.0)),
@@ -1910,6 +1917,8 @@ def _build_level_axis_metrics(
     ordered_keys = tuple(_CAPABILITY_ORDER)
     metrics: list[LevelEvidenceMetricView] = []
     for key in ordered_keys:
+        if key == "agentic_system":
+            continue
         metric_copy = target_profile.get(key, {})
         target_value = metric_copy.get("target", "")
         level_hint = metric_copy.get("hint", "")
@@ -2160,6 +2169,40 @@ def _rollup_projects(items: list[tuple[str, int]]) -> list[str]:
         if display and display not in seen:
             seen.append(display)
     return seen
+
+
+def _recent_work_items(sessions: list[SessionRecord]) -> list[str]:
+    rows: list[str] = []
+    sorted_sessions = sorted(
+        sessions,
+        key=lambda session: session.start_time or "",
+        reverse=True,
+    )
+    for session in sorted_sessions:
+        source = session.first_prompt or (session.top_user_messages[0] if session.top_user_messages else "")
+        item = _work_item_from_prompt(source)
+        if item and item not in rows:
+            rows.append(item)
+        if len(rows) >= 4:
+            break
+    return rows
+
+
+def _work_item_from_prompt(value: str) -> str:
+    text = " ".join((value or "").replace("\n", " ").split())
+    if not text:
+        return ""
+    for pattern in (
+        r"(?:目标结果|目标|本次任务|任务|当前问题|本次对象)[:：]\s*([^。；;.!?\n]+)",
+        r"(?:help me|please|请|帮我)\s*([^。；;.!?\n]+)",
+    ):
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            candidate = match.group(1).strip(" ：:，,")
+            if candidate:
+                return _trim_text(candidate, 48)
+    first_sentence = re.split(r"[。；;.!?]", text, maxsplit=1)[0].strip(" ：:，,")
+    return _trim_text(first_sentence, 48)
 
 
 def _rollup_tool_labels(items: list[tuple[str, int]], catalogs: ReportLabelCatalogs) -> list[FocusAreaView]:

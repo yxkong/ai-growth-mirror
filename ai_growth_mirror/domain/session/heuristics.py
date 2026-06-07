@@ -162,6 +162,12 @@ def enrich_prompt_signals(session: SessionRecord) -> None:
 
 
 def enrich_agentic_signals(session: SessionRecord) -> None:
+    if session.turns_until_first_file_write is None:
+        if session.files_modified > 0:
+            session.turns_until_first_file_write = 3
+        else:
+            session.turns_until_first_file_write = 10
+
     if session.autonomous_chain_lengths or not session.tool_counts:
         return
 

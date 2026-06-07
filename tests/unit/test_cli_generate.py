@@ -54,6 +54,36 @@ def test_cli_generate_delegates_to_orchestrator(monkeypatch):
     assert "done total=" in result.output
 
 
+def test_cli_generate_accepts_comma_separated_tools(monkeypatch):
+    captured: dict = {}
+
+    def fake_generate(request: GenerateReportRequest) -> GenerateReportResult:
+        captured["request"] = request
+        return GenerateReportResult(
+            output_path=Path("ai-growth-mirror.html"),
+            display_name="Multi",
+            session_count=3,
+            session_read_count=3,
+            session_read_mode="heuristic",
+            growth_level="L2",
+            mirror_score=50.0,
+        )
+
+    monkeypatch.setattr(
+        "ai_growth_mirror.cli.generate_report_artifacts",
+        fake_generate,
+    )
+
+    runner = click.testing.CliRunner()
+    result = runner.invoke(
+        cli,
+        ["generate", "--tools", "gemini,cursor", "--session-read-mode", "heuristic"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert {"gemini", "cursor"}.issubset(set(captured["request"].tools))
+
+
 def test_cli_generate_maps_no_tool_data_error(monkeypatch):
     def fake_generate(_request: GenerateReportRequest):
         raise NoToolDataError(tool_names=["codex"])

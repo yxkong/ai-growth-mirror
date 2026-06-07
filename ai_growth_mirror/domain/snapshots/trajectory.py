@@ -101,15 +101,23 @@ def assess_snapshot_point_confidence(source: SnapshotSource) -> str:
     return "low"
 
 
+def _normalize_axes(scores: dict[str, float]) -> dict[str, float]:
+    normalized = dict(scores)
+    if "intent_clarity" in normalized and "collaboration_framing" not in normalized:
+        normalized["collaboration_framing"] = normalized.pop("intent_clarity")
+    return normalized
+
+
 def _build_point(source: SnapshotSource) -> TrajectoryPoint:
     created_at = source.created_at
     date = created_at[:10] if created_at else ""
     sample_count = source.sample_count or source.coverage.session_read_count or source.coverage.session_count
     confidence = source.point_confidence or assess_snapshot_point_confidence(source)
-    comparable = is_current_axis_schema(source.axis_scores)
+    axis_scores = _normalize_axes(source.axis_scores)
+    comparable = is_current_axis_schema(axis_scores)
     if comparable:
         axis_schema = "current"
-    elif has_legacy_axis_schema(source.axis_scores):
+    elif has_legacy_axis_schema(axis_scores):
         axis_schema = "legacy"
     else:
         axis_schema = "unknown"
@@ -121,7 +129,7 @@ def _build_point(source: SnapshotSource) -> TrajectoryPoint:
         growth_level=source.growth_level,
         sample_count=sample_count,
         confidence=confidence,
-        axes=dict(source.axis_scores),
+        axes=axis_scores,
         prompt_quality=dict(source.prompt_quality_dimensions),
         friction={key: int(source.actionable_friction_counts.get(key, 0)) for key in ACTIONABLE_FRICTION_ORDER},
         axis_schema=axis_schema,

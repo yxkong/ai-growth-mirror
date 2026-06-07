@@ -37,3 +37,7 @@ def test_growth_coach_prompt_avoids_legacy_six_dimension_frame():
     assert "delegation" not in rendered.lower()
     assert "breadth" not in rendered.lower()
     assert "motivational filler" in rendered.lower()
+    assert '"axis_diagnosis"' in rendered
+    assert '"training_plan"' in rendered
+    assert '"framing_evidence"' in rendered
+    assert "prompt_coach" not in rendered

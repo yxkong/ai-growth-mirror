@@ -1,6 +1,8 @@
 # AI Growth Mirror — 架构总纲
 
-> **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、CodeBuddy、Trae、QCoder 共 7 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
+> **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审查都必须遵循本文。
+
+AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code、CodeBuddy、Trae、QCoder 共 9 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
 
 **核心目标**：帮助使用 AI 工具的人提升自我，不是给单人用的报告工具，而是对所有 AI 工具用户通用的产品。
 
@@ -27,45 +29,24 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 
 产品所有输出都必须能回到这四条证据链，不允许出现"分数有了，但用户看不懂为什么"的展示。
 
-### 1.2 当前成长评分主轴（产品真源）
-
-个人版 v0.6 使用 **五轴成长底盘**，v0.7 升级为 **六轴**：
-
-**v0.6 五轴（当前）：**
-
-- **Intent Clarity**（任务表达 · 权重 20%）：目标、约束、验收与上下文是否讲清楚
-- **Execution Driving**（协作驱动 · 权重 22%）：是否主动驱动 AI 推进，而不是被回答牵着走
-- **Implementation Depth**（实现下潜 · 权重 22%）：是否真正进入代码、实现和逻辑边界
-- **Delivery Closure**（交付收口 · 权重 22%）：是否把结果带到验证、收口和可交付状态
-- **Adaptive Recovery**（恢复推进 · 权重 14%）：遇到偏航、报错、阻塞时能否基于新证据恢复推进
-
-**v0.7 六轴（规划中，详见 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)）：**
-
-- **Intent Clarity**（任务表达 · 权重 **15%**）：降权；v0.8 重命名为 `collaboration_framing`
-- **Execution Driving**（协作驱动 · 权重 **24%**）：升权；Agentic 主战场
-- **Implementation Depth**（实现下潜 · 权重 **20%**）
-- **Delivery Closure**（交付收口 · 权重 **20%**）
-- **Adaptive Recovery**（恢复推进 · 权重 **11%**）：修复 environmental-recovery 误归类后信噪比提升
-- **Agentic System**（系统化能力 · 权重 **10%**，新增正式轴）：skill/workflow/MCP/subagent 等方法资产化能力
-
-`mirror_score`（协作指数）与 `growth_level`（L1–L5）由六轴与置信修正推出，不得再回退为旧六维线性加权模型的换皮版本。标、约束、验收、上下文说清楚
-- **Flow Orchestration**：是否能让 AI 连续推进，而不是每一步都靠人工接管
-- **Proof Loop**：是否把验证、测试、回看放进主流程，保证事实性
-- **Method Asset**：是否把有效做法沉淀成模板、规则、脚本、Skill 或流程
-
-产品所有输出都必须能回到这四条证据链，不允许出现“分数有了，但用户看不懂为什么”的展示。
+> **四证法是方法论入口，§1.2 六轴是其可度量展开**：Context Frame → `collaboration_framing`；Flow Orchestration → `execution_driving` + `implementation_depth`；Proof Loop → `delivery_closure` + `adaptive_recovery`；Method Asset → `agentic_system`。四证法用于对外解释，六轴用于评分与雷达；两者一一可追溯，不得各自独立演化。
 
 ### 1.2 当前成长评分主轴（产品真源）
 
-个人版当前使用 **五轴成长底盘** 组织评分与可视化：
+个人版自 v0.7 升级、v0.8 定稿为 **六轴 Agentic 成熟度底盘**（轴名真源 `domain/growth/scorer.py`）：
 
-- **Intent Clarity**（任务表达 · 权重 20%）：目标、约束、验收与上下文是否讲清楚
-- **Execution Driving**（协作驱动 · 权重 22%）：是否主动驱动 AI 推进，而不是被回答牵着走
-- **Implementation Depth**（实现下潜 · 权重 22%）：是否真正进入代码、实现和逻辑边界
-- **Delivery Closure**（交付收口 · 权重 22%）：是否把结果带到验证、收口和可交付状态
-- **Adaptive Recovery**（恢复推进 · 权重 14%）：遇到偏航、报错、阻塞时能否基于新证据恢复推进
+| 轴 key | 中文名 | v0.8 权重 | 衡量内容 |
+|--------|--------|:---------:|----------|
+| `collaboration_framing` | 协作框定 | **14%** | 协作启动质量：方向清晰、上下文注入、目标锁定速度与主动澄清率（v0.7 旧名 `intent_clarity`） |
+| `execution_driving` | 协作驱动 | **25%** | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场） |
+| `implementation_depth` | 实现下潜 | **20%** | 文件修改量、代码验证覆盖率与实现边界控制 |
+| `delivery_closure` | 交付收口 | **20%** | 任务完成率、验证行为率与测试用例运行表现 |
+| `adaptive_recovery` | 恢复推进 | **10%** | 偏航/报错/阻塞时基于新证据的纠偏质量（已剔除 environmental-recovery 误判） |
+| `agentic_system` | Agentic 系统化 | **11%** | skill/workflow/MCP/subagent 等方法资产化能力（v0.7 升格为第六个正式轴） |
 
-`mirror_score`（协作指数）与 `growth_level`（L1–L5）可以继续保留为产品字段，但必须由这五轴与置信修正推出，不得再回退为旧六维线性加权模型的换皮版本。
+权重合计 100%；演进对照见 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md) 与 [v0.8.0-DESIGN.md](v0.8.0-DESIGN.md)。
+
+`mirror_score`（协作指数）与 `growth_level`（L1–L5）由这六轴加权 + 置信修正推出，不得再回退为旧线性加权模型的换皮版本。雷达图按六边形渲染；旧五轴快照加载时 `agentic_system` 标注「暂无数据」，不报错、不强制重算。
 
 ### 1.2.1 L1–L5 等级分值分布与设计理由
 
@@ -116,15 +97,15 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 | L4 | 72 | 74 | 70 | 70 | 68 | 75 |
 | L5 | 86 | 86 | 84 | 84 | 82 | 88 |
 
-> **注意**：分轴达标线是解释用的展示门槛，**不是**总分映射规则。总分由五轴加权 + 修正项共同决定，再映射到 `_LEVEL_MIN_SCORE` 确定等级。
+> **注意**：分轴达标线是解释用的展示门槛，**不是**总分映射规则。总分由六轴加权 + 修正项共同决定，再映射到 `_LEVEL_MIN_SCORE` 确定等级。
 
 ### 1.3 支持的 AI 编码工具
 
-与仓级 `README.md` 一致，当前接入 **7 款** AI 编码工具：
+与仓级 `README.md` 一致，当前接入 **9 款** AI 编码工具：
 
 | 类型 | 工具 |
 |------|------|
-| 国际主流 | Claude Code、Codex、Cursor、Gemini |
+| 国际主流 | Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code |
 | 国产 | CodeBuddy、Trae、QCoder |
 
 CLI `--tools all` 一次扫齐；也可按需指定单个或多个。各工具经统一 Adapter 适配层汇入同一套评分与报告链路。
@@ -139,7 +120,7 @@ flowchart TB
         direction TB
         subgraph tools_intl["tools_intl"]
             direction LR
-            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini]
+            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini] --- t_cline[Cline] --- t_kilo[Kilo Code]
         end
         subgraph tools_cn["tools_cn"]
             direction LR
@@ -155,7 +136,7 @@ flowchart TB
     end
 
     subgraph L3["📈 成长评分"]
-        sc_radar[五轴雷达] --> sc_level[L1-L5 等级] --> sc_plan[摩擦 · 训练建议]
+        sc_radar[六轴雷达] --> sc_level[L1-L5 等级] --> sc_plan[摩擦 · 训练建议]
     end
 
     subgraph L4["📄 报告渲染"]
@@ -273,7 +254,7 @@ ai_growth_mirror/
 │       ├── costs.py               # token 费用策略与估算
 │       ├── coaching.py            # CoachingContent DTO / parser
 │       ├── planning.py            # GrowthPlan DTO / 纯规划逻辑
-│       ├── capability.py          # compute_capability_scores()（五轴展示分）
+│       ├── capability.py          # compute_capability_scores()（六轴展示分）
 │   └── signals/collab.py          # 协作风格（报告展示真源）
 │
 ├── infra/                         # 基础设施层（一切有 I/O 或技术依赖）
@@ -420,7 +401,7 @@ application/orchestrator.generate_report_artifacts()
 
 **写死的内容**（代码 / YAML 常量）：
 - Growth Level 等级体系（L1-L5 定义、升级门槛）
-- 五轴成长底盘（轴名、状态边界、图表字段）
+- 六轴成长底盘（轴名、状态边界、图表字段）
 - UI 标签、报告框架结构
 
 **LLM 动态生成的内容**（`assets/prompts/*.md.j2`，当前主链仅三目录）：
@@ -481,7 +462,7 @@ application/orchestrator.generate_report_artifacts()
 
 个人版当前输出层必须同时支持：
 
-- `scorecard.radar_axes`：五轴主图数据
+- `scorecard.radar_axes`：六轴主图数据
 - `growth_signals.gap_rankings`：当前短板排序
 - `summary.growth_stage`：阶段解释层
 - `trend_signals`：多期变化与留存抓手
@@ -503,7 +484,7 @@ application/orchestrator.generate_report_artifacts()
 | 新增报告板块 | `application/report_view.py` + `assets/templates/report.html.j2` |
 | 新增 LLM 生成内容 | `assets/prompts/` 新建模板 + `infra/llm/` 对应调用点 |
 | 修改 Growth Level 门槛 | `domain/growth/scorer.py`（唯一入口） |
-| 修改五轴权重与状态边界 | `domain/growth/scorer.py` 中的底盘规则 |
+| 修改六轴权重与状态边界 | `domain/growth/scorer.py` 中的底盘规则 |
 
 ---
 

@@ -20,7 +20,7 @@ def test_series_view_axis_mode_uses_mini_chart_height():
         date = "2026-05-01"
 
     series = _series_view(
-        key="intent_clarity",
+        key="collaboration_framing",
         label="Intent",
         color="#2563eb",
         values=[40.0, 55.0, 60.0],

@@ -211,7 +211,7 @@ def test_radar_axes_no_data_for_empty_profile():
 
     empty = GrowthProfile(tool_name="all")
     axes = _build_radar_axes(empty)
-    # All five axes should report no data so the UI shows "—" not "0.0".
+    # All six axes should report no data so the UI shows "—" not "0.0".
     assert all(not axis.has_data for axis in axes)
 
 
@@ -224,11 +224,12 @@ def test_radar_axes_has_data_when_outcome_signals_present():
         session_count=5,
         pq_sessions_evaluated=3,
         agentic_sub_scores={
-            "intent_clarity": 62.0,
+            "collaboration_framing": 62.0,
             "execution_driving": 58.0,
             "implementation_depth": 55.0,
             "delivery_closure": 60.0,
             "adaptive_recovery": 45.0,
+            "agentic_system": 50.0,
         },
         avg_autonomous_chain_length=4.2,
         top_tools=[("bash", 12)],
@@ -237,8 +238,8 @@ def test_radar_axes_has_data_when_outcome_signals_present():
     assert all(axis.has_data for axis in axes)
 
 
-def test_radar_axes_intent_clarity_needs_pq_evaluation():
-    """`intent_clarity` is PQ-driven, so it stays "no data" when no PQ ran,
+def test_radar_axes_collaboration_framing_needs_pq_evaluation():
+    """`collaboration_framing` is PQ-driven, so it stays "no data" when no PQ ran,
     even if outcome signals exist."""
     from ai_growth_mirror.domain.growth.scorer import _build_radar_axes
     from ai_growth_mirror.domain.growth.model import GrowthProfile
@@ -252,6 +253,6 @@ def test_radar_axes_intent_clarity_needs_pq_evaluation():
     )
     axes = _build_radar_axes(profile)
     by_key = {axis.key: axis for axis in axes}
-    assert by_key["intent_clarity"].has_data is False
+    assert by_key["collaboration_framing"].has_data is False
     # Outcome-driven axes light up since chain depth + tools exist
     assert by_key["execution_driving"].has_data is True

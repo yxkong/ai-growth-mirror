@@ -24,7 +24,7 @@ _PROMPT_DIMENSION_BY_DEFICIT = {
 }
 
 _DEFICIT_FAMILY_MAP = {
-    "intent_clarity": {"missing-context", "vague-request", "assumption-not-surfaced"},
+    "collaboration_framing": {"missing-context", "vague-request", "assumption-not-surfaced"},
     "delivery_closure": {"missing-acceptance-criteria"},
     "adaptive_recovery": {"unclear-correction", "scope-drift"},
 }
@@ -100,8 +100,8 @@ def build_growth_plan(
         "verification_gap": "delivery_closure",
         "closure_gap": "delivery_closure",
         "debug_recovery_gap": "adaptive_recovery",
-        "framing_gap": "intent_clarity",
-        "scope_control_gap": "intent_clarity",
+        "framing_gap": "collaboration_framing",
+        "scope_control_gap": "collaboration_framing",
         "code_penetration_gap": "implementation_depth",
         "workflow_composition_gap": "execution_driving",
         "agentic_system": "agentic_system",
@@ -140,7 +140,7 @@ def build_growth_plan(
     _link_friction_synthesis_ids(priorities, prompt_coach)
 
     headline = i18n.get("headline", "")
-    next_focus = priorities[0].title if priorities else i18n.get("next_focus_fallback", "")
+    next_focus = priorities[0].title if priorities else ""
     return GrowthPlanView(
         headline=headline,
         next_focus=next_focus,
@@ -213,7 +213,7 @@ def _dedupe_action_contracts_across_priorities(
 ) -> None:
     """Drop action-contract lines that already appeared in an earlier priority.
 
-    Shared deficits (e.g. vague-request belongs to both intent_clarity and
+    Shared deficits (e.g. vague-request belongs to both collaboration_framing and
     execution_driving) and the generic synthesis line could otherwise render the
     same contract in multiple training blocks, which reads as "every contract is
     the same" to the user.
@@ -466,7 +466,7 @@ def _priority_action_contract(
     # None  → no filtering (show all); set() → no deficit contracts (strength axis).
     _KEY_DEFICIT_SCOPE: dict[str, set[str]] = {
         "delivery_closure": {"missing-acceptance-criteria"},
-        "intent_clarity": {"missing-context", "vague-request", "assumption-not-surfaced", "late-constraint"},
+        "collaboration_framing": {"missing-context", "vague-request", "assumption-not-surfaced", "late-constraint"},
         "adaptive_recovery": {"unclear-correction", "scope-drift"},
         "execution_driving": {"vague-request", "scope-drift"},
         "implementation_depth": set(),  # strength axis — no deficit-driven contracts
@@ -485,8 +485,8 @@ def _priority_action_contract(
         "verification_gap": "delivery_closure",
         "closure_gap": "delivery_closure",
         "debug_recovery_gap": "adaptive_recovery",
-        "framing_gap": "intent_clarity",
-        "scope_control_gap": "intent_clarity",
+        "framing_gap": "collaboration_framing",
+        "scope_control_gap": "collaboration_framing",
         "code_penetration_gap": "implementation_depth",
         "workflow_composition_gap": "execution_driving",
         "friction": "friction",
@@ -523,5 +523,5 @@ def _priority_title(title: str, key: str, linked_deficits) -> str:
     if linked_deficits and linked_deficits[0].category == "missing-acceptance-criteria":
         return "把“我要你优化”改成“什么结果算通过”"
     if linked_deficits and linked_deficits[0].category in {"missing-context", "vague-request"}:
-        return "需求表达训练"
+        return "协作框定训练"
     return title or key

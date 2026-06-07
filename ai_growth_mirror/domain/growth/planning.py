@@ -15,15 +15,15 @@ class RankedPriority(NamedTuple):
 
 def priority_family(key: str) -> str:
     if key in {"prompt:context_provision", "prompt:request_specificity", "prompt:scope_management"}:
-        return "intent_clarity"
+        return "collaboration_framing"
     if key == "prompt:information_timing":
         return "execution_driving"
     if key in {"friction", "prompt:correction_quality", "adaptive_recovery"}:
         return "course_correction"
     if key in {"delivery_closure", "verification_gap", "closure_gap"}:
         return "delivery_closure"
-    if key in {"intent_clarity", "framing_gap", "scope_control_gap"}:
-        return "intent_clarity"
+    if key in {"collaboration_framing", "framing_gap", "scope_control_gap"}:
+        return "collaboration_framing"
     if key in {"implementation_depth", "code_penetration_gap"}:
         return "implementation_depth"
     if key in {"execution_driving", "workflow_composition_gap"}:
@@ -77,7 +77,7 @@ def rank_growth_priorities(
         ("delivery_closure", 62.0, 92.0),
         ("implementation_depth", 58.0, 86.0),
         ("adaptive_recovery", 56.0, 84.0),
-        ("intent_clarity", 60.0, 80.0),
+        ("collaboration_framing", 60.0, 80.0),
         ("execution_driving", 58.0, 76.0),
     ):
         score = capability_scores.get(capability_key, 0.0)
@@ -123,7 +123,7 @@ def rank_growth_priorities(
         "missing-acceptance-criteria": ("delivery_closure", 93.0, "deficit_missing_acceptance"),
         "unclear-correction": ("prompt:correction_quality", 91.0, "deficit_unclear_correction"),
         "late-constraint": ("prompt:information_timing", 89.0, "deficit_late_constraint"),
-        "assumption-not-surfaced": ("intent_clarity", 87.0, "deficit_assumption"),
+        "assumption-not-surfaced": ("collaboration_framing", 87.0, "deficit_assumption"),
     }
     for deficit_key in top_deficit_keys:
         mapped = deficit_priority_map.get(deficit_key)

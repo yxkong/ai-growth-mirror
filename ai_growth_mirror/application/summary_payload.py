@@ -25,127 +25,67 @@ def _growth_trajectory_payload(view: PersonalReportView) -> dict[str, object]:
     return payload
 
 
-def _prompt_coach_payload(view: PersonalReportView) -> dict[str, object]:
+def _training_evidence_payload(view: PersonalReportView) -> dict[str, object] | None:
     coach = view.prompt_coach
-    return {
-        "headline": coach.headline,
-        "strongest_label": coach.strongest_label,
-        "weakest_label": coach.weakest_label,
-        "evidence_summary": coach.evidence_summary,
-        "strength_habit": coach.strength_habit,
-        "source_note": coach.source_note,
-        "light_state_note": coach.light_state_note,
-        "source_summary": {
-            "llm_session_count": coach.source_summary.llm_session_count,
-            "heuristic_session_count": coach.source_summary.heuristic_session_count,
-            "light_session_count": coach.source_summary.light_session_count,
-            "evaluated_user_messages": coach.source_summary.evaluated_user_messages,
-            "run_mode": coach.source_summary.run_mode,
-            "llm_evaluated_count": coach.source_summary.llm_evaluated_count,
-            "insufficient_count": coach.source_summary.insufficient_count,
-            "llm_failed_count": coach.source_summary.llm_failed_count,
-            "llm_unavailable_count": coach.source_summary.llm_unavailable_count,
-        },
-        "weak_dimensions": list(coach.weak_dimensions),
-        "deficits": list(coach.deficits),
-        "top_deficits": [
-            {
-                "id": item.id,
-                "category": item.category,
-                "label": item.label,
-                "description": item.description,
-                "impact": item.impact,
-                "confidence": item.confidence,
-                "evidence_refs": list(item.evidence_refs),
-                "source": item.source,
-            }
-            for item in coach.top_deficits
-        ],
-        "rewrite_cards": [
-            {
-                "id": item.id,
-                "scene": item.scene,
-                "original": item.original,
-                "problem": item.problem,
-                "better_prompt": item.better_prompt,
-                "why": item.why,
-                "category": item.category,
-                "confidence": item.confidence,
-                "evidence_refs": list(item.evidence_refs),
-                "source_note": item.source_note,
-            }
-            for item in coach.rewrite_cards
-        ],
-        "takeaways": [
-            {
-                "label": item.label,
-                "kind": item.kind,
-                "evidence": item.evidence,
-                "message": item.message,
-                "action": item.action,
-                "better_prompt": item.better_prompt,
-            }
-            for item in coach.takeaways
-        ],
-        "universal_template": {
-            "id": coach.universal_template.id,
-            "title": coach.universal_template.title,
-            "scene": coach.universal_template.scene,
-            "common_gap": coach.universal_template.common_gap,
-            "body": coach.universal_template.template,
+    top_deficits = [
+        {
+            "id": item.id,
+            "category": item.category,
+            "label": item.label,
+            "description": item.description,
+            "impact": item.impact,
+            "confidence": item.confidence,
+            "evidence_refs": list(item.evidence_refs),
+            "source": item.source,
         }
-        if coach.universal_template
-        else {},
-        "scenario_templates": [
-            {
-                "id": item.id,
-                "title": item.title,
-                "scene": item.scene,
-                "common_gap": item.common_gap,
-                "template": item.template,
-            }
-            for item in coach.scenario_templates
-        ],
-        "preflight_checklist": [
-            {
-                "id": item.id,
-                "text": item.text,
-                "related_deficit_id": item.related_deficit_id,
-            }
-            for item in coach.preflight_checklist
-        ],
-        "prompt_style": {
-            "type": coach.prompt_style.type,
-            "evidence": list(coach.prompt_style.evidence),
-            "coaching_message": coach.prompt_style.coaching_message,
-            "suggested_next_prompt": coach.prompt_style.suggested_next_prompt,
-            "trigger_maturity": list(coach.prompt_style.trigger_maturity),
+        for item in coach.top_deficits
+    ]
+    friction_synthesis = [
+        {
+            "id": item.id,
+            "label": item.label,
+            "explanation": item.explanation,
+            "next_action": item.next_action,
+            "confidence": item.confidence,
+            "evidence_refs": list(item.evidence_refs),
+            "generated_by": item.generated_by,
         }
-        if coach.prompt_style
-        else {},
-        "closure_guidance": {
+        for item in coach.friction_synthesis
+    ]
+    closure_guidance = None
+    if coach.closure_guidance:
+        closure_guidance = {
             "id": coach.closure_guidance.id,
             "task_type": coach.closure_guidance.task_type,
             "expected_closure_methods": list(coach.closure_guidance.expected_closure_methods),
             "missing_closure_methods": list(coach.closure_guidance.missing_closure_methods),
             "coaching_message": coach.closure_guidance.coaching_message,
         }
-        if coach.closure_guidance
-        else {},
-        "recommended_training_inputs": list(coach.recommended_training_inputs),
-        "friction_synthesis": [
-            {
-                "id": item.id,
-                "label": item.label,
-                "explanation": item.explanation,
-                "next_action": item.next_action,
-                "confidence": item.confidence,
-                "evidence_refs": list(item.evidence_refs),
-                "generated_by": item.generated_by,
-            }
-            for item in coach.friction_synthesis
-        ],
-    }
+    has_data = any(
+        [
+            coach.evidence_summary,
+            coach.light_state_note,
+            top_deficits,
+            friction_synthesis,
+            closure_guidance,
+        ]
+    )
+    if not has_data:
+        return None
+    payload: dict[str, object] = {}
+    if coach.evidence_summary:
+        payload["evidence_summary"] = coach.evidence_summary
+    if coach.light_state_note:
+        payload["light_state_note"] = coach.light_state_note
+    if coach.source_note:
+        payload["source_note"] = coach.source_note
+    if top_deficits:
+        payload["top_deficits"] = top_deficits
+    if friction_synthesis:
+        payload["friction_synthesis"] = friction_synthesis
+    if closure_guidance:
+        payload["closure_guidance"] = closure_guidance
+    return payload
 
 
 def _growth_plan_payload(view: PersonalReportView) -> dict[str, object]:
@@ -202,7 +142,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
         }
         for item in view.radar_axes
     ]
-    return {
+    payload: dict[str, object] = {
         "schema_version": "2.0",
         "report_type": "personal_growth_summary",
         "report_title": view.report_title,
@@ -236,7 +176,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
         "scorecard": {
             "radar_axes": radar_axes,
             "active_clarification_rate": round(view.active_clarification_rate, 4),
-            "intent_clarity_boost": round(view.intent_clarity_boost, 1),
+            "goal_locking_speed": round(view.goal_locking_speed, 1),
         },
         "capabilities": [
             {
@@ -308,7 +248,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
             ],
         },
         "work_focus": {
-            "projects": list(view.work_focus.projects),
+            "recent_work": list(view.work_focus.recent_work),
             "goal_mix": [
                 {"label": item.label, "count": item.count, "detail": item.detail}
                 for item in view.work_focus.goal_mix
@@ -343,7 +283,6 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
             }
             for item in view.exemplars
         ],
-        "prompt_coach": _prompt_coach_payload(view),
         "style_system": {
             "archetype_name": view.style_lens.archetype_name,
             "archetype_tag": view.style_lens.archetype_tag,
@@ -364,3 +303,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
         },
         "growth_plan": _growth_plan_payload(view),
     }
+    training_evidence = _training_evidence_payload(view)
+    if training_evidence:
+        payload["training_evidence"] = training_evidence
+    return payload
