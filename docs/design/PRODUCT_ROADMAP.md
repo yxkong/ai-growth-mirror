@@ -6,9 +6,11 @@
 
 ## 1. 产品定位与核心价值
 
-**一句话定义**：帮助 AI coding 用户看见并改进与 AI 协作时的行为盲区，提供可执行的成长训练方案。
+**一句话定义**：帮助 AI coding 用户看见并改进与 AI 协作时的行为盲区，评估 **Agentic 操作成熟度**，提供可执行的成长训练方案。
 
-* **诊断**：我的 Prompt 哪里弱？（聚焦于提需求与协作逻辑，而非代码质量）
+> **核心定位（v0.7+ 明确）**：AI Growth Mirror 不是 Prompt 打分器，而是 **Agentic 操作成熟度评估系统**。它评价的不是"你的 Prompt 写得有多完整"，而是"你能否把 AI 变成稳定可复用的生产力系统"。
+
+* **诊断**：我的协作模式哪里弱？（从 Prompt 完备度扩展到 Agentic 系统化能力全链路）
 * **训练**：如何改进？（每次生成给出 2 项清晰、可落地的两周训练计划与 Action Contract 契约）
 * **追踪**：我有进步吗？（自动追踪 30 天成长轨迹，显示对比分析与人工纠偏成本趋势）
 
@@ -34,8 +36,10 @@
 | **v0.4.0** | 1.1 | Agentic 核心诊断架构与证据事实图 | ✅ 已发布 |
 | **v0.4.2** | 1.2 | 缺失型指标归一化、防颠簸缓存与多端隔离 | ✅ 已发布 |
 | **v0.5.0** | 1.2 | 免部署单文件交互式报告 (Scroll Spy / Deficit 联动) | ✅ 已发布 |
-| **v0.6.0** | 1.3 | 训练回看与环比增量闭环 (Practice Feedback Loop) | 🏃 进行中 |
-| **v0.7.0** | 1.3 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
+| **v0.6.0** | 1.3 | 训练回看与环比增量闭环 (Practice Feedback Loop) | ✅ 已发布 |
+| **v0.7.0** | 1.4 | **Agentic 操作成熟度体系重构**（六轴 + 三层模型 + environmental-recovery） | 📅 规划中 |
+| **v0.8.0** | 1.4 | `collaboration_framing` 重定义 + `goal_locking_speed` 新信号 | 📅 规划中 |
+| **v0.9.0** | 1.4 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
 | **v1.0.0+** | 2.0 | 插件市场与开放平台 API | 📅 长期规划 |
 
 ---
@@ -55,9 +59,22 @@
 * **惰性 Placeholder 解析**：初扫描阶段仅提取 project_path 构建 Placeholder 会话，过滤采样后再深度解析，吞吐率提升百倍。
 ---
 
-## 4. 中期规划 (v0.5.0 ~ v0.7.0)
+## 4. 中期规划 (v0.5.0 ~ v0.8.0)
 
-> **演进逻辑**：诊断（v0.4）→ 可读交互（v0.5）→ 训练闭环（v0.6）→ 跨端聚合（v0.7）→ 平台化（v1.0）。每一版只解决 1–2 个核心缺口，避免功能堆砌；后一版依赖前一版的 snapshot/sidecar 契约，不推翻主链。
+> **演进逻辑**：诊断（v0.4）→ 可读交互（v0.5）→ 训练闭环（v0.6）→ **Agentic 评估重构（v0.7）** → 协作框定重定义（v0.8）→ 跨端聚合（v0.9）→ 平台化（v1.0）。每一版只解决 1–2 个核心缺口，避免功能堆砌；后一版依赖前一版的 snapshot/sidecar 契约，不推翻主链。
+
+### 报告内容版本闭环规划
+
+> 每个版本的报告必须从「用户能在报告里看到什么」视角做闭环设计，而非只有功能特性描述。
+
+| 版本 | 报告新增/变化内容 | 用户能看到什么 | 闭环依据 |
+|------|-----------------|--------------|---------|
+| **v0.5** ✅ | 五轴雷达交互 + Scroll Spy + Deficit 联动跳转 | 点击短板即跳至改写建议卡片；雷达 hover 显示子维度事实 | 报告交互可用性 |
+| **v0.6** 🏃 | 训练回看折叠区块 + 环比 delta 卡片 + CLI status | 上期建议是否落地（improved/partial/unchanged）；六轴分趋势折线 | 教练建议可追踪 |
+| **v0.7** 📅 | **六边形雷达**（加 agentic_system 轴）+ environmental-recovery 修复 | 第六轴「Agentic 系统化」独立展示；恢复推进不再被误判为用户失误 | Agentic 评估完整性 |
+| **v0.8** 📅 | `collaboration_framing` 重命名 + goal_locking_speed 信号 | 雷达轴标签从「任务表达」改为「协作框定」；tooltip 展示目标锁定速度 | 多轮协作模式识别 |
+| **v0.9** 📅 | 跨机器合并视图 | 多台电脑的会话合并进同一报告；不同设备的能力分布对比 | 多端工作者需求 |
+| **v1.0** 📅 | 社区基准对标 + 插件扩展轴 | "您的 Agentic 系统化能力处于全球前 30%"；第三方自定义轴 | 平台化开放 |
 
 ### 4.1 v0.5.0 — 免部署交互式报告 (SPA-like Single-File HTML) ✅
 * **核心目标**：在不破坏“本地双击即用”的零服务器前提下，大幅增强数据报告的交互体验。
@@ -88,23 +105,51 @@
   - **CLI `status` 命令**：`ai-growth-mirror status` 即时显示样本收集进度（< 100ms，不触发完整重算）+ 本周来自上期 Action Contract 的练习提示。
   - **报告内训练回看区块**：`#section-growth-plan` 下方新增可折叠"上期训练回看"，展示 contract 执行效果列表。
 
-### 4.3 v0.7.0 — 跨机器快照聚合与团队聚合
+### 4.3 v0.7.0 — Agentic 操作成熟度体系重构 📅
+
+> 详细设计见 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)
+
+**核心判断**：`intent_clarity` 对 Agentic 成熟度偏高；`agentic_system` 是门槛触发器而非连续贡献项；「继续/恢复推进」被误归为用户问题——三个缺陷合一并修。
+
+**三层成熟度模型**（取代隐性的单层评分观）：
+
+```
+第三层：能否沉淀成可复用 AI 工作系统  → agentic_system（新增正式轴，10%）
+第二层：AI 能否被驱动完成真实工作    → execution + impl + delivery + recovery
+第一层：人能否启动协作               → intent_clarity（降权到 15%）
+```
+
+**主要变更**：
+- **六轴体系**：`agentic_system` 升格为第六个正式评分轴（10%），进入雷达图与 gap_rankings
+- **权重重分配**：`intent_clarity` 20%→15%，`execution_driving` 22%→24%，`agentic_system` 门槛触发→10%
+- **environmental-recovery 修复**：「继续/重试/恢复推进」类消息归入 `environmental`，不再误生成 `off-track`
+- **六边形雷达图**：SVG 从五边形升级为六边形
+
+### 4.4 v0.8.0 — `collaboration_framing` 重定义 📅
+
+* **核心目标**：`intent_clarity`（任务表达）重定义为 `collaboration_framing`（协作框定能力），内涵从「首轮完备度」扩展为「多轮协作启动质量」。
+* **主要变更**：
+  - `active_clarification_rate` 从补丁加成变为 `collaboration_framing` 最大权重子项（0.34）
+  - 新增 `goal_locking_speed` 信号：N 轮内让 AI 开始产出代码的速度
+  - `tool_leverage_bonus` 和 `workflow_maturity_bonus` 并入 `agentic_system`，消除外挂加分
+
+---
+
+## 5. 长期规划 (v0.9.0+)
+
+### 5.1 v0.9.0 — 跨机器快照聚合与团队聚合
 * **核心目标**：打通多设备使用壁垒，为多端工作的程序员和团队提供无摩擦的聚合视图。
 * **主要特性**：
   - **Cross-Machine CLI Aggregator**：在 CLI 中支持 `--sources` 传递多机器缓存路径，合并生成跨设备统一画像。
   - **团队脱敏看板 (Manager Dashboard)**：支持在完全本地化、匿名且脱敏的原则下，合并多个用户的快照 Sidecar，生成团队/部门的常见协作痛点 Top 3 与能力平均基线。
 
----
-
-## 5. 长期规划 (v1.0.0+)
-
-### 5.1 v1.0.0 — AI Coding 教练平台
+### 5.2 v1.0.0 — AI Coding 教练平台
 * **开放平台 API**：允许第三方 AI 工具（如自定义 IDE 脚本、VS Code 插件）通过 API 输入会话包。
-* **插件市场 (Plugin Market)**：支持开发者基于 `Agentic Evidence Graph` 的六维事实，自定义编写规则/LLM 评估插件，扩展五轴评分。
-* **匿名社区基准 (Community Benchmark)**：在用户完全自愿的前提下，允许上传无敏感数据的匿名 sidecar。平台提供对标服务（例如：“您的 Context Frame 处于全球前 30%”）。
+* **插件市场 (Plugin Market)**：支持开发者基于 `Agentic Evidence Graph` 的六维事实，自定义编写规则/LLM 评估插件，扩展六轴评分。
+* **匿名社区基准 (Community Benchmark)**：在用户完全自愿的前提下，允许上传无敏感数据的匿名 sidecar。平台提供对标服务（例如："您的 Agentic 系统化能力处于全球前 30%"）。
 
-### 5.2 v1.5.0 — IDE 实时自检插件
-* **实时自检**：在 IDE 的 Chat 面板增加“发送前自检 (Preflight Check)”悬浮提示，在用户点击发送 Prompt 前进行拦截诊断。
+### 5.3 v1.5.0 — IDE 实时自检插件
+* **实时自检**：在 IDE 的 Chat 面板增加"发送前自检 (Preflight Check)"悬浮提示，在用户点击发送 Prompt 前进行拦截诊断。
 * **偏航预测**：基于用户最近的成长短板，实时预判当前 Prompts 是否存在上下文缺失或偏航风险。
 
 ---
@@ -113,6 +158,7 @@
 
 | 日期 | 产品版本 | 缓存 Schema | 变更概要 |
 |------|---------|-------------|---------|
+| 2026-06-07 | v0.7.0（规划） | 1.4 | **Agentic 操作成熟度体系重构规划**：产品定位更新为"Agentic 操作成熟度评估"；三层成熟度模型；`agentic_system` 升格第六轴（10%）；`intent_clarity` 降权 20%→15%；`execution_driving` 升权 22%→24%；`environmental-recovery` 修复方案；v0.8.0 `collaboration_framing` 预留；新增 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)。 |
 | 2026-06-07 | v0.6.0（收口） | 1.3 | **v0.6.0 发布收口对齐**：主动澄清加成在雷达 tooltip 透明展示；`summary.json` 补 `active_clarification_rate`/`intent_clarity_boost`；LLM 与 heuristic 共用 `detect_active_clarification`；Schema 1.3；新增 `test_cli_status.py`。落地进度清单全部转 ✅。 |
 | 2026-06-06 | v0.5.0 | 1.2 | **v0.5.0 发布收口**：标记免部署交互式报告为已发布；明确 v0.5→v0.6→v0.7 演进逻辑；补充 v0.6.0 落地进度清单。 |
 | 2026-06-06 | v0.6.0（规划） | 1.3 | **v0.6.0 详细设计落地**：补充 Action Contract 追踪、环比 delta 卡片、主动澄清信号修正（解决多轮交互评分悖论）、CLI status 命令完整设计；新增 [v0.6.0-DESIGN.md](v0.6.0-DESIGN.md)；更新路线图特性描述。 |

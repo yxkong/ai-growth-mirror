@@ -7,13 +7,30 @@
 
 > **你是否每天都在大量使用 Cursor、Claude Code、Trae 等 AI 编码工具，却感觉交付结果不稳定？或者经常被 AI 牵着走，不知道协作的问题到底出在哪里？**
 >
-> **AI Growth Mirror** 是一面**本地优先**的个人 AI 协作能力反思镜。它静默、安全地读取你本机已有的 AI 编码会话历史，通过“四证法”和“五轴底盘”算法，将你模糊的协作感觉转化为**可观察、可解释、可复盘**的可视化成长报告。它不是一张“好看的 AI 使用海报”，而是帮你打破协作瓶颈、沉淀高杠杆技术资产的成长产品。
+> **AI Growth Mirror** 是一面**本地优先**的 **Agentic 操作成熟度评估系统**。它静默、安全地读取你本机已有的 AI 编码会话历史，通过"四证法"和"六轴底盘"算法，将你模糊的协作感觉转化为**可观察、可解释、可复盘**的可视化成长报告。它不是"好看的 AI 使用海报"，而是帮你打破协作瓶颈、沉淀高杠杆技术资产的成长产品。
 
 ---
 
-## 🎯 评估方法论：“四证法”
+## 🌐 AI 工具三阶段演进：你处于哪个阶段？
 
-AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数），而是用**“四证法”**真实映射你的人机协作水平：
+AI 工具的发展正在经历三个阶段转型，评估重心也在随之迁移：
+
+```
+阶段一（Copilot）          阶段二（Agentic）           阶段三（Autonomous）
+─────────────────────    ─────────────────────────    ──────────────────────────
+人写代码，AI 补全          人定目标，AI 执行             人做战略，AI 自主完成
+intent 很重要              execution 才是核心            评估对齐与控制能力
+"Prompt 写得好不好"         "能否驱动 AI 稳定交付"        "能否建立可信任的 AI 系统"
+```
+
+**AI Growth Mirror 的定位**：不是 Prompt 打分器，而是 **Agentic 操作成熟度评估**。
+从 v0.7 开始，评估重心从「你的 Prompt 写得有多完整」迁移到「你能否把 AI 变成稳定可复用的生产力系统」。
+
+---
+
+## 🎯 评估方法论："四证法"
+
+AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数），而是用**"四证法"**真实映射你的人机协作水平：
 
 * 🎯 **Context Frame (上下文边界)**: 首轮是否把目标、约束、验收和代码上下文讲透？
 * 🔗 **Flow Orchestration (连续流编排)**: 是否驱策 AI 连续解决复杂问题，而不是每一步都靠人工接管？
@@ -22,17 +39,20 @@ AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数
 
 ---
 
-## 📈 五轴协作雷达
+## 📈 六轴 Agentic 成熟度雷达（v0.7+）
 
-每一期生成的评估结果都会投射到以下**五轴协作雷达**（协作指数由此计算）：
+每一期生成的评估结果都会投射到**六轴协作雷达**（协作指数由此计算）：
 
-| 协作能力轴 (2026 核心) | 权重 | 衡量内容 |
-|---------------------|:---:|----------|
-| **任务表达** (`intent_clarity`) | 20% | 提示词约束前置、代码上下文提供以及边界清晰度 |
-| **协作驱动** (`execution_driving`) | 22% | 自主工具链解决长度、子代理编排与人机协作节奏 |
-| **实现下潜** (`implementation_depth`) | 22% | 文件修改量、代码验证覆盖率与实现边界控制 |
-| **交付收口** (`delivery_closure`) | 22% | 任务完成率、验证行为率与测试用例运行表现 |
-| **恢复推进** (`adaptive_recovery`) | 14% | AI 偏航或报错时，人机纠偏和回到正轨的质量 |
+| 协作能力轴 | v0.6 权重 | v0.7 权重 | 衡量内容 |
+|-----------|:---------:|:---------:|---------|
+| **任务表达** (`intent_clarity`) | 20% | **15%** ↓ | 协作启动质量；v0.8 重命名为 `collaboration_framing` |
+| **协作驱动** (`execution_driving`) | 22% | **24%** ↑ | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场）|
+| **实现下潜** (`implementation_depth`) | 22% | **20%** | 文件修改量、代码验证覆盖率与实现边界控制 |
+| **交付收口** (`delivery_closure`) | 22% | **20%** | 任务完成率、验证行为率与测试用例运行表现 |
+| **恢复推进** (`adaptive_recovery`) | 14% | **11%** | AI 偏航或报错时，纠偏和回到正轨的质量 |
+| **Agentic 系统化** (`agentic_system`) | — | **10%** 🆕 | Skill/Workflow/MCP/Subagent 等方法资产化能力 |
+
+> **为什么这样调整**：见 [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md)
 
 ---
 
@@ -54,6 +74,11 @@ Cursor、Trae、QCoder 等工具的日志天然缺少 Token 用量明细。系�
 一键扫描，自动识别并聚合以下 9 款 AI 工具：
 - **国际主流**：Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code
 - **国产先锋**：CodeBuddy、Trae、QCoder
+
+### 6. 📊 训练闭环 + 环比追踪 (v0.6+)
+- **Action Contract 追踪**：自动识别上一期建议在本期的改善效果（improved / partial / unchanged）
+- **环比增量分析**：六轴评分 + 摩擦变化的逐期 delta，SVG 趋势折线 + 变化箭头
+- **CLI `status`**：`ai-growth-mirror status` 即时显示样本进度 + 本周练习提示（< 100ms）
 
 ---
 
@@ -131,8 +156,8 @@ ai-growth-mirror generate
 ```
 
 运行完成后，您的当前目录下将输出：
-- `ai-growth-mirror.html`: 个人协作能力交互式分析主报告。
-- `ai-growth-mirror.json`: 结构化 Sidecar 缓存数据（缓存 Schema v1.3 规范）。
+- `ai-growth-mirror.html`: 个人 Agentic 成熟度交互式分析主报告。
+- `ai-growth-mirror.json`: 结构化 Sidecar 缓存数据（Schema v1.3 规范）。
 - `ai-growth-mirror-share.html`: 对外分享脱敏卡片。
 - `ai-growth-mirror-archive/`: 快照存档目录，第二次运行时将自动激活「成长轨迹对比」（本期 vs 上一期）。
 
@@ -140,6 +165,7 @@ ai-growth-mirror generate
 
 ## 🛠️ 进阶命令参数
 
+* **查看本周样本进度**：`ai-growth-mirror status`
 * **指定工具过滤**：`ai-growth-mirror generate --tools cursor,trae`
 * **锁定时间窗口**：`ai-growth-mirror generate --since 2026-01-01 --until 2026-06-30`
 * **离线规则引擎分析**（零外部网络调用与费用）：`ai-growth-mirror generate --session-read-mode heuristic`
@@ -153,8 +179,10 @@ ai-growth-mirror generate
 
 对于想要深度定制、贡献 Adapter 或调试算法的开发者，请详细参阅我们的 Canonical 文档：
 * [分层依赖与架构总纲](./docs/design/ARCHITECTURE_PRINCIPLES.md)
+* [产品路线图](./docs/design/PRODUCT_ROADMAP.md)
+* [v0.7.0 Agentic 体系重构设计](./docs/design/v0.7.0-DESIGN.md)
+* [v0.6.0 训练闭环设计](./docs/design/v0.6.0-DESIGN.md)
 * [产品语气、命名与安全脱敏规范](./docs/design/AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md)
-* [传播与分享飞轮设计](./docs/design/AI_GROWTH_MIRROR_OPEN_SOURCE_PROPAGATION_DESIGN.md)
 * [参与贡献指南](./CONTRIBUTING.md)
 
 ---

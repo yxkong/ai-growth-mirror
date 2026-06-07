@@ -1,18 +1,13 @@
 # AI Growth Mirror — 架构总纲
 
-> **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审查以此为准。
-> 最后更新：2026-06-05（补充 L1–L5 等级分值分布设计 §1.2.1）
-
----
-
-## 1. 产品定位
-
-AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、CodeBuddy、Trae、QCoder 共 7 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
+> **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审�AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、CodeBuddy、Trae、QCoder 共 7 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
 
 **核心目标**：帮助使用 AI 工具的人提升自我，不是给单人用的报告工具，而是对所有 AI 工具用户通用的产品。
 
+> **v0.7+ 核心定位**：AI Growth Mirror 不是 Prompt 打分器。它评价的不是"你的 Prompt 写得有多完整"，而是"你能否把 AI 变成稳定可复用的生产力系统"。评估维度从"任务表达能力"演进为"Agentic 操作成熟度"。
+
 **基本原则**：
-- 框架与评级体系写死（Growth Level L1-L5、五轴成长底盘）
+- 框架与评级体系写死（Growth Level L1-L5、六轴成长底盘）
 - 文案、洞察、建议通过 LLM + 结构化提示词动态生成
 - 本地优先，数据不出本机
 
@@ -26,6 +21,34 @@ AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**�
 AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平：
 
 - **Context Frame**：首轮是否把目标、约束、验收、上下文说清楚
+- **Flow Orchestration**：是否能让 AI 连续推进，而不是每一步都靠人工接管
+- **Proof Loop**：是否把验证、测试、回看放进主流程，保证事实性
+- **Method Asset**：是否把有效做法沉淀成模板、规则、脚本、Skill 或流程
+
+产品所有输出都必须能回到这四条证据链，不允许出现"分数有了，但用户看不懂为什么"的展示。
+
+### 1.2 当前成长评分主轴（产品真源）
+
+个人版 v0.6 使用 **五轴成长底盘**，v0.7 升级为 **六轴**：
+
+**v0.6 五轴（当前）：**
+
+- **Intent Clarity**（任务表达 · 权重 20%）：目标、约束、验收与上下文是否讲清楚
+- **Execution Driving**（协作驱动 · 权重 22%）：是否主动驱动 AI 推进，而不是被回答牵着走
+- **Implementation Depth**（实现下潜 · 权重 22%）：是否真正进入代码、实现和逻辑边界
+- **Delivery Closure**（交付收口 · 权重 22%）：是否把结果带到验证、收口和可交付状态
+- **Adaptive Recovery**（恢复推进 · 权重 14%）：遇到偏航、报错、阻塞时能否基于新证据恢复推进
+
+**v0.7 六轴（规划中，详见 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)）：**
+
+- **Intent Clarity**（任务表达 · 权重 **15%**）：降权；v0.8 重命名为 `collaboration_framing`
+- **Execution Driving**（协作驱动 · 权重 **24%**）：升权；Agentic 主战场
+- **Implementation Depth**（实现下潜 · 权重 **20%**）
+- **Delivery Closure**（交付收口 · 权重 **20%**）
+- **Adaptive Recovery**（恢复推进 · 权重 **11%**）：修复 environmental-recovery 误归类后信噪比提升
+- **Agentic System**（系统化能力 · 权重 **10%**，新增正式轴）：skill/workflow/MCP/subagent 等方法资产化能力
+
+`mirror_score`（协作指数）与 `growth_level`（L1–L5）由六轴与置信修正推出，不得再回退为旧六维线性加权模型的换皮版本。标、约束、验收、上下文说清楚
 - **Flow Orchestration**：是否能让 AI 连续推进，而不是每一步都靠人工接管
 - **Proof Loop**：是否把验证、测试、回看放进主流程，保证事实性
 - **Method Asset**：是否把有效做法沉淀成模板、规则、脚本、Skill 或流程
