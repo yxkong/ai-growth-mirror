@@ -248,6 +248,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
             ],
         },
         "work_focus": {
+            "headline": view.work_focus.headline,
             "recent_work": list(view.work_focus.recent_work),
             "goal_mix": [
                 {"label": item.label, "count": item.count, "detail": item.detail}
