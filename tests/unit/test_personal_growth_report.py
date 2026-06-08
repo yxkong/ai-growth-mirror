@@ -165,7 +165,10 @@ def test_build_personal_report_view_contains_core_sections():
     assert "内存" in view.usage.memory_note
     assert view.work_focus.goal_mix
     assert view.work_focus.goal_mix[0].detail.endswith("%")
-    assert view.work_focus.recent_work[0] == "修复接口错误"
+    assert view.work_focus.recent_work[0] == "修复接口错误并完成验证。"
+    assert "从会话语义看" in view.work_focus.headline
+    assert "功能实现" in view.work_focus.headline
+    assert "终端执行" not in view.work_focus.headline
     assert view.work_focus.tools[0].label == "终端执行"
     assert all(item.label != "shell_command" for item in view.work_focus.tools)
     assert any(item.label == "页面查看" for item in view.work_focus.tools)
@@ -177,6 +180,61 @@ def test_build_personal_report_view_contains_core_sections():
     assert "LLM" in view.prompt_coach.source_note
     assert len({item.kind for item in view.prompt_coach.takeaways}) >= 2
     assert all(item.message != item.action for item in view.prompt_coach.takeaways if item.message and item.action)
+
+
+def test_work_focus_summarizes_noisy_recent_work_as_business_theme():
+    noisy_prompt = (
+        "根据下面的内容 review，并修复 review 到的问题，将报告闭环 "
+        "使用 /Users/yxk/workspace/ai-hub/skills/share/agent-task/example.md "
+        "解决报错 实现下面的功能，并完善相关的文档"
+    )
+    sessions = [_make_session("s1", "D:/repo/demo-platform", first_prompt=noisy_prompt)]
+    sessions[0].tool_counts = {
+        "view file": 12,
+        "grep search": 5,
+        "run command": 4,
+        "replace file content": 3,
+        "list dir": 2,
+    }
+    facets = [_make_facets("s1")]
+    facets[0].work_summary = "修复报告闭环与展示问题。"
+    facets[0].work_intent_mix = {"fix_bug": 2, "implement_feature": 1}
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.work_focus.recent_work == ["修复报告闭环与展示问题"]
+    assert "/Users/" not in view.work_focus.recent_work[0]
+    assert "agent-task" not in view.work_focus.recent_work[0]
+    assert "view file" not in view.work_focus.headline
+    assert "缺陷修复" in view.work_focus.headline
+    assert "修复报告闭环与展示问题" in view.work_focus.headline
+
+
+def test_work_focus_falls_back_to_prompt_only_for_low_confidence_read():
+    sessions = [_make_session("s1", "D:/repo/demo-platform", first_prompt="目标：修复报告闭环，并完善相关文档。")]
+    facets = [_make_facets("s1")]
+    facets[0].confidence = "low"
+    facets[0].work_summary = "不可信摘要"
+    facets[0].work_intent_mix = {"quick_question": 5}
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.work_focus.recent_work == ["修复报告闭环与展示问题"]
+    assert "不可信摘要" not in view.work_focus.headline
 
 
 def test_short_session_prompt_lens_gets_insufficient_input_status():

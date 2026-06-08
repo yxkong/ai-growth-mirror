@@ -258,8 +258,8 @@ summary:
 
 work_focus:
   default_goal: "Implementation"
-  default_tool: "Terminal execution"
-  headline: "Recently you are mainly using AI for {primary_goal}-type work, with {primary_tool} as the dominant collaboration entry point."
+  default_work: "moving the current delivery forward"
+  headline: "From the semantic session reads, your recent AI work is mainly {primary_goal}-type work, with the current thread around {primary_work}."
 
 collaboration_rhythm:
   headline: "This period looks like {rhythm_label} — slice tasks and checkpoints to match that rhythm."

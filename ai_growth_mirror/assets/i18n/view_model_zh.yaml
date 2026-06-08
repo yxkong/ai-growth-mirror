@@ -258,8 +258,8 @@ summary:
 
 work_focus:
   default_goal: "实现开发"
-  default_tool: "终端执行"
-  headline: "你最近主要把 AI 用在“{primary_goal}”一类问题上，常见协作入口更偏“{primary_tool}”。"
+  default_work: "推进当前交付任务"
+  headline: "从会话语义看，你最近主要在处理“{primary_goal}”类工作，当前主线是“{primary_work}”。"
 
 collaboration_rhythm:
   headline: "本期协作更像「{rhythm_label}」——按这个节奏切任务、安排验收，会更顺手。"

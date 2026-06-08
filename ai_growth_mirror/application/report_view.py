@@ -711,7 +711,7 @@ def build_personal_report_view(
     collaboration_rhythm = _build_collaboration_rhythm(stats, catalogs)
     usage = _build_usage_section(stats, catalogs)
     usage.coverage_note = _build_usage_coverage_note(sessions, catalogs)
-    work_focus = _build_work_focus(stats, sessions, redact, catalogs)
+    work_focus = _build_work_focus(stats, sessions, session_reads, redact, catalogs)
     style_lens = _build_style_lens(stats, capability_scores, agent_asset=asset_stats, catalogs=catalogs)
     wins = _build_wins(
         stats=stats,
@@ -1606,10 +1606,11 @@ def _build_usage_section(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
 def _build_work_focus(
     stats: GrowthProfile,
     sessions: list[SessionRecord],
+    session_reads: list[SessionRead],
     redact: bool,
     catalogs: ReportLabelCatalogs,
 ) -> WorkFocusSectionView:
-    recent_work = [] if redact else _recent_work_items(sessions)[:4]
+    recent_work = [] if redact else _recent_work_items(sessions, session_reads)[:4]
     total_goal_signals = max(sum(stats.goal_category_counts.values()), 1)
     top_goals = [
         FocusAreaView(
@@ -1626,9 +1627,11 @@ def _build_work_focus(
     top_tools = _rollup_tool_labels(stats.top_tools[:8], catalogs)[:5]
     top_languages = [FocusAreaView(label=name, count=count) for name, count in stats.top_languages[:4]]
     work_focus_i18n = _view_i18n(catalogs).get("work_focus", {})
-    primary_goal = top_goals[0].label if top_goals else work_focus_i18n.get("default_goal", "Implementation")
-    primary_tool = top_tools[0].label if top_tools else work_focus_i18n.get("default_tool", "Terminal execution")
-    headline = work_focus_i18n.get("headline", "").format(primary_goal=primary_goal, primary_tool=primary_tool)
+    primary_goal = _primary_goal_from_session_reads(session_reads, catalogs) or (
+        top_goals[0].label if top_goals else work_focus_i18n.get("default_goal", "Implementation")
+    )
+    primary_work = recent_work[0] if recent_work else work_focus_i18n.get("default_work", "")
+    headline = work_focus_i18n.get("headline", "").format(primary_goal=primary_goal, primary_work=primary_work)
     return WorkFocusSectionView(headline=headline, recent_work=recent_work, goal_mix=top_goals, tools=top_tools, languages=top_languages)
 
 
@@ -2171,16 +2174,33 @@ def _rollup_projects(items: list[tuple[str, int]]) -> list[str]:
     return seen
 
 
-def _recent_work_items(sessions: list[SessionRecord]) -> list[str]:
+def _primary_goal_from_session_reads(session_reads: list[SessionRead], catalogs: ReportLabelCatalogs) -> str:
+    counts: dict[str, int] = {}
+    for read in session_reads or []:
+        if read.confidence == "low":
+            continue
+        for key, count in (read.work_intent_mix or {}).items():
+            counts[key] = counts.get(key, 0) + int(count or 0)
+    if not counts:
+        return ""
+    primary_key = max(counts.items(), key=lambda item: item[1])[0]
+    return _goal_label(primary_key, catalogs)
+
+
+def _recent_work_items(sessions: list[SessionRecord], session_reads: list[SessionRead]) -> list[str]:
     rows: list[str] = []
+    read_by_session = {read.session_id: read for read in session_reads or []}
     sorted_sessions = sorted(
         sessions,
         key=lambda session: session.start_time or "",
         reverse=True,
     )
     for session in sorted_sessions:
-        source = session.first_prompt or (session.top_user_messages[0] if session.top_user_messages else "")
-        item = _work_item_from_prompt(source)
+        read = read_by_session.get(session.session_id)
+        item = _work_item_from_session_read(read) if read else ""
+        if not item:
+            source = session.first_prompt or (session.top_user_messages[0] if session.top_user_messages else "")
+            item = _work_item_from_prompt(source)
         if item and item not in rows:
             rows.append(item)
         if len(rows) >= 4:
@@ -2188,10 +2208,34 @@ def _recent_work_items(sessions: list[SessionRecord]) -> list[str]:
     return rows
 
 
+def _work_item_from_session_read(read: SessionRead | None) -> str:
+    if not read or read.confidence == "low":
+        return ""
+    source = read.work_summary or read.session_takeaway or read.key_gain
+    if not source:
+        return ""
+    return _trim_text(_sanitize_work_item_source(source), 48)
+
+
+_PATH_RE = re.compile(
+    r"(?:[A-Za-z]:[\\/][^\s，。；;]+|/Users/[^\s，。；;]+|/home/[^\s，。；;]+|\\\\\?\\[^\s，。；;]+)"
+)
+_WORK_ITEM_NOISE_PATTERNS = (
+    r"^根据下面的内容\s*review\s*[，,、和并]*\s*",
+    r"^review\s*[，,、和并]*\s*",
+    r"^使用\s*$",
+    r"^解决报错\s*",
+    r"^实现下面的功能\s*[，,、和并]*\s*",
+    r"^并完善相关的文档\s*",
+    r"^修复\s*review\s*到的问题\s*[，,、和并]*\s*",
+)
+
+
 def _work_item_from_prompt(value: str) -> str:
     text = " ".join((value or "").replace("\n", " ").split())
     if not text:
         return ""
+    text = _sanitize_work_item_source(text)
     for pattern in (
         r"(?:目标结果|目标|本次任务|任务|当前问题|本次对象)[:：]\s*([^。；;.!?\n]+)",
         r"(?:help me|please|请|帮我)\s*([^。；;.!?\n]+)",
@@ -2203,6 +2247,32 @@ def _work_item_from_prompt(value: str) -> str:
                 return _trim_text(candidate, 48)
     first_sentence = re.split(r"[。；;.!?]", text, maxsplit=1)[0].strip(" ：:，,")
     return _trim_text(first_sentence, 48)
+
+
+def _sanitize_work_item_source(value: str) -> str:
+    text = _PATH_RE.sub(" ", value)
+    text = re.sub(r"\s+", " ", text).strip(" ：:，,、")
+    changed = True
+    while changed:
+        changed = False
+        for pattern in _WORK_ITEM_NOISE_PATTERNS:
+            new_text = re.sub(pattern, "", text, flags=re.IGNORECASE).strip(" ：:，,、")
+            if new_text != text:
+                text = new_text
+                changed = True
+    if not text:
+        return ""
+    theme_rules = (
+        (r"报告闭环", "修复报告闭环与展示问题"),
+        (r"文档", "实现功能并完善文档"),
+        (r"报错|exception|traceback", "定位并修复报错"),
+        (r"功能", "实现功能需求"),
+        (r"review", "根据 review 修复问题"),
+    )
+    for pattern, label in theme_rules:
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            return label
+    return text
 
 
 def _rollup_tool_labels(items: list[tuple[str, int]], catalogs: ReportLabelCatalogs) -> list[FocusAreaView]:
