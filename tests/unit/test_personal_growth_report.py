@@ -237,6 +237,25 @@ def test_work_focus_falls_back_to_prompt_only_for_low_confidence_read():
     assert "不可信摘要" not in view.work_focus.headline
 
 
+def test_work_focus_does_not_render_default_goal_or_work_without_evidence():
+    sessions = [_make_session("s1", "D:/repo/demo-platform", first_prompt=" ")]
+    facets: list[SessionRead] = []
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.work_focus.recent_work == []
+    assert "实现开发" not in view.work_focus.headline
+    assert "推进当前交付任务" not in view.work_focus.headline
+    assert "没有足够稳定的会话语义" in view.work_focus.headline
+
+
 def test_short_session_prompt_lens_gets_insufficient_input_status():
     from ai_growth_mirror.infra.extractors.heuristic import build_prompt_quality_proxy
 
@@ -1694,4 +1713,3 @@ def test_render_personal_report_html_with_prior_snapshot_contract_outcomes():
     assert "上期训练回看" in html
     assert "hero-badge-score" in html
     assert "提升意图表达" in html
-

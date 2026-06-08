@@ -13,6 +13,9 @@ def test_session_read_prompt_uses_new_contract_language():
     assert '"work_intent_mix"' in rendered
     assert '"resistance_signals"' in rendered
     assert '"momentum_signals"' in rendered
+    assert "evidence packet" in rendered
+    assert "keep `work_summary` empty" in rendered
+    assert "do not infer a dominant intent" in rendered
     assert "underlying_goal" not in rendered
     assert "friction_points" not in rendered
 

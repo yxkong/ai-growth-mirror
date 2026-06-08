@@ -257,9 +257,10 @@ summary:
     line3: "If you turn {weakest} into a default move, it becomes easier to deliver results at the level of {next_focus}."
 
 work_focus:
-  default_goal: "Implementation"
-  default_work: "moving the current delivery forward"
   headline: "From the semantic session reads, your recent AI work is mainly {primary_goal}-type work, with the current thread around {primary_work}."
+  headline_goal_only: "From the semantic session reads, your recent AI work is mainly {primary_goal}-type work; there is not enough stable concrete work summary to display."
+  headline_work_only: "From the grounded session content, the current thread is around {primary_work}; there is not enough stable goal classification to display."
+  insufficient_headline: "There is not enough stable session evidence to tell what you are working on; this section will not replace missing evidence with a default work type."
 
 collaboration_rhythm:
   headline: "This period looks like {rhythm_label} — slice tasks and checkpoints to match that rhythm."

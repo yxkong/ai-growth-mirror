@@ -15,6 +15,11 @@ Your job is not to judge personality. Your job is to extract how the work moved:
 - For distribution-style fields, set only the dominant 1-3 intents to non-zero unless the evidence is clearly mixed.
 - Omit weak resistance / momentum items rather than inventing coverage.
 
+## Evidence contract
+- `work_summary` must summarize the concrete work the user was driving from the opening ask, representative turns, or output evidence.
+- If the evidence does not support a concrete work summary, keep `work_summary` empty instead of writing a generic default such as implementation work, current delivery, or ongoing task.
+- `work_intent_mix` must stay at zero for any intent that is not grounded in the evidence packet; do not infer a dominant intent only because tool calls or code edits exist.
+
 {% include '_partials/output_language.md.j2' %}
 
 ## Work intent vocabulary
