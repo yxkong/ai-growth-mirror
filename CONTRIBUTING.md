@@ -48,8 +48,64 @@ pytest tests/unit/test_personal_growth_report.py tests/unit/test_report_generati
 - Bug fixes with unit tests
 - Docs that use **generic paths** (no machine-specific `D:\...` or personal project names)
 
+## Pull request 规范
+
+本仓库 PR 默认使用 [`.github/pull_request_template.md`](.github/pull_request_template.md)。目标是让 reviewer 在 2 分钟内看清 **背景、问题、方案、范围、验证**，而不是只看 commit 列表。
+
+### 标题格式
+
+```
+type(scope): 一句话说明动机（why）
+```
+
+| type | 用途 |
+|------|------|
+| `feat` | 新能力 / 新区块 / 新 reader |
+| `fix` | 修复错误行为、报告闭环、数据口径 |
+| `refactor` | 不改外部行为的结构整理 |
+| `docs` | 设计、README、贡献规范 |
+| `test` | 仅补测试 |
+| `chore` | 构建、依赖、CI |
+
+`scope` 示例：`report`、`reader`、`cli`、`domain`、`i18n`、`docs`。
+
+**好标题**：`fix(report): 工作焦点改由 SessionRead 语义真源驱动`  
+**差标题**：`update report`、`fix bugs`、`v0.8 changes`
+
+### 正文必填块
+
+1. **背景** — 为什么现在要做
+2. **问题定义** — 错在哪 / 缺什么（可验证）
+3. **方案** — 真源、边界、取舍（不写实现流水账）
+4. **改动范围** — 白名单模块；便于 scope review
+5. **非目标** — 明确这次不做什么
+6. **验证** — 贴命令 + 结果；报告类补充 HTML/summary 扫描点
+7. **风险与回滚** — 用户可见变化、兼容性、revert 路径
+
+### 范围与粒度
+
+- **一个 PR 一个主目标**： reviewer 应能一句话概括「这个 PR 解决什么问题」。
+- **避免「大杂烩 PR」**：不要把无关 reader 修复、文档整理、i18n 漂移塞进同一 PR，除非它们共享同一契约且无法拆分验证。
+- **报告类改动**：必须说明真源文件（`report_view.py` / `summary_payload.py` / 模板 / i18n）和「无数据不渲染」是否受影响。
+
+### 验证最低要求
+
+```bash
+pytest tests/unit -q --tb=no
+```
+
+报告主链改动额外跑：
+
+```bash
+pytest tests/unit/test_personal_growth_report.py \
+  tests/unit/test_report_generation_service.py \
+  tests/unit/test_cli_generate.py -q --tb=no
+```
+
 ## Pull request checklist
 
+- [ ] PR 标题符合 `type(scope): 动机` 格式
+- [ ] PR 正文已填模板中的背景 / 问题 / 方案 / 范围 / 非目标 / 验证 / 风险
 - [ ] `pytest tests/unit -q --tb=no` passes locally
 - [ ] No secrets, API keys, or personal report artifacts in the diff
 - [ ] No duplicate pipeline logic in `cli.py` (see anti-pattern doc)
