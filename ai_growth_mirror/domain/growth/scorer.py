@@ -359,15 +359,15 @@ def _compute_growth_level(
     agentic_system = _bounded_average(
         (skill_usage_session_rate * 100.0, 0.18),
         (workflow_fingerprint_session_rate * 100.0, 0.14),
-        (structured_rate * 100.0, 0.12),
-        (advanced_feature_ratio * 100.0, 0.12),
+        (structured_rate * 100.0, 0.08),
+        (advanced_feature_ratio * 100.0, 0.08),
         (_soft_threshold(float(unique_skill_count), 2.0, 12.0, 100.0), 0.08),
         (_soft_threshold(float(workflow_reuse_depth), 1.0, 8.0, 100.0), 0.08),
         (asset_authoring_session_rate * 100.0, 0.05),
         (assetized_session_rate * 100.0, 0.04),
         (inventory_context, 0.03),
-        (tool_bonus, 0.08),
-        (workflow_bonus, 0.08),
+        (tool_bonus, 0.12),
+        (workflow_bonus, 0.12),
     )
 
     weakest_axis = min(
@@ -387,10 +387,10 @@ def _compute_growth_level(
     total_score = (
         collaboration_framing * 0.14
         + execution_driving * 0.25
-        + implementation_depth * 0.20
-        + delivery_closure * 0.20
+        + implementation_depth * 0.19
+        + delivery_closure * 0.19
         + adaptive_recovery * 0.10
-        + agentic_system * 0.11
+        + agentic_system * 0.13
         + asset_maturity_bonus
         + consistency_modifier
     )
@@ -972,10 +972,15 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
     has_token_data = any(s.input_tokens is not None for s in sessions)
     _apply_asset_floor(stats)
     maturity_bonus = _asset_maturity_bonus(stats)
-    locking_speeds = [
-        _goal_locking_speed_score(s.turns_until_first_file_write)
-        for s in sessions
-    ]
+    read_by_id = {r.session_id: r for r in valid_reads}
+    locking_speeds = []
+    for s in sessions:
+        if s.turns_until_first_file_write is not None:
+            turns = s.turns_until_first_file_write
+            read = read_by_id.get(s.session_id)
+            if read and getattr(read, "active_clarification", False):
+                turns = max(1, turns - 1)
+            locking_speeds.append(_goal_locking_speed_score(turns))
     goal_locking_speed = sum(locking_speeds) / len(locking_speeds) if locking_speeds else 100.0
 
     (

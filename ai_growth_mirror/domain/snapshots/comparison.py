@@ -33,10 +33,10 @@ AXIS_ORDER = (
 AXIS_WEIGHTS = {
     "collaboration_framing": 0.14,
     "execution_driving": 0.25,
-    "implementation_depth": 0.20,
-    "delivery_closure": 0.20,
+    "implementation_depth": 0.19,
+    "delivery_closure": 0.19,
     "adaptive_recovery": 0.10,
-    "agentic_system": 0.11,
+    "agentic_system": 0.13,
 }
 
 LEVEL_ORDER = {"L1": 1, "L2": 2, "L3": 3, "L4": 4, "L5": 5}

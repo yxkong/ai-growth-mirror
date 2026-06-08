@@ -245,3 +245,49 @@ def test_growth_level_boundaries_match_canonical_ranges():
     assert growth_level_from_score(90) == "L5"
     assert format_growth_level_score_range("L3") == "56-74"
     assert format_growth_level_score_range("L4") == "75-89"
+
+
+def test_goal_locking_speed_excludes_readonly_sessions():
+    from ai_growth_mirror.domain.session.model import SessionRecord
+    from ai_growth_mirror.domain.signals.model import SessionRead
+
+    s1 = make_session(session_id="s1")
+    s1.turns_until_first_file_write = 3
+    s1.files_modified = 1
+
+    # s2 is a read-only session
+    s2 = make_session(session_id="s2")
+    s2.turns_until_first_file_write = None
+    s2.files_modified = 0
+
+    st = aggregate([s1, s2], [], tool_name="demo")
+    # Only s1 participates in locking speed, so it should be exactly 100.0 (turns_until_first_file_write = 3)
+    assert st.goal_locking_speed == 100.0
+
+
+def test_goal_locking_speed_rewards_active_clarification():
+    from ai_growth_mirror.domain.session.model import SessionRecord
+    from ai_growth_mirror.domain.signals.model import SessionRead
+
+    s1 = make_session(session_id="s1")
+    s1.turns_until_first_file_write = 4
+    s1.files_modified = 1
+
+    s2 = make_session(session_id="s2")
+    s2.turns_until_first_file_write = None
+    s2.files_modified = 0
+
+    r1 = SessionRead(
+        session_id="s1",
+        tool_name="claude_code",
+        delivery_outcome="fully_achieved",
+        work_intent_mix={"feature": 1.0},
+        confidence="high",
+        active_clarification=True,
+    )
+
+    st = aggregate([s1, s2], [r1], tool_name="demo")
+    # Since r1 active_clarification is True, s1 turns (4) is treated as max(1, 4-1) = 3
+    # A turn count of 3 yields 100.0 points. s2 is read-only and excluded.
+    assert st.goal_locking_speed == 100.0
+
