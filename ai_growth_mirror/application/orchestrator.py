@@ -336,9 +336,13 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
 
         # Ensure all placeholder sessions are fully parsed and cached before proceeding.
         # This occurs after project filtering to minimize IO/CPU.
-        for s in sessions:
-            if getattr(s, "_is_placeholder", False):
-                s.ensure_parsed(cache_for_iter)
+        placeholder_sessions = [s for s in sessions if getattr(s, "_is_placeholder", False)]
+        if placeholder_sessions:
+            progress(f"Parsing {len(placeholder_sessions)} unparsed sessions in parallel...")
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                # lambda execution works perfectly here
+                list(executor.map(lambda s: s.ensure_parsed(cache_for_iter), placeholder_sessions))
 
         min_sessions_threshold = request.min_sessions if request.min_sessions is not None else MIN_SESSIONS_HARD
         if len(sessions) < min_sessions_threshold:
