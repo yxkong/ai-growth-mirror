@@ -26,6 +26,14 @@ def test_readme_badges_reference_current_versions() -> None:
     assert f"Schema-v{CACHE_SCHEMA_VERSION}" in readme
 
 
+def test_readme_public_surface_mentions_current_agentic_contracts() -> None:
+    readme = (_repo_root() / "README.md").read_text(encoding="utf-8")
+    assert "核心亮点 (v0.8.0)" in readme
+    assert "v0.8.0-DESIGN.md" in readme
+    assert "goal_locking_speed" in readme
+    assert "ai-growth-mirror.summary.json" in readme
+
+
 def test_uv_lock_matches_pyproject_version() -> None:
     lock_text = (_repo_root() / "uv.lock").read_text(encoding="utf-8")
     pyproject = tomllib.loads((_repo_root() / "pyproject.toml").read_text(encoding="utf-8"))

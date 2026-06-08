@@ -58,33 +58,33 @@ AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数
 | **恢复推进** (`adaptive_recovery`) | 11% | **10%** ↓ | AI 偏航或报错时，纠偏和回到正轨的质量 |
 | **Agentic 系统化** (`agentic_system`) | 10% | **11%** ↑ | Skill/Workflow/MCP/Subagent 等方法资产化能力 |
 
-> **为什么这样调整**：见 [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md)
+> **为什么这样调整**：见 [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md) 与 [docs/design/v0.8.0-DESIGN.md](docs/design/v0.8.0-DESIGN.md)
 
 ---
 
-## ✨ 核心亮点 (v0.6.0)
+## ✨ 核心亮点 (v0.8.0)
 
-### 1. 🏎️ 惰性解析与采样匹配 (Lazy Parsing Placeholder)
-针对海量会话日志（数万条历史），系统引入了 **Lazy Placeholder** 扫描机制。扫描阶段仅加载轻量级代理结构进行项目过滤。在 Orchestrator 完成过滤和抽样限制后，仅对最终进入报告的 session 执行 `ensure_parsed` 深度解析，让海量日志的加载性能直升近百倍。
+### 1. 🧭 Agentic 操作成熟度六轴评估
+从 v0.7 起，系统不再围绕"Prompt 写得好不好"做单点判断，而是用 **协作框定、协作驱动、实现下潜、交付收口、恢复推进、Agentic 系统化** 六轴评估真实协作成熟度。v0.8 将 `collaboration_framing` 定稿为正式轴，并把协作启动质量从"首轮完备度"扩展到多轮目标锁定能力。
 
-### 2. ⚖️ 缺失指标动态归一化 (Scorer Normalization)
-Cursor、Trae、QCoder 等工具的日志天然缺少 Token 用量明细。系统独创了**缺失型指标归一化**算法：当没有 Token 统计数据时，自动将 Token 计分（18%权重）从加权求和中剔除，其余子维度（验证率、修改量等）权重动态等比扩重，杜绝不合理的 0 分惩罚。
+### 2. 🎯 目标锁定速度 (Goal Locking Speed)
+v0.8 新增 `goal_locking_speed`：通过 `turns_until_first_file_write` 观察用户能否快速驱动 AI 锁定目标、边界与可交付路径。支持精细工具流的 reader 会记录首次写入前的用户轮数；缺少工具流的历史会话会使用明确 fallback，避免把"没有信号"伪装成深度判断。
 
-### 3. 🔒 本地优先，绝对安全
-100% 本地离线规则引擎分析。即使在 `llm` 模式下引入 LLM 语义诊断，也仅发送脱敏后的对话**会话摘要**，而非完整代码原文。运行 `generate --redact` 还可以自动脱敏 HTML 报告、Sidecar 与快照中的路径和代码隐私。
+### 3. 🕸️ Agentic Evidence Graph + Action Contract
+报告底层会构建六维证据图：任务意图、方法使用、上下文、执行路径、收口状态与人工干预。训练建议不再是固定文案，而是由真实短板、纠偏模式和证据图生成 Rule / Skill / Workflow / Checklist 形式的 Action Contract。
 
-### 4. 🔁 稳定 DB Revision (防缓存颠簸)
-针对多会话共用单数据库文件 `state.vscdb` 的工具，系统基于内容哈希比对，仅在 AI 历史对话、模型映射等关键 key 确实变化时判定缓存失效。折叠侧边栏、移动光标等 unrelated IDE 写入绝不会导致缓存发生大面积颠簸。
+### 4. 📊 训练闭环 + 环比追踪
+- **Action Contract 回看**：自动识别上一期建议在本期的改善效果（improved / partial / unchanged）
+- **成长轨迹**：六轴评分 + 摩擦变化的逐期 delta，SVG 趋势折线 + 变化箭头
+- **CLI `status`**：`ai-growth-mirror status` 即时显示样本进度 + 本周练习提示（< 100ms）
 
 ### 5. 🔌 9 款主流 AI 工具一键适配
 一键扫描，自动识别并聚合以下 9 款 AI 工具：
 - **国际主流**：Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code
 - **国产先锋**：CodeBuddy、Trae、QCoder
 
-### 6. 📊 训练闭环 + 环比追踪 (v0.6+)
-- **Action Contract 追踪**：自动识别上一期建议在本期的改善效果（improved / partial / unchanged）
-- **环比增量分析**：六轴评分 + 摩擦变化的逐期 delta，SVG 趋势折线 + 变化箭头
-- **CLI `status`**：`ai-growth-mirror status` 即时显示样本进度 + 本周练习提示（< 100ms）
+### 6. 🔒 本地优先，隐私可控
+默认使用本地规则引擎离线分析。即使在 `llm` 模式下引入 LLM 语义诊断，也仅发送脱敏后的会话摘要，而非完整代码原文。运行 `generate --redact` 会自动脱敏 HTML 报告、Sidecar、分享卡与快照中的路径和代码隐私。
 
 ---
 
@@ -163,7 +163,8 @@ ai-growth-mirror generate
 
 运行完成后，您的当前目录下将输出：
 - `ai-growth-mirror.html`: 个人 Agentic 成熟度交互式分析主报告。
-- `ai-growth-mirror.json`: 结构化 Sidecar 缓存数据（Schema v1.3 规范）。
+- `ai-growth-mirror.json`: 结构化 Evidence Sidecar（含 Agentic Evidence Graph、覆盖率与统计证据）。
+- `ai-growth-mirror.summary.json`: 面向分享卡、二次消费和自动化集成的稳定摘要契约。
 - `ai-growth-mirror-share.html`: 对外分享脱敏卡片。
 - `ai-growth-mirror-archive/`: 快照存档目录，第二次运行时将自动激活「成长轨迹对比」（本期 vs 上一期）。
 
@@ -186,6 +187,7 @@ ai-growth-mirror generate
 对于想要深度定制、贡献 Adapter 或调试算法的开发者，请详细参阅我们的 Canonical 文档：
 * [分层依赖与架构总纲](./docs/design/ARCHITECTURE_PRINCIPLES.md)
 * [产品路线图](./docs/design/PRODUCT_ROADMAP.md)
+* [v0.8.0 协作框定与目标锁定速度设计](./docs/design/v0.8.0-DESIGN.md)
 * [v0.7.0 Agentic 体系重构设计](./docs/design/v0.7.0-DESIGN.md)
 * [v0.6.0 训练闭环设计](./docs/design/v0.6.0-DESIGN.md)
 * [产品语气、命名与安全脱敏规范](./docs/design/AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md)

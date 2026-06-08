@@ -1628,10 +1628,22 @@ def _build_work_focus(
     top_languages = [FocusAreaView(label=name, count=count) for name, count in stats.top_languages[:4]]
     work_focus_i18n = _view_i18n(catalogs).get("work_focus", {})
     primary_goal = _primary_goal_from_session_reads(session_reads, catalogs) or (
-        top_goals[0].label if top_goals else work_focus_i18n.get("default_goal", "Implementation")
+        top_goals[0].label if top_goals else ""
     )
-    primary_work = recent_work[0] if recent_work else work_focus_i18n.get("default_work", "")
-    headline = work_focus_i18n.get("headline", "").format(primary_goal=primary_goal, primary_work=primary_work)
+    primary_work = recent_work[0] if recent_work else ""
+    headline_template = (
+        work_focus_i18n.get("headline")
+        if primary_goal and primary_work
+        else work_focus_i18n.get("headline_goal_only")
+        if primary_goal
+        else work_focus_i18n.get("headline_work_only")
+        if primary_work
+        else work_focus_i18n.get("insufficient_headline")
+    )
+    headline = (headline_template or "").format(
+        primary_goal=primary_goal,
+        primary_work=primary_work,
+    )
     return WorkFocusSectionView(headline=headline, recent_work=recent_work, goal_mix=top_goals, tools=top_tools, languages=top_languages)
 
 

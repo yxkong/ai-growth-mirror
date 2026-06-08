@@ -257,9 +257,10 @@ summary:
     line3: "下一步只要把「{weakest}」补成默认动作，就更容易把结果稳定带到 {next_focus}。"
 
 work_focus:
-  default_goal: "实现开发"
-  default_work: "推进当前交付任务"
   headline: "从会话语义看，你最近主要在处理“{primary_goal}”类工作，当前主线是“{primary_work}”。"
+  headline_goal_only: "从会话语义看，你最近主要在处理“{primary_goal}”类工作；本期没有足够稳定的具体工作摘要可展示。"
+  headline_work_only: "从可归纳的会话内容看，当前主线是“{primary_work}”；本期没有足够稳定的目标分类可展示。"
+  insufficient_headline: "本期没有足够稳定的会话语义可判断你在做什么；该区块不会用默认工作类型代替真实证据。"
 
 collaboration_rhythm:
   headline: "本期协作更像「{rhythm_label}」——按这个节奏切任务、安排验收，会更顺手。"
