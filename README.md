@@ -106,12 +106,6 @@ v0.8 新增 `goal_locking_speed`：通过 `turns_until_first_file_write` 观察�
 
 ![成长信号总览：六轴雷达、趋势折线与短板排行](docs/assets/images/report-growth-signals.png)
 
-### Prompt 成长教练
-
-基于真实会话的 Prompt 诊断：识别失败模式，并给出改写方向与收口建议。
-
-![Prompt 成长教练：短板诊断与优化方向](docs/assets/images/report-prompt-coach.png)
-
 ### 协作风格透镜
 
 四维度协作画像（启动 / 推进 / 收口 / 复用），帮你看见自己的 AI 协作「打法」而非只看分数。
