@@ -6,9 +6,12 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from ..domain.session.model import SessionRecord
+
+if TYPE_CHECKING:
+    from ..domain.common.contracts import LlmGateway
 from ..domain.signals.model import SessionRead
 from ..domain.growth.model import (
     AgentAssetStats,
@@ -18,10 +21,7 @@ from ..domain.growth.model import (
     RadarAxis,
 )
 from ..domain.growth.capability import compute_capability_scores
-from ..domain.growth.scorer import (
-    MIN_SESSION_READS_FOR_MIRROR_SCORE,
-    format_growth_level_score_range,
-)
+from ..domain.growth.scorer import format_growth_level_score_range
 from ..domain.growth.coaching import CoachingContent
 from ..domain.growth.evidence import clean_project_name
 from ..domain.snapshots.model import SnapshotSource
@@ -36,6 +36,17 @@ from .growth_trajectory import (
 from .growth_plan import GrowthPlanView, GrowthPriorityView, build_growth_plan
 from .label_catalogs import ReportLabelCatalogs
 from .prompt_coach import build_prompt_coach_view
+from .prompt_coach_views import PromptCoachView
+from .work_focus import WorkFocusSectionView, build_work_focus
+from .level_evidence import (
+    LevelEvidenceSectionView,
+    build_level_evidence_section,
+)
+from .usage_overview import (
+    UsageSectionView,
+    build_usage_coverage_note,
+    build_usage_section,
+)
 
 
 def _view_i18n(catalogs: ReportLabelCatalogs) -> dict:
@@ -48,10 +59,6 @@ def _level_guide_i18n(catalogs: ReportLabelCatalogs) -> dict:
 
 def _template_labels(catalogs: ReportLabelCatalogs) -> dict[str, str]:
     return catalogs.template_labels
-
-
-def _guidance_labels(catalogs: ReportLabelCatalogs) -> dict:
-    return catalogs.guidance_labels
 
 
 def _pattern_label(pattern: str, catalogs: ReportLabelCatalogs) -> str:
@@ -272,135 +279,6 @@ class CapabilitySectionView:
 
 
 @dataclass
-class PromptCoachTakeawayView:
-    label: str
-    kind: str
-    evidence: str
-    message: str
-    action: str
-    better_prompt: str = ""
-
-
-@dataclass
-class PromptCoachDimensionView:
-    label: str
-    score: float
-
-
-@dataclass
-class PromptCoachSourceSummaryView:
-    llm_session_count: int = 0
-    heuristic_session_count: int = 0
-    light_session_count: int = 0
-    evaluated_user_messages: int = 0
-    run_mode: str = "llm"
-    llm_evaluated_count: int = 0
-    insufficient_count: int = 0
-    llm_failed_count: int = 0
-    llm_unavailable_count: int = 0
-
-
-@dataclass
-class PromptCoachDeficitView:
-    id: str
-    category: str
-    label: str
-    description: str
-    impact: str
-    confidence: str
-    evidence_refs: list[str] = field(default_factory=list)
-    source: str = ""
-
-
-@dataclass
-class PromptCoachRewriteCardView:
-    id: str
-    scene: str
-    original: str
-    problem: str
-    better_prompt: str
-    why: str
-    category: str
-    confidence: str
-    evidence_refs: list[str] = field(default_factory=list)
-    source_note: str = ""
-
-
-@dataclass
-class PromptCoachTemplateView:
-    id: str
-    title: str
-    scene: str
-    common_gap: str
-    template: str
-
-
-@dataclass
-class PromptCoachChecklistItemView:
-    id: str
-    text: str
-    related_deficit_id: str
-
-
-@dataclass
-class PromptCoachPromptStyleView:
-    type: str
-    label: str
-    evidence: list[str] = field(default_factory=list)
-    coaching_message: str = ""
-    suggested_next_prompt: str = ""
-    trigger_maturity: list[str] = field(default_factory=list)
-
-
-@dataclass
-class PromptCoachClosureGuidanceView:
-    id: str
-    task_type: str
-    label: str
-    mode: str = "engineered"
-    expected_closure_methods: list[str] = field(default_factory=list)
-    missing_closure_methods: list[str] = field(default_factory=list)
-    coaching_message: str = ""
-
-
-@dataclass
-class PromptCoachFrictionSynthesisView:
-    id: str
-    label: str
-    explanation: str
-    next_action: str
-    confidence: int = 0
-    evidence_refs: list[str] = field(default_factory=list)
-    generated_by: str = "rule"
-
-
-@dataclass
-class PromptCoachView:
-    available: bool
-    headline: str
-    strongest_label: str
-    weakest_label: str
-    evidence_summary: str
-    strength_habit: str
-    source_note: str = ""
-    weak_dimensions: list[str] = field(default_factory=list)
-    deficits: list[str] = field(default_factory=list)
-    dimension_scores: list[PromptCoachDimensionView] = field(default_factory=list)
-    takeaways: list[PromptCoachTakeawayView] = field(default_factory=list)
-    source_summary: PromptCoachSourceSummaryView = field(default_factory=PromptCoachSourceSummaryView)
-    top_deficits: list[PromptCoachDeficitView] = field(default_factory=list)
-    rewrite_cards: list[PromptCoachRewriteCardView] = field(default_factory=list)
-    universal_template: Optional[PromptCoachTemplateView] = None
-    scenario_templates: list[PromptCoachTemplateView] = field(default_factory=list)
-    preflight_checklist: list[PromptCoachChecklistItemView] = field(default_factory=list)
-    prompt_style: Optional[PromptCoachPromptStyleView] = None
-    closure_guidance: Optional[PromptCoachClosureGuidanceView] = None
-    recommended_training_inputs: list[str] = field(default_factory=list)
-    friction_synthesis: list[PromptCoachFrictionSynthesisView] = field(default_factory=list)
-    light_state_note: str = ""
-
-
-@dataclass
 class FrictionCategoryView:
     label: str
     count: int
@@ -423,23 +301,6 @@ class PersonalExemplarView:
     facts: str
     why_keep: str = ""
     technique: str = ""
-
-
-@dataclass
-class UsageStatView:
-    label: str
-    value: str
-    detail: str = ""
-
-
-@dataclass
-class UsageSectionView:
-    headline: str
-    summary: str
-    hero_support_line: str = ""
-    coverage_note: str = ""
-    memory_note: str = ""
-    stats: list[UsageStatView] = field(default_factory=list)
 
 
 @dataclass
@@ -479,22 +340,6 @@ class CollaborationRhythmSectionView:
 
 
 @dataclass
-class FocusAreaView:
-    label: str
-    count: int
-    detail: str = ""
-
-
-@dataclass
-class WorkFocusSectionView:
-    headline: str
-    recent_work: list[str] = field(default_factory=list)
-    goal_mix: list[FocusAreaView] = field(default_factory=list)
-    tools: list[FocusAreaView] = field(default_factory=list)
-    languages: list[FocusAreaView] = field(default_factory=list)
-
-
-@dataclass
 class WinCardView:
     title: str
     evidence: str
@@ -525,34 +370,6 @@ class LevelGuideSectionView:
     current_level: str
     current_score: int
     items: list[LevelGuideItemView] = field(default_factory=list)
-
-
-@dataclass
-class LevelEvidenceMetricView:
-    label: str
-    current_value: str
-    target_value: str
-    status: str
-    explanation: str
-    raw_signal: str
-    kind: str = "axis"
-
-
-@dataclass
-class LevelEvidenceSectionView:
-    headline: str
-    verdict: str
-    blockers: list[str] = field(default_factory=list)
-    metrics: list[LevelEvidenceMetricView] = field(default_factory=list)
-    next_step: str = ""
-    current_level: str = ""
-    target_level: str = ""
-    target_caption: str = ""
-    blocker_title: str = ""
-    progress_summary: str = ""
-    source_note: str = ""
-    methodology_title: str = ""
-    methodology_lines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -604,6 +421,7 @@ class PersonalReportView:
     style_lens: StyleLensSectionView
     growth_plan: GrowthPlanView
     generated_at: str
+    stats: GrowthProfile
     agent_asset: Optional[AgentAssetFootprintView] = None
     growth_trajectory: Optional[GrowthTrajectoryView] = None
     radar_axes: list[RadarAxis] = field(default_factory=list)
@@ -663,6 +481,7 @@ def build_personal_report_view(
     extraction_failed: int = 0,
     hide_wechat: bool = False,
     hide_email: bool = False,
+    llm: Optional["LlmGateway"] = None,
 ) -> PersonalReportView:
     capability_scores = compute_capability_scores(stats)
     capability = _build_capability_section(capability_scores, catalogs, stats=stats)
@@ -707,11 +526,19 @@ def build_personal_report_view(
         catalogs=catalogs,
     )
     level_guide = _build_level_guide(stats, catalogs)
-    level_evidence = _build_level_evidence(stats, capability_scores, session_read_mode, catalogs)
+    level_evidence = build_level_evidence_section(stats, capability_scores, session_read_mode, catalogs)
     collaboration_rhythm = _build_collaboration_rhythm(stats, catalogs)
-    usage = _build_usage_section(stats, catalogs)
-    usage.coverage_note = _build_usage_coverage_note(sessions, catalogs)
-    work_focus = _build_work_focus(stats, sessions, session_reads, redact, catalogs)
+    usage = build_usage_section(stats, catalogs)
+    usage.coverage_note = build_usage_coverage_note(sessions, catalogs)
+    work_focus = build_work_focus(
+        stats,
+        sessions,
+        session_reads,
+        redact,
+        catalogs,
+        llm=llm,
+        language=catalogs.language,
+    )
     style_lens = _build_style_lens(stats, capability_scores, agent_asset=asset_stats, catalogs=catalogs)
     wins = _build_wins(
         stats=stats,
@@ -810,6 +637,7 @@ def build_personal_report_view(
         style_lens=style_lens,
         growth_plan=growth_plan,
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        stats=stats,
         agent_asset=agent_asset,
         growth_trajectory=growth_trajectory,
         radar_axes=localized_radar_axes,
@@ -872,57 +700,6 @@ def _build_capability_section(
     strongest = max(dims, key=lambda item: item.score)
     weakest = min(dims, key=lambda item: item.score)
     return CapabilitySectionView(strongest_label=strongest.label, weakest_label=weakest.label, dimensions=dims)
-
-
-def _build_prompt_coach_from_coaching(
-    coaching: CoachingContent,
-    stats: GrowthProfile,
-    catalogs: ReportLabelCatalogs,
-) -> PromptCoachView:
-    """Build prompt coach view from LLM-generated coaching content."""
-    dim_labels = _view_i18n(catalogs)["pq_dim_labels"]
-    dims = stats.pq_avg_dimensions or {}
-    if dims:
-        sorted_dims = sorted(dims.items(), key=lambda item: item[1])
-        weakest = sorted_dims[0]
-        strongest = max(dims.items(), key=lambda item: item[1])
-        weakest_label = dim_labels.get(weakest[0], weakest[0])
-        strongest_label = dim_labels.get(strongest[0], strongest[0])
-        weak_dimensions = [dim_labels.get(name, name) for name, _ in sorted_dims[:2]]
-        deficits = [
-            _pq_deficit_display(name, count, catalogs)
-            for name, count in sorted(stats.pq_deficit_counts.items(), key=lambda item: (-item[1], item[0]))[:3]
-        ]
-    else:
-        weakest_label = coaching.framing_evidence_takeaways[0].label if coaching.framing_evidence_takeaways else ""
-        strongest_label = ""
-        weak_dimensions = [weakest_label] if weakest_label else []
-        deficits = []
-
-    takeaways = [
-        PromptCoachTakeawayView(
-            label=t.label,
-            kind=t.kind,
-            evidence=t.evidence,
-            message=t.message,
-            action=t.action,
-            better_prompt=t.better_prompt,
-        )
-        for t in coaching.framing_evidence_takeaways
-    ]
-    pc_i18n = _view_i18n(catalogs).get("prompt_coach", {}).get("from_coaching", {})
-    return PromptCoachView(
-        available=True,
-        headline=coaching.framing_evidence_headline,
-        strongest_label=strongest_label,
-        weakest_label=weakest_label,
-        evidence_summary=coaching.framing_evidence_summary,
-        strength_habit="",
-        source_note=_prompt_quality_source_note(stats, pc_i18n.get("source_note", ""), catalogs),
-        weak_dimensions=weak_dimensions,
-        deficits=deficits,
-        takeaways=takeaways,
-    )
 
 
 def _build_summary(
@@ -1053,217 +830,6 @@ def _build_report_sections(
         ReportSectionLinkView("section-style-lens", labels.get("section_style_lens", "Collaboration style lens"), nav_visible=False, kind="appendix")
     )
     return primary_sections + appendix_sections
-
-
-def _build_heuristic_prompt_coach(
-    stats: GrowthProfile,
-    catalogs: ReportLabelCatalogs,
-) -> PromptCoachView:
-    """Build a prompt-quality view from proxy-only signals when session PQ is unavailable."""
-    constraint_rate = (
-        getattr(stats, "prompt_has_constraint_rate", None)
-        or getattr(stats, "constraint_prompt_rate", 0.0)
-        or 0.0
-    )
-    code_ctx_rate = (
-        getattr(stats, "prompt_has_code_context_rate", None)
-        or getattr(stats, "code_context_rate", 0.0)
-        or 0.0
-    )
-    tool_error_rate = getattr(stats, "tool_error_rate", None)
-    if tool_error_rate is None:
-        tool_error_count = getattr(stats, "tool_error_count", None)
-        if tool_error_count is None:
-            tool_error_counts = getattr(stats, "tool_error_counts", {}) or {}
-            tool_error_count = sum(tool_error_counts.values())
-        tool_error_rate = (tool_error_count or 0) / max(stats.session_count, 1)
-    else:
-        tool_error_rate = tool_error_rate or 0.0
-    heavy_rate = getattr(stats, "heavy_session_rate", 0.0) or 0.0
-
-    dim_scores = {
-        "constraint": constraint_rate,
-        "context": code_ctx_rate,
-        "clarity": max(0.0, 1.0 - tool_error_rate * 2),
-        "depth": heavy_rate,
-    }
-
-    if all(v == 0.0 for v in dim_scores.values()):
-        h_i18n = _view_i18n(catalogs).get("prompt_coach", {}).get("heuristic", {})
-        return PromptCoachView(
-            available=False,
-            headline=h_i18n.get("unavailable_headline", ""),
-            strongest_label="",
-            weakest_label="",
-            evidence_summary="",
-            strength_habit="",
-            source_note=h_i18n.get("unavailable_source_note", ""),
-        )
-
-    pc_i18n = _view_i18n(catalogs).get("prompt_coach", {})
-    dim_labels = pc_i18n.get("heuristic_dim_labels", {})
-
-    sorted_dims = sorted(dim_scores.items(), key=lambda kv: kv[1])
-    weakest_key, weakest_val = sorted_dims[0]
-    strongest_key, strongest_val = max(dim_scores.items(), key=lambda kv: kv[1])
-
-    cards: list[PromptCoachTakeawayView] = []
-    tl = _template_labels(catalogs)
-    h_i18n = pc_i18n.get("heuristic", {})
-    weakest_pct = round(weakest_val * 100)
-    strongest_pct = round(strongest_val * 100)
-
-    weakest_card = pc_i18n.get("heuristic_cards", {}).get(weakest_key, {})
-    cards.append(
-        PromptCoachTakeawayView(
-            label=dim_labels.get(weakest_key, weakest_key),
-            kind=tl.get("label_kind_gap", "Gap"),
-            evidence=h_i18n.get("card_evidence_gap", "").format(pct=weakest_pct),
-            message=weakest_card.get("message", ""),
-            action=weakest_card.get("action", ""),
-        )
-    )
-
-    reinforce_cfg = pc_i18n.get("heuristic_reinforce", {})
-    if strongest_key == "context" and strongest_val > 0.5:
-        reinforce = reinforce_cfg.get("context", {})
-    elif strongest_key == "constraint" and strongest_val > 0.5:
-        reinforce = reinforce_cfg.get("constraint", {})
-    else:
-        reinforce = reinforce_cfg.get("default", {})
-    strongest_label = dim_labels.get(strongest_key, strongest_key)
-    cards.append(
-        PromptCoachTakeawayView(
-            label=tl.get("label_reinforce_prefix", "Reinforce: ") + strongest_label,
-            kind=tl.get("label_kind_strength", "Strength"),
-            evidence=h_i18n.get("card_evidence_strength", "").format(pct=strongest_pct),
-            message=reinforce.get("message", "").format(label=strongest_label),
-            action=reinforce.get("action", "").format(label=strongest_label),
-        )
-    )
-
-    headline = h_i18n.get("headline", "").format(label=dim_labels.get(weakest_key, weakest_key), pct=weakest_pct)
-    evidence_summary = h_i18n.get("evidence_summary", "").format(
-        constraint_pct=round(constraint_rate * 100),
-        context_pct=round(code_ctx_rate * 100),
-        tool_error_pct=round(tool_error_rate * 100),
-    )
-    strength_habit = h_i18n.get("strength_habit", "").format(label=dim_labels[strongest_key], pct=strongest_pct)
-
-    return PromptCoachView(
-        available=True,
-        headline=headline,
-        strongest_label=dim_labels[strongest_key],
-        weakest_label=dim_labels[weakest_key],
-        evidence_summary=evidence_summary,
-        strength_habit=strength_habit,
-        source_note=_prompt_quality_source_note(stats, h_i18n.get("source_note", ""), catalogs),
-        dimension_scores=_build_prompt_dimension_scores(stats, catalogs),
-        takeaways=cards[:3],
-    )
-
-
-def _build_prompt_coach(
-    stats: GrowthProfile,
-    session_read_mode: str,
-    catalogs: ReportLabelCatalogs,
-) -> PromptCoachView:
-    if stats.pq_sessions_evaluated <= 0 or not stats.pq_avg_dimensions:
-        return _build_heuristic_prompt_coach(stats, catalogs)
-
-    dim_labels = _view_i18n(catalogs)["pq_dim_labels"]
-    dims = stats.pq_avg_dimensions
-    sorted_dims = sorted(dims.items(), key=lambda item: item[1])
-    weakest = sorted_dims[0]
-    strongest = max(dims.items(), key=lambda item: item[1])
-    weak_dimensions = [dim_labels.get(name, name) for name, _ in sorted_dims[:2]]
-    deficits = [
-        _pq_deficit_display(name, count, catalogs)
-        for name, count in sorted(stats.pq_deficit_counts.items(), key=lambda item: (-item[1], item[0]))[:3]
-    ]
-    pq_i18n = _view_i18n(catalogs).get("prompt_coach", {}).get("pq", {})
-    evidence_key = "evidence_summary_heuristic" if session_read_mode == "heuristic" else "evidence_summary_llm"
-    evidence_summary = pq_i18n.get(evidence_key, "").format(
-        sessions=stats.pq_sessions_evaluated,
-        score=stats.pq_avg_efficiency_score,
-    )
-    strongest_label = dim_labels.get(strongest[0], strongest[0])
-    strength_habit = pq_i18n.get("strength_habit", "").format(label=strongest_label)
-    headline = pq_i18n.get("headline", "").format(label=dim_labels.get(weakest[0], weakest[0]))
-    if stats.pq_llm_session_count and stats.pq_heuristic_session_count:
-        source_note = pq_i18n.get("source_note_mixed", "")
-    elif stats.pq_llm_session_count:
-        source_note = pq_i18n.get("source_note_llm", "")
-    else:
-        source_note = pq_i18n.get("source_note_heuristic", "")
-
-    cards: list[PromptCoachTakeawayView] = _prompt_takeaways_from_real_samples(stats, catalogs)
-    seen: set[str] = set()
-    seen.update(item.label for item in cards)
-    if not cards:
-        primary_gap = _prompt_dimension_card(weakest[0], catalogs)
-        seen.add(primary_gap.label)
-        cards.append(primary_gap)
-    overlap_deficits = _prompt_overlap_deficits(weakest[0])
-    for deficit_key, count in sorted(stats.pq_deficit_counts.items(), key=lambda item: (-item[1], item[0])):
-        if len(cards) >= 2:
-            break
-        if deficit_key in overlap_deficits and len(stats.pq_deficit_counts) > 1:
-            continue
-        card = _prompt_deficit_card(deficit_key, count, catalogs)
-        if card.label not in seen:
-            seen.add(card.label)
-            cards.append(card)
-    if len(cards) < 2:
-        for dim_key, _score in sorted_dims:
-            candidate = _prompt_dimension_card(dim_key, catalogs)
-            if candidate.label not in seen:
-                seen.add(candidate.label)
-                cards.append(candidate)
-            if len(cards) >= 2:
-                break
-    reinforce = _prompt_strength_card(strongest[0], catalogs)
-    if reinforce.label not in seen:
-        cards.append(reinforce)
-    cards = cards[:3]
-
-    return PromptCoachView(
-        available=True,
-        headline=headline,
-        strongest_label=dim_labels.get(strongest[0], strongest[0]),
-        weakest_label=dim_labels.get(weakest[0], weakest[0]),
-        evidence_summary=evidence_summary,
-        strength_habit=strength_habit,
-        source_note=_prompt_quality_source_note(stats, source_note, catalogs),
-        weak_dimensions=weak_dimensions,
-        deficits=deficits,
-        dimension_scores=_build_prompt_dimension_scores(stats, catalogs),
-        takeaways=cards,
-    )
-
-
-def _prompt_quality_source_note(
-    stats: GrowthProfile,
-    base_note: str,
-    catalogs: ReportLabelCatalogs,
-) -> str:
-    breakdown = _view_i18n(catalogs).get("prompt_coach", {}).get("source_breakdown", {})
-    template = (
-        breakdown.get("mixed")
-        if stats.pq_llm_session_count and stats.pq_heuristic_session_count
-        else breakdown.get("llm_only")
-        if stats.pq_llm_session_count
-        else breakdown.get("heuristic_only")
-    )
-    if not template:
-        return base_note
-    detail = template.format(
-        total=stats.pq_sessions_evaluated,
-        llm=stats.pq_llm_session_count,
-        heuristic=stats.pq_heuristic_session_count,
-        light=stats.pq_light_session_count,
-    )
-    return " ".join(part for part in (base_note, detail) if part).strip()
 
 
 def _build_friction(stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> FrictionSectionView:
@@ -1403,250 +969,6 @@ def _build_collaboration_rhythm(stats: GrowthProfile, catalogs: ReportLabelCatal
     )
 
 
-def _format_compact_number(value: int | float, language: str) -> str:
-    absolute = abs(float(value))
-    if language == "zh":
-        for threshold, suffix in ((100_000_000, "亿"), (10_000, "万")):
-            if absolute >= threshold:
-                scaled = value / threshold
-                digits = 1 if abs(scaled) < 100 else 0
-                return f"{scaled:.{digits}f}".rstrip("0").rstrip(".") + suffix
-        return f"{int(round(value))}"
-
-    for threshold, suffix in ((1_000_000_000, "B"), (1_000_000, "M"), (1_000, "K")):
-        if absolute >= threshold:
-            scaled = value / threshold
-            digits = 1 if abs(scaled) < 100 else 0
-            return f"{scaled:.{digits}f}".rstrip("0").rstrip(".") + suffix
-    return f"{int(round(value))}"
-
-
-def _format_currency_compact(amount: float | None) -> str:
-    if amount is None or amount <= 0:
-        return "--"
-    absolute = abs(amount)
-    if absolute >= 1_000_000:
-        scaled, suffix = amount / 1_000_000, "M"
-    elif absolute >= 1_000:
-        scaled, suffix = amount / 1_000, "k"
-    else:
-        return f"${amount:.2f}".rstrip("0").rstrip(".")
-    digits = 1 if abs(scaled) < 100 else 0
-    return f"${scaled:.{digits}f}".rstrip("0").rstrip(".") + suffix
-
-
-def _build_prompt_dimension_scores(
-    stats: GrowthProfile,
-    catalogs: ReportLabelCatalogs,
-) -> list[PromptCoachDimensionView]:
-    dims = stats.pq_avg_dimensions or {}
-    if not dims:
-        return []
-    dim_labels = _view_i18n(catalogs).get("pq_dim_labels", {})
-    ordered = sorted(dims.items(), key=lambda item: item[1])
-    return [
-        PromptCoachDimensionView(
-            label=dim_labels.get(key, key),
-            score=round(float(score), 1),
-        )
-        for key, score in ordered
-    ]
-
-
-def _build_usage_coverage_note(
-    sessions: list[SessionRecord],
-    catalogs: ReportLabelCatalogs,
-) -> str:
-    usage_i18n = _view_i18n(catalogs).get("usage_overview", {})
-    tool_labels = {
-        "codex": "Codex CLI",
-        "cursor": "Cursor",
-        "claude": "Claude Code",
-        "claude_code": "Claude Code",
-        "trae": "Trae",
-        "qoder": "Qoder",
-        "cline": "Cline",
-        "kilo": "Kilo Code",
-    }
-    tool_has_usage: dict[str, bool] = {}
-    for session in sessions:
-        tool = session.tool_name or "unknown"
-        has_usage = any(
-            value not in (None, 0)
-            for value in (
-                session.input_tokens,
-                session.output_tokens,
-                session.cache_read_tokens,
-                session.cache_write_tokens,
-            )
-        )
-        tool_has_usage[tool] = tool_has_usage.get(tool, False) or has_usage
-    if not tool_has_usage:
-        return ""
-    covered = [tool_labels.get(tool, tool) for tool, has_usage in tool_has_usage.items() if has_usage]
-    missing = [tool_labels.get(tool, tool) for tool, has_usage in tool_has_usage.items() if not has_usage]
-    if covered and missing:
-        return usage_i18n.get("coverage_note_partial", "").format(
-            covered=" / ".join(covered),
-            missing=" / ".join(missing),
-        )
-    if not covered and missing:
-        return usage_i18n.get("coverage_note_none", "").format(
-            missing=" / ".join(missing),
-        )
-    return ""
-
-
-def _build_usage_section(stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> UsageSectionView:
-    usage_i18n = _view_i18n(catalogs).get("usage_overview", {})
-    language = getattr(catalogs, "language", "zh")
-    total_tokens = (
-        (getattr(stats, "total_input_tokens", 0) or 0)
-        + (getattr(stats, "total_output_tokens", 0) or 0)
-        + (getattr(stats, "total_cache_read_tokens", 0) or 0)
-        + (getattr(stats, "total_cache_write_tokens", 0) or 0)
-    )
-    token_volume_display = (
-        usage_i18n.get("unknown_usage", "--")
-        if total_tokens <= 0
-        else _format_compact_number(total_tokens, language)
-    )
-    cache_hit_rate = getattr(stats, "avg_cache_hit_rate", None)
-    cache_read_tokens = getattr(stats, "total_cache_read_tokens", 0) or 0
-    cache_write_tokens = getattr(stats, "total_cache_write_tokens", 0) or 0
-    cache_hit_display = (
-        "0%"
-        if cache_hit_rate is None and (cache_read_tokens + cache_write_tokens) == 0
-        else usage_i18n.get("unknown_cache", "--")
-        if cache_hit_rate is None
-        else f"{round(cache_hit_rate * 100)}%"
-    )
-    cost_display = (
-        usage_i18n.get("unknown_cost", "--")
-        if (getattr(stats, "total_cost_usd", 0.0) or 0.0) <= 0
-        else _format_currency_compact(stats.total_cost_usd)
-    )
-    avg_cost_display = (
-        usage_i18n.get("unknown_cost", "--")
-        if (getattr(stats, "avg_cost_per_session", 0.0) or 0.0) <= 0
-        else _format_currency_compact(stats.avg_cost_per_session)
-    )
-    advanced_ratio_pct = round((getattr(stats, "advanced_feature_ratio", 0.0) or 0.0) * 100)
-    mcp_rate = round((getattr(stats, "mcp_session_rate", 0.0) or 0.0) * 100)
-    subagent_count = getattr(stats, "subagent_session_count", 0)
-    heavy_count = getattr(stats, "heavy_session_count", 0)
-    avg_chain = round(getattr(stats, "avg_autonomous_chain_length", 0.0) or 0.0, 1)
-    median_minutes = int(round(getattr(stats, "median_session_duration_minutes", 0.0) or 0.0))
-    total_calls = sum(count for _name, count in getattr(stats, "top_tools", []))
-
-    summary = usage_i18n.get("summary", "").format(
-        session_count=stats.session_count,
-        tool_calls=total_calls,
-        token_volume=token_volume_display,
-        advanced_feature_ratio=advanced_ratio_pct,
-    )
-    hero_support_line = usage_i18n.get("hero_support_line", "").format(
-        summary=summary,
-        total_cost=cost_display,
-        avg_cost=avg_cost_display,
-        cache_hit=cache_hit_display,
-    )
-    stats_cards = [
-        UsageStatView(
-            label=usage_i18n.get("token_card_label", "Token 体量"),
-            value=usage_i18n.get("token_card_value", "{token_volume}").format(token_volume=token_volume_display),
-            detail=usage_i18n.get("token_card_detail", "").format(
-                input_tokens=_format_compact_number(getattr(stats, "total_input_tokens", 0) or 0, language),
-                output_tokens=_format_compact_number(getattr(stats, "total_output_tokens", 0) or 0, language),
-                cache_tokens=_format_compact_number(cache_read_tokens + cache_write_tokens, language),
-            ),
-        ),
-        UsageStatView(
-            label=usage_i18n.get("cache_card_label", "成本 / 缓存"),
-            value=usage_i18n.get("cache_card_value", "{total_cost} · {cache_hit}").format(
-                total_cost=cost_display,
-                cache_hit=cache_hit_display,
-            ),
-            detail=usage_i18n.get("cache_card_detail", "").format(
-                avg_cost=avg_cost_display,
-                cache_read=_format_compact_number(cache_read_tokens, language),
-                cache_write=_format_compact_number(cache_write_tokens, language),
-                cache_hit=cache_hit_display,
-            ),
-        ),
-        UsageStatView(
-            label=usage_i18n.get("leverage_card_label", "高杠杆使用"),
-            value=usage_i18n.get("leverage_card_value", "{advanced_feature_ratio}%").format(
-                advanced_feature_ratio=advanced_ratio_pct
-            ),
-            detail=usage_i18n.get("leverage_card_detail", "").format(
-                subagent_count=subagent_count,
-                mcp_rate=mcp_rate,
-                tool_diversity=getattr(stats, "tier_diversity_count", 0),
-            ),
-        ),
-        UsageStatView(
-            label=usage_i18n.get("intensity_card_label", "协作强度"),
-            value=usage_i18n.get("intensity_card_value", "{avg_chain}").format(avg_chain=avg_chain),
-            detail=usage_i18n.get("intensity_card_detail", "").format(
-                median_minutes=median_minutes,
-                heavy_count=heavy_count,
-            ),
-        ),
-    ]
-    return UsageSectionView(
-        headline=usage_i18n.get("headline", ""),
-        summary=summary,
-        hero_support_line=hero_support_line,
-        memory_note=usage_i18n.get("memory_note", ""),
-        stats=stats_cards,
-    )
-
-
-def _build_work_focus(
-    stats: GrowthProfile,
-    sessions: list[SessionRecord],
-    session_reads: list[SessionRead],
-    redact: bool,
-    catalogs: ReportLabelCatalogs,
-) -> WorkFocusSectionView:
-    recent_work = [] if redact else _recent_work_items(sessions, session_reads)[:4]
-    total_goal_signals = max(sum(stats.goal_category_counts.values()), 1)
-    top_goals = [
-        FocusAreaView(
-            label=_goal_label(name, catalogs),
-            count=count,
-            detail=(
-                f"{round(count / total_goal_signals * 100)}%"
-                if total_goal_signals > 0
-                else ""
-            ),
-        )
-        for name, count in sorted(stats.goal_category_counts.items(), key=lambda item: -item[1])[:4]
-    ]
-    top_tools = _rollup_tool_labels(stats.top_tools[:8], catalogs)[:5]
-    top_languages = [FocusAreaView(label=name, count=count) for name, count in stats.top_languages[:4]]
-    work_focus_i18n = _view_i18n(catalogs).get("work_focus", {})
-    primary_goal = _primary_goal_from_session_reads(session_reads, catalogs) or (
-        top_goals[0].label if top_goals else ""
-    )
-    primary_work = recent_work[0] if recent_work else ""
-    headline_template = (
-        work_focus_i18n.get("headline")
-        if primary_goal and primary_work
-        else work_focus_i18n.get("headline_goal_only")
-        if primary_goal
-        else work_focus_i18n.get("headline_work_only")
-        if primary_work
-        else work_focus_i18n.get("insufficient_headline")
-    )
-    headline = (headline_template or "").format(
-        primary_goal=primary_goal,
-        primary_work=primary_work,
-    )
-    return WorkFocusSectionView(headline=headline, recent_work=recent_work, goal_mix=top_goals, tools=top_tools, languages=top_languages)
-
-
 def _build_wins(
     *,
     stats: GrowthProfile,
@@ -1748,325 +1070,13 @@ def _build_level_guide(stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> L
     return LevelGuideSectionView(headline=headline, current_level=current_level, current_score=current_score, items=items)
 
 
-_LEVEL_ORDER = {"L1": 1, "L2": 2, "L3": 3, "L4": 4, "L5": 5}
-
-
-def _level_name(level_num: int) -> str:
-    return f"L{max(1, min(level_num, 5))}"
-
-
-def _mirror_methodology(catalogs: ReportLabelCatalogs) -> tuple[str, list[str]]:
-    methodology = _view_i18n(catalogs).get("methodology", {})
-    return methodology.get("title", ""), methodology.get("lines", [])
-
-
-def _build_agentic_current_value(
-    *,
-    templates: dict,
-    score: int,
-    skill_usage_rate: int,
-    public_framework_rate: int,
-    local_method_rate: int,
-    workflow_fingerprint_rate: int,
-    workflow_reuse_depth: int,
-    asset_authoring_rate: int,
-    advanced_feature_rate: int,
-    has_asset_roots: bool,
-    raw_local_method_rate: float = 0.0,
-    raw_fingerprint_rate: float = 0.0,
-) -> str:
-    """Build the agentic system current-value string (i18n-driven).
-
-    When fingerprint rates round to 0% but raw values are positive, show a
-    "< 1%" label instead of the misleading detection-gap note. When truly 0 but
-    assets exist, show an explanatory note about detection mechanics. All
-    user-facing text comes from the i18n catalog so EN reports stay in English.
-
-    The note text reflects the current detection mechanism: the reader watches
-    for ReadFile/Read calls to SKILL.md files inside skill directories. Old
-    cached sessions may not carry this signal until the cache is refreshed.
-    """
-    base_template = templates.get("agentic_system", "")
-    fingerprint_template = templates.get("agentic_system_with_fingerprint", base_template)
-    detection_gap_template = templates.get("agentic_system_detection_gap", base_template)
-    detection_note = templates.get("agentic_detection_note", "")
-
-    # Use raw rates for the conditional so that values like 0.36% don't trigger
-    # the detection-gap branch just because they round to 0.
-    effective_fingerprint = raw_fingerprint_rate or raw_local_method_rate
-    if workflow_fingerprint_rate > 0 or local_method_rate > 0 or effective_fingerprint > 0:
-        # At least one signal is present; use clamped display values.
-        display_local = local_method_rate if local_method_rate > 0 else ("<1" if raw_local_method_rate > 0 else "0")
-        display_fp = workflow_fingerprint_rate if workflow_fingerprint_rate > 0 else ("<1" if raw_fingerprint_rate > 0 else "0")
-        return fingerprint_template.format(
-            score=score,
-            skill_usage_rate=skill_usage_rate,
-            public_framework_rate=public_framework_rate,
-            local_method_rate=display_local,
-            workflow_fingerprint_rate=display_fp,
-            workflow_reuse_depth=workflow_reuse_depth,
-            asset_authoring_rate=asset_authoring_rate,
-            advanced_feature_rate=advanced_feature_rate,
-        )
-    # Fingerprint is 0 but skills ARE used — detection gap (e.g., cached sessions
-    # parsed before skill-read detection was added; will improve after cache refresh)
-    if skill_usage_rate > 0 or has_asset_roots:
-        return detection_gap_template.format(
-            score=score,
-            skill_usage_rate=skill_usage_rate,
-            note=detection_note,
-            workflow_reuse_depth=workflow_reuse_depth,
-            asset_authoring_rate=asset_authoring_rate,
-            advanced_feature_rate=advanced_feature_rate,
-        )
-    # Everything is 0 — no asset data at all
-    return base_template.format(
-        score=score,
-        skill_usage_rate=skill_usage_rate,
-        public_framework_rate=public_framework_rate,
-        local_method_rate=local_method_rate,
-        workflow_fingerprint_rate=workflow_fingerprint_rate,
-        workflow_reuse_depth=workflow_reuse_depth,
-        asset_authoring_rate=asset_authoring_rate,
-        advanced_feature_rate=advanced_feature_rate,
-    )
-
-
-def _build_level_axis_metrics(
-    stats: GrowthProfile,
-    target_level: str,
-    catalogs: ReportLabelCatalogs,
-) -> list[LevelEvidenceMetricView]:
-    axis_scores = {axis.key: axis.score for axis in stats.radar_axes}
-    capability_meta = _view_i18n(catalogs).get("capability_meta", {})
-    metrics_i18n = _view_i18n(catalogs).get("level_axis_metrics", {})
-    explanations = metrics_i18n.get("explanations", {})
-    current_value_templates = metrics_i18n.get("current_values", {})
-    target_profile = metrics_i18n.get("targets", {}).get(target_level, {})
-    thresholds = metrics_i18n.get("thresholds", {}).get(target_level, {})
-    structured_rate_pct = round(
-        getattr(stats, "workflow_structured_session_count", 0) / max(stats.session_count, 1) * 100
-    )
-    verification_rate = round((stats.verification_behavior_rate or 0.0) * 100)
-    test_rate = round((stats.test_run_rate or 0.0) * 100)
-    code_verification_rate_pct = round((getattr(stats, "code_verification_rate", 0.0) or 0.0) * 100)
-    prompt_dims = stats.pq_avg_dimensions or {}
-    correction_quality = round(prompt_dims.get("correction_quality", 50.0))
-    files_per_session = round(stats.total_files_modified / max(stats.session_count, 1), 1)
-    token_volume_m = round((getattr(stats, "total_token_volume", 0) or 0) / 1_000_000, 1)
-    mcp_rate = round((getattr(stats, "mcp_session_rate", 0.0) or 0.0) * 100)
-    subagent_count = getattr(stats, "subagent_session_count", 0)
-    tool_build_rate = round((getattr(stats, "tool_build_rate", 0.0) or 0.0) * 100)
-    skill_usage_rate = round((getattr(stats, "skill_usage_session_rate", 0.0) or 0.0) * 100)
-    public_framework_rate = round((getattr(stats, "public_framework_session_rate", 0.0) or 0.0) * 100)
-    _raw_local_method_rate = (getattr(stats, "local_method_framework_session_rate", 0.0) or 0.0)
-    _raw_fingerprint_rate = (getattr(stats, "workflow_fingerprint_session_rate", 0.0) or 0.0)
-    local_method_rate = round(_raw_local_method_rate * 100)
-    workflow_fingerprint_rate = round(_raw_fingerprint_rate * 100)
-    asset_authoring_rate = round((getattr(stats, "asset_authoring_session_rate", 0.0) or 0.0) * 100)
-    agentic_system_score = round(getattr(stats, "agentic_system_score", 0.0) or 0.0)
-    authored_assets = (
-        getattr(stats, "skill_authored_count", 0)
-        + getattr(stats, "hook_modified_session_count", 0)
-        + getattr(stats, "mcp_authored_session_count", 0)
-    )
-    user_actionable = round(
-        (
-            (stats.friction_by_attribution.get("user-actionable", 0) / max(sum(stats.friction_by_attribution.values()), 1))
-            if stats.friction_by_attribution
-            else 0.0
-        )
-        * 100
-    )
-    current_values = {
-        "collaboration_framing": current_value_templates.get("collaboration_framing", "").format(
-            score=round(axis_scores.get("collaboration_framing", 0.0)),
-            direction_clarity_rate=round((stats.constraint_prompt_rate or 0.0) * 100),
-            context_grounding_rate=round((stats.code_context_rate or 0.0) * 100),
-            goal_locking_speed=round((getattr(stats, "goal_locking_speed", 0.0) or 0.0), 1),
-            active_clarification_rate=round((stats.active_clarification_rate or 0.0) * 100),
-        ),
-        "execution_driving": current_value_templates.get("execution_driving", "").format(
-            score=round(axis_scores.get("execution_driving", 0.0)),
-            avg_chain=round(stats.avg_autonomous_chain_length or 0.0, 1),
-            heavy_sessions=stats.heavy_session_count,
-            subagent_count=subagent_count,
-            mcp_rate=mcp_rate,
-        ),
-        "implementation_depth": current_value_templates.get("implementation_depth", "").format(
-            score=round(axis_scores.get("implementation_depth", 0.0)),
-            files_per_session=files_per_session,
-            token_volume_m=token_volume_m,
-            code_verification_rate_pct=code_verification_rate_pct,
-        ),
-        "delivery_closure": current_value_templates.get("delivery_closure", "").format(
-            score=round(axis_scores.get("delivery_closure", 0.0)),
-            completion_rate=round((getattr(stats, "fully_achieved_rate", 0.0) or 0.0) * 100),
-            verification_rate=verification_rate,
-            test_rate=test_rate,
-        ),
-        "adaptive_recovery": current_value_templates.get("adaptive_recovery", "").format(
-            score=round(axis_scores.get("adaptive_recovery", 0.0)),
-            correction_quality=correction_quality,
-            structured_rate_pct=structured_rate_pct,
-            user_actionable_ratio_pct=user_actionable,
-            tool_build_rate=tool_build_rate,
-            authored_assets=authored_assets,
-        ),
-        "agentic_system": _build_agentic_current_value(
-            templates=current_value_templates,
-            score=agentic_system_score,
-            skill_usage_rate=skill_usage_rate,
-            public_framework_rate=public_framework_rate,
-            local_method_rate=local_method_rate,
-            workflow_fingerprint_rate=workflow_fingerprint_rate,
-            workflow_reuse_depth=getattr(stats, "workflow_reuse_depth", 0),
-            asset_authoring_rate=asset_authoring_rate,
-            advanced_feature_rate=round((getattr(stats, "advanced_feature_ratio", 0.0) or 0.0) * 100),
-            has_asset_roots=bool(getattr(stats, "agent_asset", None) and getattr(stats.agent_asset, "has_data", False)),
-            raw_local_method_rate=_raw_local_method_rate,
-            raw_fingerprint_rate=_raw_fingerprint_rate,
-        ),
-    }
-    raw_signals = dict(current_values)
-    ordered_keys = tuple(_CAPABILITY_ORDER)
-    metrics: list[LevelEvidenceMetricView] = []
-    for key in ordered_keys:
-        if key == "agentic_system":
-            continue
-        metric_copy = target_profile.get(key, {})
-        target_value = metric_copy.get("target", "")
-        level_hint = metric_copy.get("hint", "")
-        required_score = float(thresholds.get(key, 0))
-        passed = axis_scores.get(key, 0.0) >= required_score
-        metrics.append(
-            _level_metric(
-                label=capability_meta.get(key, {}).get("label", key),
-                current=current_values[key],
-                target=target_value,
-                passed=passed,
-                explanation=f"{explanations.get(key, '')} {level_hint}".strip(),
-                raw_signal=raw_signals[key],
-                catalogs=catalogs,
-            )
-        )
-    system_profile = target_profile.get("agentic_system", {})
-    if system_profile:
-        required_score = float(thresholds.get("agentic_system", 0))
-        metrics.append(
-            _level_metric(
-                label=metrics_i18n.get("labels", {}).get("agentic_system", "Agentic system"),
-                current=current_values["agentic_system"],
-                target=system_profile.get("target", ""),
-                passed=(getattr(stats, "agentic_system_score", 0.0) or 0.0) >= required_score,
-                explanation=f"{explanations.get('agentic_system', '')} {system_profile.get('hint', '')}".strip(),
-                raw_signal=raw_signals["agentic_system"],
-                catalogs=catalogs,
-                kind="system_layer",
-            )
-        )
-    return metrics
-
-
 def _build_level_evidence(
     stats: GrowthProfile,
     capability_scores: dict[str, float],
     session_read_mode: str,
     catalogs: ReportLabelCatalogs,
 ) -> LevelEvidenceSectionView:
-    ev_i18n = _view_i18n(catalogs).get("level_evidence", {})
-    observed_session_reads = sum(stats.outcome_counts.values())
-    has_formal_level = bool(stats.growth_level)
-    if has_formal_level:
-        current_level = stats.growth_level
-        current_num = _LEVEL_ORDER.get(current_level, 2)
-        target_level = current_level if current_level == "L5" else _level_name(current_num + 1)
-    else:
-        current_level = ev_i18n.get("growth_level_unrated", "Unrated")
-        current_num = 1
-        target_level = "L2"
-    metrics = _build_level_axis_metrics(stats, target_level, catalogs)
-    status_met = ev_i18n.get("status_met", "Met")
-    misses = [item for item in metrics if item.status != status_met]
-    blockers = [f"{item.label}：{item.raw_signal}" for item in misses[:3]]
-    met_count = len(metrics) - len(misses)
-    methodology_title, methodology_lines = _mirror_methodology(catalogs)
-
-    fmt = {"current_level": current_level, "next_level": target_level}
-    if not has_formal_level:
-        headline = ev_i18n.get("headline_unrated", "")
-        verdict = ev_i18n.get("verdict_unrated", "").format(min_session_reads=MIN_SESSION_READS_FOR_MIRROR_SCORE)
-        target_caption = ev_i18n.get("target_caption_unrated", "")
-        blocker_title = ev_i18n.get("blocker_title_unrated", "")
-    elif current_level == "L5":
-        headline = ev_i18n.get("headline_l5", "")
-        verdict = ev_i18n.get("verdict_l5", "")
-        target_caption = ev_i18n.get("target_caption_l5", "")
-        blocker_title = ev_i18n.get("blocker_title_l5", "")
-    elif misses and current_num <= 2:
-        headline = ev_i18n.get("headline_low_gap", "").format(**fmt)
-        verdict = ev_i18n.get("verdict_low_gap", "").format(**fmt)
-        target_caption = ev_i18n.get("target_caption_upgrade", "").format(target_level=target_level)
-        blocker_title = ev_i18n.get("blocker_title_low", "")
-    elif misses and current_num == 3:
-        headline = ev_i18n.get("headline_level_gap", "").format(**fmt)
-        verdict = ev_i18n.get("verdict_level3_gap", "").format(**fmt)
-        target_caption = ev_i18n.get("target_caption_upgrade", "").format(target_level=target_level)
-        blocker_title = ev_i18n.get("blocker_title_level3", "")
-    elif misses and current_num >= 4:
-        headline = ev_i18n.get("headline_level_gap", "").format(**fmt)
-        verdict = ev_i18n.get("verdict_level4_gap", "").format(**fmt)
-        target_caption = ev_i18n.get("target_caption_upgrade", "").format(target_level=target_level)
-        blocker_title = ev_i18n.get("blocker_title_level4", "")
-    else:
-        headline = (
-            ev_i18n.get("headline_baseline_met", "").format(current_level=target_level, next_level=target_level)
-            if current_level != "L5"
-            else ev_i18n.get("headline_l5_baseline_met", "")
-        )
-        verdict = (
-            ev_i18n.get("verdict_baseline_met", "").format(current_level=target_level, next_level=target_level)
-            if current_level != "L5"
-            else ev_i18n.get("verdict_l5_baseline_met", "")
-        )
-        target_caption = (
-            ev_i18n.get("target_caption_upgrade", "").format(target_level=target_level)
-            if current_level != "L5"
-            else ev_i18n.get("target_caption_l5", "")
-        )
-        blocker_title = ev_i18n.get("blocker_title_no_blockers", "")
-    next_step = blockers[0] if blockers else ev_i18n.get("next_step_default", "")
-    if not has_formal_level:
-        progress_summary = ev_i18n.get("progress_summary_unrated", "").format(
-            observed_session_reads=observed_session_reads,
-            target_caption=target_caption,
-        )
-    else:
-        progress_summary = ev_i18n.get("progress_summary_rated", "").format(
-            met_count=met_count,
-            total_metrics=len(metrics),
-            target_caption=target_caption,
-        )
-    source_note = ev_i18n.get("source_note_base", "")
-    if session_read_mode == "heuristic":
-        source_note += ev_i18n.get("source_note_heuristic_suffix", "")
-    else:
-        source_note += ev_i18n.get("source_note_llm_suffix", "")
-    return LevelEvidenceSectionView(
-        headline=headline,
-        verdict=verdict,
-        blockers=blockers,
-        metrics=metrics,
-        next_step=next_step,
-        current_level=current_level,
-        target_level=target_level,
-        target_caption=target_caption,
-        blocker_title=blocker_title,
-        progress_summary=progress_summary,
-        source_note=source_note,
-        methodology_title=methodology_title,
-        methodology_lines=methodology_lines,
-    )
+    return build_level_evidence_section(stats, capability_scores, session_read_mode, catalogs)
 
 
 def _compute_date_range(sessions: list[SessionRecord], since: Optional[datetime] = None, until: Optional[datetime] = None) -> str:
@@ -2134,16 +1144,7 @@ def _exemplar_why_keep(exemplar: Exemplar, catalogs: ReportLabelCatalogs) -> str
 
 
 def _exemplar_next_reuse(exemplar: Exemplar, catalogs: ReportLabelCatalogs) -> str:
-    actions = _view_i18n(catalogs).get("exemplar_reuse_actions", {})
-    default_action = actions.get("general", "")
-    return actions.get(exemplar.pattern, default_action)
-
-
-def _trim_text(value: str, limit: int) -> str:
-    text = (value or "").replace("\n", " ").strip()
-    if len(text) <= limit:
-        return text
-    return text[: limit - 1].rstrip() + "…"
+    return ""
 
 
 def _top_hours(hours: list[int]) -> str:
@@ -2161,20 +1162,8 @@ def _top_weekday(counts: list[int], catalogs: ReportLabelCatalogs) -> str:
     return labels[ranked[0][0]]
 
 
-def _goal_label(name: str, catalogs: ReportLabelCatalogs) -> str:
-    labels = _view_i18n(catalogs).get("goal_labels", {})
-    return labels.get(name, name)
-
-
 def _display_project_name(name: str) -> str:
     return clean_project_name(name)
-
-
-def _display_tool_name(name: str, catalogs: ReportLabelCatalogs) -> str:
-    mapping = _view_i18n(catalogs).get("tool_labels", {})
-    if name.startswith("mcp__"):
-        return _view_i18n(catalogs).get("tool_label_mcp", "MCP tool")
-    return mapping.get(name, name.replace("_", " "))
 
 
 def _rollup_projects(items: list[tuple[str, int]]) -> list[str]:
@@ -2184,246 +1173,6 @@ def _rollup_projects(items: list[tuple[str, int]]) -> list[str]:
         if display and display not in seen:
             seen.append(display)
     return seen
-
-
-def _primary_goal_from_session_reads(session_reads: list[SessionRead], catalogs: ReportLabelCatalogs) -> str:
-    counts: dict[str, int] = {}
-    for read in session_reads or []:
-        if read.confidence == "low":
-            continue
-        for key, count in (read.work_intent_mix or {}).items():
-            counts[key] = counts.get(key, 0) + int(count or 0)
-    if not counts:
-        return ""
-    primary_key = max(counts.items(), key=lambda item: item[1])[0]
-    return _goal_label(primary_key, catalogs)
-
-
-def _recent_work_items(sessions: list[SessionRecord], session_reads: list[SessionRead]) -> list[str]:
-    rows: list[str] = []
-    read_by_session = {read.session_id: read for read in session_reads or []}
-    sorted_sessions = sorted(
-        sessions,
-        key=lambda session: session.start_time or "",
-        reverse=True,
-    )
-    for session in sorted_sessions:
-        read = read_by_session.get(session.session_id)
-        item = _work_item_from_session_read(read) if read else ""
-        if not item:
-            source = session.first_prompt or (session.top_user_messages[0] if session.top_user_messages else "")
-            item = _work_item_from_prompt(source)
-        if item and item not in rows:
-            rows.append(item)
-        if len(rows) >= 4:
-            break
-    return rows
-
-
-def _work_item_from_session_read(read: SessionRead | None) -> str:
-    if not read or read.confidence == "low":
-        return ""
-    source = read.work_summary or read.session_takeaway or read.key_gain
-    if not source:
-        return ""
-    return _trim_text(_sanitize_work_item_source(source), 48)
-
-
-_PATH_RE = re.compile(
-    r"(?:[A-Za-z]:[\\/][^\s，。；;]+|/Users/[^\s，。；;]+|/home/[^\s，。；;]+|\\\\\?\\[^\s，。；;]+)"
-)
-_WORK_ITEM_NOISE_PATTERNS = (
-    r"^根据下面的内容\s*review\s*[，,、和并]*\s*",
-    r"^review\s*[，,、和并]*\s*",
-    r"^使用\s*$",
-    r"^解决报错\s*",
-    r"^实现下面的功能\s*[，,、和并]*\s*",
-    r"^并完善相关的文档\s*",
-    r"^修复\s*review\s*到的问题\s*[，,、和并]*\s*",
-)
-
-
-def _work_item_from_prompt(value: str) -> str:
-    text = " ".join((value or "").replace("\n", " ").split())
-    if not text:
-        return ""
-    text = _sanitize_work_item_source(text)
-    for pattern in (
-        r"(?:目标结果|目标|本次任务|任务|当前问题|本次对象)[:：]\s*([^。；;.!?\n]+)",
-        r"(?:help me|please|请|帮我)\s*([^。；;.!?\n]+)",
-    ):
-        match = re.search(pattern, text, flags=re.IGNORECASE)
-        if match:
-            candidate = match.group(1).strip(" ：:，,")
-            if candidate:
-                return _trim_text(candidate, 48)
-    first_sentence = re.split(r"[。；;.!?]", text, maxsplit=1)[0].strip(" ：:，,")
-    return _trim_text(first_sentence, 48)
-
-
-def _sanitize_work_item_source(value: str) -> str:
-    text = _PATH_RE.sub(" ", value)
-    text = re.sub(r"\s+", " ", text).strip(" ：:，,、")
-    changed = True
-    while changed:
-        changed = False
-        for pattern in _WORK_ITEM_NOISE_PATTERNS:
-            new_text = re.sub(pattern, "", text, flags=re.IGNORECASE).strip(" ：:，,、")
-            if new_text != text:
-                text = new_text
-                changed = True
-    if not text:
-        return ""
-    theme_rules = (
-        (r"报告闭环", "修复报告闭环与展示问题"),
-        (r"文档", "实现功能并完善文档"),
-        (r"报错|exception|traceback", "定位并修复报错"),
-        (r"功能", "实现功能需求"),
-        (r"review", "根据 review 修复问题"),
-    )
-    for pattern, label in theme_rules:
-        if re.search(pattern, text, flags=re.IGNORECASE):
-            return label
-    return text
-
-
-def _rollup_tool_labels(items: list[tuple[str, int]], catalogs: ReportLabelCatalogs) -> list[FocusAreaView]:
-    merged: dict[str, int] = {}
-    details: dict[str, list[str]] = {}
-    for name, count in items:
-        label = _display_tool_name(name, catalogs)
-        merged[label] = merged.get(label, 0) + count
-        details.setdefault(label, []).append(name)
-    ranked = sorted(merged.items(), key=lambda item: (-item[1], item[0]))
-    return [
-        FocusAreaView(label=label, count=count, detail=" / ".join(sorted(set(details.get(label, [])))))
-        for label, count in ranked
-    ]
-
-
-def _prompt_takeaways_from_real_samples(
-    stats: GrowthProfile,
-    catalogs: ReportLabelCatalogs,
-) -> list[PromptCoachTakeawayView]:
-    pc_i18n = _view_i18n(catalogs).get("prompt_coach", {})
-    actions = pc_i18n.get("takeaway_actions", {})
-    takeaways: list[PromptCoachTakeawayView] = []
-    seen: set[str] = set()
-    for item in getattr(stats, "pq_top_takeaways", []) or []:
-        label = item.label or item.category.replace("_", " ").replace("-", " ")
-        if label in seen:
-            continue
-        if item.type == "improve" and item.better_prompt:
-            takeaways.append(
-                PromptCoachTakeawayView(
-                    label=label,
-                    kind=actions.get("kind_example", "Example"),
-                    evidence=_trim_text(item.original or item.message_ref, 140),
-                    message=item.why or pc_i18n.get("dimension_gap_message", ""),
-                    action=actions.get("improve", "Use the structure below for your next opening message."),
-                    better_prompt=item.better_prompt,
-                )
-            )
-        elif item.type == "reinforce":
-            takeaways.append(
-                PromptCoachTakeawayView(
-                    label=label,
-                    kind=actions.get("kind_reinforce", "Reinforce"),
-                    evidence=_trim_text(item.what_worked or item.message_ref, 140),
-                    message=item.why_effective or pc_i18n.get("strength_card", {}).get("message", ""),
-                    action=actions.get("reinforce", "Carry this working pattern into a different task type."),
-                    better_prompt="",
-                )
-            )
-        seen.add(label)
-        if len(takeaways) >= 2:
-            break
-    return takeaways
-
-
-def _prompt_dimension_card(dim_key: str, catalogs: ReportLabelCatalogs) -> PromptCoachTakeawayView:
-    pc_i18n = _view_i18n(catalogs).get("prompt_coach", {})
-    cards = pc_i18n.get("dimension_cards", {})
-    meta = cards.get(dim_key)
-    if meta is None:
-        meta = next(iter(cards.values()), {})
-    label = meta.get("label", "")
-    kind = meta.get("kind", "")
-    evidence = meta.get("evidence", "")
-    action = meta.get("action", "")
-    better_prompt = meta.get("better_prompt", "")
-    message = pc_i18n.get("dimension_gap_message", "")
-    return PromptCoachTakeawayView(label=label, kind=kind, evidence=evidence, message=message, action=action, better_prompt=better_prompt)
-
-
-def _prompt_deficit_card(deficit_key: str, count: int, catalogs: ReportLabelCatalogs) -> PromptCoachTakeawayView:
-    pc_i18n = _view_i18n(catalogs).get("prompt_coach", {})
-    meta = pc_i18n.get("deficit_cards", {}).get(deficit_key)
-    if meta is None:
-        meta = next(iter(pc_i18n.get("deficit_cards", {}).values()), {})
-    label = meta.get("label", "")
-    kind = meta.get("kind", "")
-    evidence = meta.get("evidence", "").format(count=count)
-    action = meta.get("action", "")
-    message = pc_i18n.get("deficit_message", "")
-    return PromptCoachTakeawayView(label=label, kind=kind, evidence=evidence, message=message, action=action, better_prompt="")
-
-
-def _prompt_overlap_deficits(dim_key: str) -> set[str]:
-    mapping = {
-        "context_provision": {"missing-context"},
-        "request_specificity": {"vague-request"},
-        "information_timing": {"missing-context"},
-        "correction_quality": {"unclear-correction"},
-    }
-    return mapping.get(dim_key, set())
-
-
-def _prompt_strength_card(dim_key: str, catalogs: ReportLabelCatalogs) -> PromptCoachTakeawayView:
-    dim_labels = _view_i18n(catalogs)["pq_dim_labels"]
-    label = dim_labels.get(dim_key, dim_key)
-    tl = _template_labels(catalogs)
-    card = _view_i18n(catalogs).get("prompt_coach", {}).get("strength_card", {})
-    return PromptCoachTakeawayView(
-        label=card.get("label_prefix", "{label}").format(label=label),
-        kind=tl.get("label_kind_strength", "Strength"),
-        evidence=card.get("evidence", ""),
-        message=card.get("message", ""),
-        action=card.get("action", "").format(label=label),
-        better_prompt="",
-    )
-
-
-def _pq_deficit_display(name: str, count: int, catalogs: ReportLabelCatalogs) -> str:
-    deficit_labels = _guidance_labels(catalogs).get("pq_labels", {}).get("deficit", {})
-    label = deficit_labels.get(name.replace("-", "_"), name)
-    fmt = _view_i18n(catalogs).get("pq_deficit_count_format", "{label} x {count}")
-    return fmt.format(label=label, count=count)
-
-
-def _level_metric(
-    label: str,
-    current: str,
-    target: str,
-    passed: bool,
-    explanation: str,
-    raw_signal: str,
-    *,
-    catalogs: ReportLabelCatalogs,
-    kind: str = "axis",
-) -> LevelEvidenceMetricView:
-    ev = _view_i18n(catalogs).get("level_evidence", {})
-    status_met = ev.get("status_met", "Met")
-    status_unmet = ev.get("status_unmet", "Not Met")
-    return LevelEvidenceMetricView(
-        label=label,
-        current_value=current,
-        target_value=target,
-        status=status_met if passed else status_unmet,
-        explanation=explanation,
-        raw_signal=raw_signal,
-        kind=kind,
-    )
 
 
 def _build_heuristic_exemplar_summary(
@@ -2461,86 +1210,3 @@ def _build_heuristic_exemplar_summary(
         parts.append(summary_i18n.get("commits", "").format(git_commits=meta.git_commits))
     separator = summary_i18n.get("separator", "; ")
     return separator.join(parts)
-
-
-def empty_prompt_coach_view() -> PromptCoachView:
-    return PromptCoachView(
-        available=False,
-        headline="",
-        strongest_label="",
-        weakest_label="",
-        evidence_summary="",
-        strength_habit="",
-    )
-
-
-def build_prompt_coach_view_from_payload(payload: dict | None) -> PromptCoachView:
-    if not isinstance(payload, dict) or not payload:
-        return empty_prompt_coach_view()
-    source_summary_payload = payload.get("source_summary") or {}
-    source_summary = PromptCoachSourceSummaryView(
-        llm_session_count=int(source_summary_payload.get("llm_session_count", 0) or 0),
-        heuristic_session_count=int(source_summary_payload.get("heuristic_session_count", 0) or 0),
-        light_session_count=int(source_summary_payload.get("light_session_count", 0) or 0),
-        evaluated_user_messages=int(source_summary_payload.get("evaluated_user_messages", 0) or 0),
-        run_mode=str(source_summary_payload.get("run_mode", "llm") or "llm"),
-        llm_evaluated_count=int(source_summary_payload.get("llm_evaluated_count", 0) or 0),
-        insufficient_count=int(source_summary_payload.get("insufficient_count", 0) or 0),
-        llm_failed_count=int(source_summary_payload.get("llm_failed_count", 0) or 0),
-        llm_unavailable_count=int(source_summary_payload.get("llm_unavailable_count", 0) or 0),
-    )
-    rewrite_cards = [
-        PromptCoachRewriteCardView(
-            id=str(item.get("id", "")),
-            scene=str(item.get("scene", "")),
-            original=str(item.get("original", "")),
-            problem=str(item.get("problem", "")),
-            better_prompt=str(item.get("better_prompt", "")),
-            why=str(item.get("why", "")),
-            category=str(item.get("category", "")),
-            confidence=str(item.get("confidence", "")),
-            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
-            source_note=str(item.get("source_note", "")),
-        )
-        for item in payload.get("rewrite_cards", [])
-        if isinstance(item, dict)
-    ]
-    universal_payload = payload.get("universal_template") or {}
-    universal_template = None
-    if isinstance(universal_payload, dict) and universal_payload:
-        universal_template = PromptCoachTemplateView(
-            id=str(universal_payload.get("id", "")),
-            title=str(universal_payload.get("title", "")),
-            scene=str(universal_payload.get("scene", "")),
-            common_gap=str(universal_payload.get("common_gap", "")),
-            template=str(universal_payload.get("body") or universal_payload.get("template", "")),
-        )
-    friction_synthesis = [
-        PromptCoachFrictionSynthesisView(
-            id=str(item.get("id", "")),
-            label=str(item.get("label", "")),
-            explanation=str(item.get("explanation", "")),
-            next_action=str(item.get("next_action", "")),
-            confidence=int(item.get("confidence", 0) or 0),
-            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
-            generated_by=str(item.get("generated_by", "rule") or "rule"),
-        )
-        for item in payload.get("friction_synthesis", [])
-        if isinstance(item, dict)
-    ]
-    return PromptCoachView(
-        available=bool(payload.get("headline") or rewrite_cards or friction_synthesis or universal_template),
-        headline=str(payload.get("headline", "")),
-        strongest_label=str(payload.get("strongest_label", "")),
-        weakest_label=str(payload.get("weakest_label", "")),
-        evidence_summary=str(payload.get("evidence_summary", "")),
-        strength_habit=str(payload.get("strength_habit", "")),
-        source_note=str(payload.get("source_note", "")),
-        light_state_note=str(payload.get("light_state_note", "")),
-        source_summary=source_summary,
-        weak_dimensions=[str(item) for item in payload.get("weak_dimensions", []) if item],
-        deficits=[str(item) for item in payload.get("deficits", []) if item],
-        rewrite_cards=rewrite_cards,
-        universal_template=universal_template,
-        friction_synthesis=friction_synthesis,
-    )

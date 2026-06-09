@@ -5,6 +5,8 @@ status: canonical
 updated_at: 2026-05-29
 ---
 
+English version: [OPEN_SOURCE_GOVERNANCE.md](../en/config/OPEN_SOURCE_GOVERNANCE.md)
+
 # AI 成长镜 · 仓库治理说明
 
 ## 0. 运行环境

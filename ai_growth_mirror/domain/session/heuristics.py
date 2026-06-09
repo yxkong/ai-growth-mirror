@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 
 from .model import SessionRecord
+from .task_contract import enrich_task_contract_signals, is_indexed_prompt_session
+from .validation_commands import TEST_PATTERNS, is_validation_command
 
 CONSTRAINT_WORDS = (
     "不要",
@@ -79,24 +81,24 @@ EXEC_TOOL_NAMES = frozenset(
     }
 )
 
-TEST_PATTERNS = frozenset(
+READ_TOOL_NAMES = frozenset(
     {
-        "pytest",
-        "npm test",
-        "npm run test",
-        "jest",
-        "go test",
-        "cargo test",
-        "make test",
-        "python -m pytest",
-        "rspec",
-        "vitest",
-        "mocha",
-        "phpunit",
-        "mvn test",
-        "gradle test",
-        "yarn test",
-        "bun test",
+        "read",
+        "readfile",
+        "read_file",
+        "view_file",
+        "get_file_contents",
+        "grep",
+        "rg",
+        "search",
+        "grep_search",
+        "glob",
+        "list",
+        "list_dir",
+        "find",
+        "find_files",
+        "open_file",
+        "fetchmcpresource",
     }
 )
 
@@ -192,12 +194,13 @@ def enrich_agentic_signals(session: SessionRecord) -> None:
         session.autonomous_chain_lengths = chains
 
     has_write = bool(tool_names & WRITE_TOOL_NAMES)
-    has_exec = bool(tool_names & EXEC_TOOL_NAMES)
+    all_names_lower = " ".join(tool_names)
+    has_test_like_tool = is_validation_command(all_names_lower)
+    has_exec = bool(tool_names & EXEC_TOOL_NAMES) or has_test_like_tool
     if has_write and has_exec:
         session.has_verification_behavior = True
 
-    all_names_lower = " ".join(tool_names)
-    if any(pattern in all_names_lower for pattern in TEST_PATTERNS):
+    if has_test_like_tool:
         session.has_test_commands = True
 
 
@@ -256,19 +259,6 @@ def enrich_advanced_features(session: SessionRecord) -> None:
 _QUALITY_ORDER = {"low": 0, "medium": 1, "high": 2}
 
 
-def is_indexed_prompt_session(session: SessionRecord) -> bool:
-    """A session that anchors on a known skill/slash-command/rule entry.
-
-    Such sessions are *high signal* even when they have only 1 user message —
-    the user is leveraging accumulated assets rather than re-typing context.
-    """
-    return bool(
-        session.skill_invocation_count > 0
-        or session.unique_skills_used
-        or session.slash_commands
-    )
-
-
 def classify_session_quality(session: SessionRecord) -> str:
     """Bucket a session into low/medium/high for the report quality gate.
 
@@ -315,7 +305,7 @@ def passes_quality_gate(session: SessionRecord, min_quality: str) -> bool:
 
 
 def detect_active_clarification(session: SessionRecord) -> bool:
-    """Detect the "active clarification" collaboration pattern (v0.6.0 G-3).
+    """Detect the active-clarification collaboration pattern.
 
     A session counts as active clarification when the user opens with a task,
     then in a later turn (2nd/3rd user message) adds explicit constraints/scope
@@ -355,4 +345,3 @@ def is_recovery_continuation(msg: str) -> bool:
         return False
     msg_lower = msg.lower().strip()
     return any(pattern in msg_lower for pattern in _RECOVERY_CONTINUATION_PATTERNS)
-

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ai_growth_mirror.application.growth_trajectory import _chart_points, _series_view
+from ai_growth_mirror.application.label_catalogs import load_report_label_catalogs
 
 
 def test_chart_points_mini_height_for_axis_trends():
@@ -26,6 +27,7 @@ def test_series_view_axis_mode_uses_mini_chart_height():
         values=[40.0, 55.0, 60.0],
         points=[_Point(), _Point(), _Point()],
         value_mode="axis",
+        catalogs=load_report_label_catalogs("zh"),
     )
     assert series.area_path
     assert all(point["y"] <= 64.0 for point in series.points)

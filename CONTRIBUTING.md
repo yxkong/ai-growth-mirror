@@ -1,12 +1,14 @@
 # Contributing to AI Growth Mirror
 
+Chinese version: [CONTRIBUTING.zh.md](./CONTRIBUTING.zh.md)
+
 Thank you for your interest in contributing. This project is a **local-first** personal growth report tool; contributions should preserve privacy and keep the personal report chain simple.
 
 ## Before you start
 
-1. Read [`docs/design/ARCHITECTURE_PRINCIPLES.md`](docs/design/ARCHITECTURE_PRINCIPLES.md) — layering and dependency direction are non-negotiable.
-2. Read [`docs/config/OPEN_SOURCE_GOVERNANCE.md`](docs/config/OPEN_SOURCE_GOVERNANCE.md) — docs placement, prompts, and what must not be committed.
-3. For report assembly changes, read ARCHITECTURE §12（反模式）; if the project skill is mounted, also read `.claude/skills/ai-growth-mirror-dev/references/anti_patterns.md`.
+1. Read [`docs/en/design/ARCHITECTURE_PRINCIPLES.md`](docs/en/design/ARCHITECTURE_PRINCIPLES.md) — layering and dependency direction are non-negotiable.
+2. Read [`docs/en/config/OPEN_SOURCE_GOVERNANCE.md`](docs/en/config/OPEN_SOURCE_GOVERNANCE.md) — docs placement, prompts, and what must not be committed.
+3. For report assembly changes, read ARCHITECTURE Section 12 (anti-patterns); if the project skill is mounted, also read `.claude/skills/ai-growth-mirror-dev/references/anti_patterns.md`.
 
 ## Development setup
 
@@ -48,53 +50,53 @@ pytest tests/unit/test_personal_growth_report.py tests/unit/test_report_generati
 - Bug fixes with unit tests
 - Docs that use **generic paths** (no machine-specific `D:\...` or personal project names)
 
-## Pull request 规范
+## Pull request guidelines
 
-本仓库 PR 默认使用 [`.github/pull_request_template.md`](.github/pull_request_template.md)。目标是让 reviewer 在 2 分钟内看清 **背景、问题、方案、范围、验证**，而不是只看 commit 列表。
+This repo uses [`.github/pull_request_template.md`](.github/pull_request_template.md). The goal is for reviewers to see **context, problem, approach, scope, and verification** within about two minutes — not just a commit list.
 
-### 标题格式
+### Title format
 
 ```
-type(scope): 一句话说明动机（why）
+type(scope): one-line motivation (why)
 ```
 
-| type | 用途 |
-|------|------|
-| `feat` | 新能力 / 新区块 / 新 reader |
-| `fix` | 修复错误行为、报告闭环、数据口径 |
-| `refactor` | 不改外部行为的结构整理 |
-| `docs` | 设计、README、贡献规范 |
-| `test` | 仅补测试 |
-| `chore` | 构建、依赖、CI |
+| type | Use for |
+|------|---------|
+| `feat` | New capability / section / reader |
+| `fix` | Incorrect behavior, report loop, data semantics |
+| `refactor` | Structure cleanup without external behavior change |
+| `docs` | Design, README, contribution docs |
+| `test` | Tests only |
+| `chore` | Build, dependencies, CI |
 
-`scope` 示例：`report`、`reader`、`cli`、`domain`、`i18n`、`docs`。
+Example `scope`: `report`, `reader`, `cli`, `domain`, `i18n`, `docs`.
 
-**好标题**：`fix(report): 工作焦点改由 SessionRead 语义真源驱动`  
-**差标题**：`update report`、`fix bugs`、`v0.8 changes`
+**Good**: `fix(report): drive work focus from SessionRead semantic source`  
+**Bad**: `update report`, `fix bugs`, `v0.8 changes`
 
-### 正文必填块
+### Required PR body sections
 
-1. **背景** — 为什么现在要做
-2. **问题定义** — 错在哪 / 缺什么（可验证）
-3. **方案** — 真源、边界、取舍（不写实现流水账）
-4. **改动范围** — 白名单模块；便于 scope review
-5. **非目标** — 明确这次不做什么
-6. **验证** — 贴命令 + 结果；报告类补充 HTML/summary 扫描点
-7. **风险与回滚** — 用户可见变化、兼容性、revert 路径
+1. **Context** — why now
+2. **Problem** — what is wrong or missing (verifiable)
+3. **Approach** — source of truth, boundaries, trade-offs (not an implementation diary)
+4. **Scope** — allowlisted modules for review
+5. **Non-goals** — what this PR explicitly does not do
+6. **Verification** — commands + results; for report changes, HTML/summary scan points
+7. **Risk and rollback** — user-visible changes, compatibility, revert path
 
-### 范围与粒度
+### Scope and granularity
 
-- **一个 PR 一个主目标**： reviewer 应能一句话概括「这个 PR 解决什么问题」。
-- **避免「大杂烩 PR」**：不要把无关 reader 修复、文档整理、i18n 漂移塞进同一 PR，除非它们共享同一契约且无法拆分验证。
-- **报告类改动**：必须说明真源文件（`report_view.py` / `summary_payload.py` / 模板 / i18n）和「无数据不渲染」是否受影响。
+- **One PR, one main goal**: a reviewer should summarize the PR in one sentence.
+- **Avoid kitchen-sink PRs**: do not mix unrelated reader fixes, doc churn, or i18n drift unless they share one contract and cannot be validated separately.
+- **Report changes**: state truth-source files (`report_view.py` / `summary_payload.py` / templates / i18n) and whether "no data, no render" is affected.
 
-### 验证最低要求
+### Minimum verification
 
 ```bash
 pytest tests/unit -q --tb=no
 ```
 
-报告主链改动额外跑：
+For report main-chain changes, also run:
 
 ```bash
 pytest tests/unit/test_personal_growth_report.py \
@@ -104,8 +106,8 @@ pytest tests/unit/test_personal_growth_report.py \
 
 ## Pull request checklist
 
-- [ ] PR 标题符合 `type(scope): 动机` 格式
-- [ ] PR 正文已填模板中的背景 / 问题 / 方案 / 范围 / 非目标 / 验证 / 风险
+- [ ] PR title follows `type(scope): motivation`
+- [ ] PR body fills context / problem / approach / scope / non-goals / verification / risk
 - [ ] `pytest tests/unit -q --tb=no` passes locally
 - [ ] No secrets, API keys, or personal report artifacts in the diff
 - [ ] No duplicate pipeline logic in `cli.py` (see anti-pattern doc)

@@ -82,6 +82,13 @@ def clean_project_name(project_path: str) -> str:
 
     # Reconstruct the display name
     if is_flat:
+        lowered_parts = [part.lower() for part in parts]
+        for marker in (["workspace", "projects", "github"], ["workspace", "projects"]):
+            marker_len = len(marker)
+            for idx in range(0, len(lowered_parts) - marker_len + 1):
+                if lowered_parts[idx : idx + marker_len] == marker and idx + marker_len < len(parts):
+                    return "-".join(parts[idx + marker_len :])
+
         display = "-".join(parts)
         
         # If the flat string ends with the current project name, return the current project name

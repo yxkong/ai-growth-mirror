@@ -106,6 +106,7 @@ def generate_personal_report(
         catalogs=catalogs,
         hide_wechat=hide_wechat,
         hide_email=hide_email,
+        llm=llm,
     )
     html = render_personal_report_html(view=view, language=language, redact=redact)
 

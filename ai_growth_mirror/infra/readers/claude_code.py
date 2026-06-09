@@ -10,7 +10,13 @@ from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from ...domain.growth.costs import estimate_cost
-from ...domain.session.heuristics import CONSTRAINT_WORDS, CODE_CONTEXT_PATTERNS, TEST_PATTERNS, WRITE_TOOL_NAMES
+from ...domain.session.heuristics import (
+    CODE_CONTEXT_PATTERNS,
+    CONSTRAINT_WORDS,
+    TEST_PATTERNS,
+    WRITE_TOOL_NAMES,
+    is_validation_command,
+)
 from ...domain.session.model import SessionRecord, SessionRef
 from ...domain.signals.tooling import compute_tier_counts
 from .base import (
@@ -209,7 +215,7 @@ class _ClaudeAccumulator:
                 self.unique_skills_used.append(normalized)
 
         command = " ".join(_iter_text_fragments(payload)).lower()
-        if any(pattern in command for pattern in TEST_PATTERNS):
+        if is_validation_command(command):
             self.has_test_commands = True
 
         is_read_tool = normalized in SKILL_READ_TOOL_NAMES

@@ -44,7 +44,7 @@ dimensions:
 
 strengths:
   planning: "You frame the problem before letting the AI move."
-  orchestration: "You already treat AI as a multi-path collaborator, not just a Q&A tool."
+  orchestration: "Current signals show multi-path collaboration and capability composition starting to appear."
   evidence: "You prefer to close work with evidence, which lowers rework."
   reuse: "You are already inclined to turn methods into reusable assets."
   fallback: "Your collaboration style is practical and willing to push real work forward."
@@ -56,7 +56,7 @@ growth:
   reuse: "Turn at least one recurring task each week into a template, checklist, or draft skill."
 
 narrative:
-  slogan: "You are not merely using AI session by session; you are growing a collaboration operating system."
-  description: "Right now your work looks closest to the {archetype_name} style. The meaningful difference is not whether you use AI, but how you start tasks, how you let AI move, how you decide work is truly done, and whether you preserve methods for reuse."
+  slogan: "Current collaboration signals are forming an observable operating-system shape."
+  description: "Right now your work looks closest to the {archetype_name} style. This read is based on kickoff pattern, AI execution flow, closure evidence, and method-retention signals."
   description_evidence_low: " Your biggest upgrade is likely stronger evidence-led closure."
   description_reuse_low: " You already get results; the next step is turning results into reusable methods."

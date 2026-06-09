@@ -44,7 +44,7 @@ dimensions:
 
 strengths:
   planning: "你会先搭问题框架，再让 AI 动手。"
-  orchestration: "你已经开始把 AI 当成多路径协作者，而不是单轮问答工具。"
+  orchestration: "当前信号显示多路径协作和能力组合已经开始出现。"
   evidence: "你更愿意用验证结果来收口，这会显著降低返工。"
   reuse: "你具备方法资产化倾向，容易沉淀出可复用工作法。"
   fallback: "你的协作节奏很实战，愿意快速推进真实任务。"
@@ -56,7 +56,7 @@ growth:
   reuse: "每周至少把一个高频动作沉淀成模板、清单或 Skill 草稿。"
 
 narrative:
-  slogan: "你不是在单次用 AI，而是在慢慢长出自己的协作操作系统。"
-  description: "当前更接近“{archetype_name}”的协作风格。你最显著的差异，不在于会不会用工具，而在于你如何启动任务、如何让 AI 推进、如何判断能不能收口，以及会不会把有效做法留下来。"
+  slogan: "当前协作信号正在形成可观察的操作系统轮廓。"
+  description: "当前更接近“{archetype_name}”的协作风格。这个判断基于任务启动方式、AI 推进方式、收口判断和方法留存信号。"
   description_evidence_low: " 当前最大的升级空间通常不在更多工具，而在更强的证据收口。"
   description_reuse_low: " 你已经能做出结果，下一步要把结果变成可复用方法。"

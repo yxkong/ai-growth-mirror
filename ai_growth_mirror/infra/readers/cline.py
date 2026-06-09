@@ -27,11 +27,11 @@ from .base import (
     EXEC_TOOL_NAMES,
     SKILL_READ_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
-    TEST_PATTERNS,
     WRITE_TOOL_NAMES,
     _max_mtime,
     detect_language,
     extract_skill_name_from_path,
+    is_validation_command,
     parse_ts,
 )
 from .workspace_storage import appdata_path
@@ -362,7 +362,7 @@ class ClineFamilyTaskAdapter(BaseSessionAdapter):
 
                 command = _command_from_tool_input(tool_input)
                 command_lower = command.lower()
-                if command and any(pattern in command_lower for pattern in TEST_PATTERNS):
+                if command and is_validation_command(command_lower):
                     has_test_commands = True
 
                 if normalized in SUBAGENT_TOOL_NAMES or "new_task" in normalized:

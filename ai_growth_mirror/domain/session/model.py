@@ -102,6 +102,7 @@ class SessionRecord:
 
     # Rich content: top N user messages (populated by adapters that support it)
     top_user_messages: list[str] = field(default_factory=list)
+    assistant_messages: list[str] = field(default_factory=list)
 
     # Agentic working signals
     autonomous_chain_lengths: list[int] = field(default_factory=list)  # tool calls between human-text msgs
@@ -110,6 +111,19 @@ class SessionRecord:
     prompt_word_count: int = 0               # word count of first user message
     prompt_has_constraint: bool = False      # first prompt contains constraint language (informational only)
     prompt_has_code_context: bool = False    # first prompt contains file paths / code / error snippets
+
+    # Effective Task Contract signals (v1.0.0).
+    # These distinguish "the user did not type every requirement" from
+    # "a rule/skill/workflow/agent created the task contract before execution".
+    task_contract_sources: list[str] = field(default_factory=list)
+    pre_execution_contract_present: bool = False
+    acceptance_contract_source: str = "unknown"
+    boundary_contract_source: str = "unknown"
+    validation_contract_source: str = "unknown"
+    late_contract_correction: bool = False
+    agent_contract_compliance: str = "unknown"  # met | partial | missing | unknown
+    pre_write_read_count: int = 0
+    pre_write_non_read_tool_count: int = 0
 
     # Skill / workflow automation signals
     # Detected from Skill tool_use blocks in assistant messages (the only reliable source).
@@ -175,6 +189,7 @@ class SessionRecord:
         self._adapter._enrich_prompt_signals(self)
         self._adapter._enrich_agentic_signals(self)
         self._adapter._enrich_advanced_features(self)
+        self._adapter._enrich_task_contract_signals(self)
         if cache is not None:
             try:
                 cache.write_record(self)

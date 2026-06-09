@@ -263,6 +263,19 @@ class GrowthProfile:
     # Average word count of opening prompts
     avg_prompt_word_count: float = 0.0
 
+    # Effective Task Contract (v1.0.0). These metrics separate user-written
+    # task framing from contracts supplied by skills, workflow rules, or the
+    # agent before execution.
+    explicit_contract_rate: float = 0.0
+    effective_contract_rate: float = 0.0
+    skill_contract_rate: float = 0.0
+    agent_derived_contract_rate: float = 0.0
+    late_contract_correction_rate: float = 0.0
+    contract_compliance_rate: float = 0.0
+    contract_compliance_denominator: int = 0
+    contract_missing_rate: float = 0.0
+    task_contract_source_counts: dict[str, int] = field(default_factory=dict)
+
     # Skill / workflow automation. Usage signals are stronger than inventory:
     # a large local skill library is context, but repeated runtime use is what
     # can lift the agentic system maturity.

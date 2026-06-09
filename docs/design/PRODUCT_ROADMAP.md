@@ -1,5 +1,7 @@
 # AI Growth Mirror — 产品长期规划与路线图
 
+English version: [PRODUCT_ROADMAP.md](../en/design/PRODUCT_ROADMAP.md)
+
 > 本文档定义 AI 成长镜（AI Growth Mirror）的核心定位、当前阶段以及中长期产品演进路线图。
 
 ---
@@ -26,10 +28,12 @@
 
 ## 2. 版本管理体系
 
-为保障核心业务的持续迭代与数据库/缓存的稳定性，项目采用解耦的版本架构：
+为保障核心业务的持续迭代与数据库/缓存的稳定性，项目采用“产品版本线跟随缓存 Schema”的版本架构：
 
-* **产品版本 (Product Version)**：遵循 SemVer 语义化规范。代表用户直接体验到的功能、交互及 CLI 命令升级。
-* **缓存 Schema 版本 (Cache Schema Version)**：指示 `SessionRead` / `CoreEvidence` 序列化在缓存底座中的兼容性，独立版本升级会触发旧缓存的自动迁移与重新解析。
+* **产品版本 (Product Version)**：遵循 SemVer 语义化规范。版本线的 `MAJOR.MINOR` 与缓存 Schema 保持一致，例如 `CACHE_SCHEMA_VERSION=1.0` 对应 `v1.0.x`。
+* **缓存 Schema 版本 (Cache Schema Version)**：指示 `SessionRecord` / `SessionRead` / `CoreEvidence` 序列化在缓存底座中的兼容性。只有缓存协议变化时才升级 schema，并同步开启新的产品版本线。
+* **小版本策略**：不改变 schema 时，只 bump patch 版本，例如 `v1.0.1`、`v1.0.2`；改变 schema 时，产品版本同步升到新的 `vX.Y.0`。
+* **联动要求**：升版必须同步 `pyproject.toml`、`ai_growth_mirror/__init__.py`、`uv.lock`、`README.md`、`docs/design/README.md`、本路线图与当期设计文档。
 
 | 产品版本 (Product Version) | 缓存 Schema 版本 | 核心关注点 | 状态 |
 |----------------------------|-----------------|-----------|------|
@@ -39,8 +43,9 @@
 | **v0.6.0** | 1.3 | 训练回看与环比增量闭环 (Practice Feedback Loop) | ✅ 已发布 |
 | **v0.7.0** | 1.4 | **Agentic 操作成熟度体系重构**（六轴 + 三层模型 + environmental-recovery） | ✅ 已发布 |
 | **v0.8.0** | 1.4 | `collaboration_framing` 重定义 + `goal_locking_speed` 新信号 | ✅ 已发布 |
-| **v0.9.0** | 1.4 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
-| **v1.0.0+** | 2.0 | 插件市场与开放平台 API | 📅 长期规划 |
+| **v1.0.0** | 1.0 | 有效任务契约、只读侦察豁免、关键词验证识别、work_focus LLM 综合、Prompt Coach 证据化；产品与 Schema 从 1.0 重新起线 | ✅ 已发布 |
+| **v1.0.1** | 1.0 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
+| **v2.0.0+** | 2.0 | 插件市场与开放平台 API | 📅 长期规划 |
 
 ---
 
@@ -61,7 +66,7 @@
 
 ## 4. 中期规划 (v0.5.0 ~ v0.8.0)
 
-> **演进逻辑**：诊断（v0.4）→ 可读交互（v0.5）→ 训练闭环（v0.6）→ **Agentic 评估重构（v0.7）** → 协作框定重定义（v0.8）→ 跨端聚合（v0.9）→ 平台化（v1.0）。每一版只解决 1–2 个核心缺口，避免功能堆砌；后一版依赖前一版的 snapshot/sidecar 契约，不推翻主链。
+> **演进逻辑**：诊断（v0.4）→ 可读交互（v0.5）→ 训练闭环（v0.6）→ **Agentic 评估重构（v0.7）** → 协作框定重定义（v0.8）→ 有效任务契约与版本起线（v1.0）→ 跨端聚合（v1.0.x）→ 平台化（v2.0）。每一版只解决 1–2 个核心缺口，避免功能堆砌；后一版依赖前一版的 snapshot/sidecar 契约，不推翻主链。
 
 ### 报告内容版本闭环规划
 
@@ -73,7 +78,8 @@
 | **v0.6** ✅ | 训练回看折叠区块 + 环比 delta 卡片 + CLI status | 上期建议是否落地（improved/partial/unchanged）；六轴分趋势折线 | 教练建议可追踪 |
 | **v0.7** ✅ | **六边形雷达**（加 agentic_system 轴）+ environmental-recovery 修复 | 第六轴「Agentic 系统化」独立展示；恢复推进不再被误判为用户失误 | Agentic 评估完整性 |
 | **v0.8** ✅ | `collaboration_framing` 重命名 + goal_locking_speed 信号 | 雷达轴标签从「任务表达」改为「协作框定」；tooltip 展示目标锁定速度 | 多轮协作模式识别 |
-| **v0.9** 📅 | 跨机器合并视图 | 多台电脑的会话合并进同一报告；不同设备的能力分布对比 | 多端工作者需求 |
+| **v1.0** ✅ | Effective Task Contract + Proof Loop 关键词验证 | 看见任务契约来源分布；自定义构建/脚本验证不再漏判；只读侦察不再被当成拖慢目标锁定 | 通用 Agentic 报告校准 |
+| **v1.0.x** 📅 | 跨机器合并视图 | 多台电脑的会话合并进同一报告；不同设备的能力分布对比 | 多端工作者需求 |
 | **v1.0** 📅 | 社区基准对标 + 插件扩展轴 | "您的 Agentic 系统化能力处于全球前 30%"；第三方自定义轴 | 平台化开放 |
 
 ### 4.1 v0.5.0 — 免部署交互式报告 (SPA-like Single-File HTML) ✅
@@ -133,22 +139,37 @@
   - 新增 `goal_locking_speed` 信号：前期对齐目标、边界与可交付产出路径的速度；工程会话可用首次文件写入作为可观测代理
   - `tool_leverage_bonus` 和 `workflow_maturity_bonus` 并入 `agentic_system`，消除外挂加分
 
+### 4.5 v1.0.0 — 有效任务契约与 Agentic 报告校准 ✅ 已发布
+
+> 详细设计见 [v1.0.0-DESIGN.md](v1.0.0-DESIGN.md)
+
+**核心目标**：修正通用 Agentic 报告对高规则化用户的误判：已有 Skill / Rule / Workflow 契约时，不应仅因首轮 Prompt 未手写验收而判定协作框定缺失。
+
+**主要变更**：
+- 新增 Effective Task Contract 信号，区分用户显式契约、Skill/Rule/Workflow 契约、Agent 派生契约与后置纠偏契约。
+- 验证命令识别从“完整命令枚举”改为“关键词/脚本后缀匹配”，覆盖构建、编译、测试、自定义 `.ps1` / `.bat` 验证脚本。
+- 首次写入前全是只读侦察时，不再按普通延迟惩罚 `goal_locking_speed`。
+- 版本线进入 `v1.0.x`，与 `CACHE_SCHEMA_VERSION=1.0` 保持一致。
+- 「你在做什么」改为 `work_focus/` 跨会话 LLM 综合；规则层仅保留统计汇总与输出护栏。
+- Prompt Coach / coaching 提示词与 i18n 去除固定训练话术，结论必须基于会话证据生成。
+
 ---
 
-## 5. 长期规划 (v0.9.0+)
+## 5. 长期规划 (v1.0.1+)
 
-### 5.1 v0.9.0 — 跨机器快照聚合与团队聚合
+### 5.1 v1.0.1 — 跨机器快照聚合与团队聚合
 * **核心目标**：打通多设备使用壁垒，为多端工作的程序员和团队提供无摩擦的聚合视图。
 * **主要特性**：
   - **Cross-Machine CLI Aggregator**：在 CLI 中支持 `--sources` 传递多机器缓存路径，合并生成跨设备统一画像。
   - **团队脱敏看板 (Manager Dashboard)**：支持在完全本地化、匿名且脱敏的原则下，合并多个用户的快照 Sidecar，生成团队/部门的常见协作痛点 Top 3 与能力平均基线。
 
-### 5.2 v1.0.0 — AI Coding 教练平台
+### 5.2 v2.0.0 — AI Coding 教练平台
 * **开放平台 API**：允许第三方 AI 工具（如自定义 IDE 脚本、VS Code 插件）通过 API 输入会话包。
 * **插件市场 (Plugin Market)**：支持开发者基于 `Agentic Evidence Graph` 的六维事实，自定义编写规则/LLM 评估插件，扩展六轴评分。
 * **匿名社区基准 (Community Benchmark)**：在用户完全自愿的前提下，允许上传无敏感数据的匿名 sidecar。平台提供对标服务（例如："您的 Agentic 系统化能力处于全球前 30%"）。
 
 ### 5.3 v1.5.0 — IDE 实时自检插件
+*(注：此处 v1.5.0 为产品规划的功能版本，与缓存 Schema 版本无关)*
 * **实时自检**：在 IDE 的 Chat 面板增加"发送前自检 (Preflight Check)"悬浮提示，在用户点击发送 Prompt 前进行拦截诊断。
 * **偏航预测**：基于用户最近的成长短板，实时预判当前 Prompts 是否存在上下文缺失或偏航风险。
 
@@ -158,6 +179,7 @@
 
 | 日期 | 产品版本 | 缓存 Schema | 变更概要 |
 |------|---------|-------------|---------|
+| 2026-06-09 | v1.0.0 | 1.0 | **有效任务契约与版本策略收口（发布候选）**：报告新增任务契约来源/履约率；验证命令改为关键词匹配；只读侦察豁免目标锁定惩罚；work_focus LLM 跨会话综合；Prompt Coach / i18n 去固定话术；产品与 cache schema 从 1.0 起线；升级后建议 `cache prune` 或重跑 generate。 |
 | 2026-06-07 | v0.8.0（发布收口） | 1.4 | **v0.7.0 / v0.8.0 发布状态对齐**：版本总表与报告内容表中 v0.7/v0.8 由「📅 规划中」转 ✅ 已发布；六轴权重定稿 `14/25/20/20/10/11`；与 README、ARCHITECTURE_PRINCIPLES、DETAILED_DESIGN 同步六轴口径。 |
 | 2026-06-07 | v0.7.0（规划） | 1.4 | **Agentic 操作成熟度体系重构规划**：产品定位更新为"Agentic 操作成熟度评估"；三层成熟度模型；`agentic_system` 升格第六轴（10%）；`intent_clarity` 降权 20%→15%；`execution_driving` 升权 22%→24%；`environmental-recovery` 修复方案；v0.8.0 `collaboration_framing` 预留；新增 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)。 |
 | 2026-06-07 | v0.6.0（收口） | 1.3 | **v0.6.0 发布收口对齐**：主动澄清加成在雷达 tooltip 透明展示；`summary.json` 补 `active_clarification_rate`/`intent_clarity_boost`；LLM 与 heuristic 共用 `detect_active_clarification`；Schema 1.3；新增 `test_cli_status.py`。落地进度清单全部转 ✅。 |

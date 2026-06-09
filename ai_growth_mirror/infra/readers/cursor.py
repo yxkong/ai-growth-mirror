@@ -16,15 +16,16 @@ from ...domain.signals.tooling import compute_tier_counts, normalize_tool_name
 from .base import (
     BaseSessionAdapter,
     EXEC_TOOL_NAMES,
+    READ_TOOL_NAMES,
     SKILL_READ_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
-    TEST_PATTERNS,
     WRITE_TOOL_NAMES,
     _common_prefix_path,
     content_revision_mtime,
     detect_authorship_path,
     detect_language,
     extract_skill_name_from_path,
+    is_validation_command,
     parse_ts,
 )
 
@@ -207,6 +208,9 @@ class CursorAdapter(BaseSessionAdapter):
         shell_commands: list[str] = []
         advanced_features: set[str] = set()
         turns_until_first_file_write = None
+        pre_write_read_count = 0
+        pre_write_non_read_tool_count = 0
+        assistant_messages: list[str] = []
 
         try:
             stat = jsonl_path.stat()
@@ -288,6 +292,10 @@ class CursorAdapter(BaseSessionAdapter):
                 for part in content:
                     if not isinstance(part, dict):
                         continue
+                    if part.get("type") == "text":
+                        text_val = str(part.get("text", "")).strip()
+                        if text_val and len(assistant_messages) < 10:
+                            assistant_messages.append(text_val[:500])
                     if part.get("type") != "tool_use":
                         continue
                     tool_name = str(part.get("name", "")).strip()
@@ -333,7 +341,14 @@ class CursorAdapter(BaseSessionAdapter):
                             unique_skills.add(skill_name)
                             skill_invocation_count += 1
                             advanced_features.add("skill_invocation")
-                    if normalized in WRITE_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.WRITE:
+                    is_write = normalized in WRITE_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.WRITE
+                    is_read = normalized in READ_TOOL_NAMES or normalize_tool_name(normalized) == InteractionKind.READ
+                    if turns_until_first_file_write is None:
+                        if is_read:
+                            pre_write_read_count += 1
+                        elif not is_write:
+                            pre_write_non_read_tool_count += 1
+                    if is_write:
                         pending_write = True
                         if turns_until_first_file_write is None:
                             turns_until_first_file_write = max(1, user_message_count)
@@ -346,7 +361,7 @@ class CursorAdapter(BaseSessionAdapter):
                         if pending_write:
                             has_verification = True
                             pending_write = False
-                        if any(p in command.lower() for p in TEST_PATTERNS):
+                        if is_validation_command(command):
                             has_test_commands = True
 
         if current_chain:
@@ -377,6 +392,7 @@ class CursorAdapter(BaseSessionAdapter):
             uses_web_search=uses_web_search,
             uses_web_fetch=uses_web_fetch,
             top_user_messages=top_user_messages,
+            assistant_messages=assistant_messages,
             autonomous_chain_lengths=chain_lengths,
             has_verification_behavior=has_verification,
             has_test_commands=has_test_commands,
@@ -389,7 +405,12 @@ class CursorAdapter(BaseSessionAdapter):
             mcp_server_authored=mcp_server_authored,
             entrypoint="ide",
             turns_until_first_file_write=turns_until_first_file_write,
+            pre_write_read_count=pre_write_read_count,
+            pre_write_non_read_tool_count=pre_write_non_read_tool_count,
         )
+        self._enrich_prompt_signals(session)
+        self._enrich_advanced_features(session)
+        self._enrich_task_contract_signals(session)
         return session
 
     def _parse_db_session(self, raw: SessionRef) -> SessionRecord:

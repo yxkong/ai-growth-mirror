@@ -1,0 +1,15 @@
+Synthesize the user's recent work focus from the session packet below.
+
+Period context:
+- session_count: {{ session_count }}
+- sessions_in_packet: {{ sessions | length }}
+
+Recent sessions (newest first):
+{% for row in sessions %}
+- project: {{ row.project_name or 'unknown' }}
+  work_summary: {{ row.work_summary or '(empty)' }}
+  work_intent_mix: {{ row.work_intent_mix }}
+  confidence: {{ row.confidence or 'unknown' }}
+{% endfor %}
+
+Return JSON with `headline` and `recent_work` only.

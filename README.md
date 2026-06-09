@@ -1,7 +1,9 @@
 # AI Growth Mirror (AI 协作成长镜)
 
-[![Release](https://img.shields.io/badge/Release-v0.8.1-blue.svg)](./pyproject.toml)
-[![Schema Version](https://img.shields.io/badge/Schema-v1.5-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
+English README: [en/README.md](./en/README.md)
+
+[![Release](https://img.shields.io/badge/Release-v1.0.0-blue.svg)](./pyproject.toml)
+[![Schema Version](https://img.shields.io/badge/Schema-v1.0-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
 [![Python Version](https://img.shields.io/badge/python-3.12+-green.svg)](./pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](./LICENSE)
 
@@ -45,24 +47,24 @@ AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数
 
 ---
 
-## 📈 六轴 Agentic 成熟度雷达（v0.7+）
+## 📈 六轴 Agentic 成熟度雷达（v1.0）
 
 每一期生成的评估结果都会投射到**六轴协作雷达**（协作指数由此计算），它是上方「四证法」的可度量展开：
 
-| 协作能力轴 | v0.7 权重 | v0.8 权重 | v0.8.1 权重 | 衡量内容 |
-|-----------|:---------:|:---------:|:-----------:|---------|
-| **协作框定** (`collaboration_framing`) | 15% | 14% | **14%** | 协作启动质量，包含目标锁定速度与主动澄清率（v0.8.1升级） |
-| **协作驱动** (`execution_driving`) | 24% | 25% | **25%** | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场）|
-| **实现下潜** (`implementation_depth`) | 20% | 20% | **19%** ↓ | 文件修改量、代码验证覆盖率与实现边界控制 |
-| **交付收口** (`delivery_closure`) | 20% | 20% | **19%** ↓ | 任务完成率、验证行为率与测试用例运行表现 |
-| **恢复推进** (`adaptive_recovery`) | 11% | 10% | **10%** | AI 偏航或报错时，纠偏和回到正轨的质量 |
-| **Agentic 系统化** (`agentic_system`) | 10% | 11% | **13%** ↑ | Skill/Workflow/MCP/Subagent 等方法资产化能力 |
+| 协作能力轴 | 权重 | 衡量内容 |
+|-----------|:----:|---------|
+| **协作框定** (`collaboration_framing`) | **14%** | 协作启动质量，包含目标锁定速度、主动澄清率与有效任务契约（v1.0.0升级） |
+| **协作驱动** (`execution_driving`) | **25%** | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场）|
+| **实现下潜** (`implementation_depth`) | **19%** | 文件修改量、代码验证覆盖率与实现边界控制 |
+| **交付收口** (`delivery_closure`) | **19%** | 任务完成率、验证行为、测试/构建/脚本验证与契约履约表现 |
+| **恢复推进** (`adaptive_recovery`) | **10%** | AI 偏航或报错时，纠偏和回到正轨的质量 |
+| **Agentic 系统化** (`agentic_system`) | **13%** | Skill/Workflow/MCP/Subagent 等方法资产化能力 |
 
-> **为什么这样调整**：见 [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md)、[docs/design/v0.8.0-DESIGN.md](docs/design/v0.8.0-DESIGN.md) 与 [docs/design/v0.8.1-DESIGN.md](docs/design/v0.8.1-DESIGN.md)
+> **为什么这样调整**：见 [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md)、[docs/design/v0.8.0-DESIGN.md](docs/design/v0.8.0-DESIGN.md)、[docs/design/v0.8.1-DESIGN.md](docs/design/v0.8.1-DESIGN.md) 与 [docs/design/v1.0.0-DESIGN.md](docs/design/v1.0.0-DESIGN.md)
 
 ---
 
-## ✨ 核心亮点 (v0.8.0)
+## ✨ 核心亮点 (v1.0.0)
 
 ### 1. 🧭 Agentic 操作成熟度六轴评估
 从 v0.7 起，系统不再围绕"Prompt 写得好不好"做单点判断，而是用 **协作框定、协作驱动、实现下潜、交付收口、恢复推进、Agentic 系统化** 六轴评估真实协作成熟度。v0.8 将 `collaboration_framing` 定稿为正式轴，并把协作启动质量从"首轮完备度"扩展到多轮目标锁定能力。
@@ -72,6 +74,8 @@ v0.8 新增 `goal_locking_speed`：通过 `turns_until_first_file_write` 观察�
 
 ### 3. 🕸️ Agentic Evidence Graph + Action Contract
 报告底层会构建六维证据图：任务意图、方法使用、上下文、执行路径、收口状态与人工干预。训练建议不再是固定文案，而是由真实短板、纠偏模式和证据图生成 Rule / Skill / Workflow / Checklist 形式的 Action Contract。
+
+v1.0.0 起，系统会区分**用户显式契约**、**Skill/Rule/Workflow 契约**、**Agent 派生契约**与**后置纠偏契约**，避免把“已有全局规则但首轮没手写验收”误判为纯粹的协作框定缺失。
 
 ### 4. 📊 训练闭环 + 环比追踪
 - **Action Contract 回看**：自动识别上一期建议在本期的改善效果（improved / partial / unchanged）
@@ -178,15 +182,16 @@ ai-growth-mirror generate
 
 ## 📖 开发者文档索引
 
-对于想要深度定制、贡献 Adapter 或调试算法的开发者，请详细参阅我们的 Canonical 文档：
+对于想要深度定制、贡献 Adapter 或调试算法的开发者，请详细参阅我们的 Canonical 文档（英文版见 [en/README.md](./en/README.md) 与 [docs/en/README.md](./docs/en/README.md)）：
 * [分层依赖与架构总纲](./docs/design/ARCHITECTURE_PRINCIPLES.md)
 * [产品路线图](./docs/design/PRODUCT_ROADMAP.md)
+* [v1.0.0 有效任务契约与 Agentic 报告校准](./docs/design/v1.0.0-DESIGN.md)
 * [v0.8.1 协作效能公允度升级与冷启动性能优化](./docs/design/v0.8.1-DESIGN.md)
 * [v0.8.0 协作框定与目标锁定速度设计](./docs/design/v0.8.0-DESIGN.md)
 * [v0.7.0 Agentic 体系重构设计](./docs/design/v0.7.0-DESIGN.md)
 * [v0.6.0 训练闭环设计](./docs/design/v0.6.0-DESIGN.md)
 * [产品语气、命名与安全脱敏规范](./docs/design/AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md)
-* [参与贡献指南](./CONTRIBUTING.md)
+* [参与贡献指南](./CONTRIBUTING.zh.md)
 
 ---
 

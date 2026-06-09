@@ -33,12 +33,12 @@ from .base import (
     BaseSessionAdapter,
     EXEC_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
-    TEST_PATTERNS,
     WRITE_TOOL_NAMES,
     _common_prefix_path,
     _max_mtime,
     detect_authorship_path,
     detect_language,
+    is_validation_command,
     parse_ts,
 )
 
@@ -446,7 +446,7 @@ class CodeBuddyAdapter(BaseSessionAdapter):
                     if pending_write:
                         has_verification = True
                         pending_write = False
-                    if any(p in command for p in TEST_PATTERNS):
+                    if is_validation_command(command):
                         has_test_commands = True
 
         # Flush final chain

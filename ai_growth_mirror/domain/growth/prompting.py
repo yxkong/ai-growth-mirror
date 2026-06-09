@@ -379,30 +379,6 @@ def build_friction_synthesis_intents(
     return intents
 
 
-def build_recommended_training_inputs(
-    prompt_style: PromptStyleSignal,
-    closure_guidance: ClosureGuidanceSignal,
-    top_deficit_keys: list[str],
-) -> list[str]:
-    rows: list[str] = []
-    if prompt_style.prompt_style == "indexed_prompt":
-        rows.append("style:indexed_prompt")
-    elif prompt_style.prompt_style == "mixed_prompt":
-        rows.append("style:mixed_prompt")
-    elif prompt_style.prompt_style == "explicit_requirement_prompt":
-        rows.append("style:explicit_requirement_prompt")
-    else:
-        rows.append("style:under_specified_prompt")
-
-    if "missing-context" in top_deficit_keys:
-        rows.append("deficit:missing-context")
-    if "missing-acceptance-criteria" in top_deficit_keys:
-        rows.append("deficit:missing-acceptance-criteria")
-    if closure_guidance.missing_closure_methods:
-        rows.append(f"closure:{closure_guidance.missing_closure_methods[0]}")
-    return rows[:4]
-
-
 def _classify_prompt(session: SessionRecord, read: SessionRead | None) -> PromptStyleSignal:
     text = _session_text(session)
     lower = text.lower()

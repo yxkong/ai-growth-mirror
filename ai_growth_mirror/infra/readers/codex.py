@@ -10,7 +10,12 @@ from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from ...domain.growth.costs import estimate_cost
-from ...domain.session.heuristics import EXEC_TOOL_NAMES, SUBAGENT_TOOL_NAMES, TEST_PATTERNS, WRITE_TOOL_NAMES
+from ...domain.session.heuristics import (
+    EXEC_TOOL_NAMES,
+    SUBAGENT_TOOL_NAMES,
+    WRITE_TOOL_NAMES,
+    is_validation_command,
+)
 from ...domain.session.model import SessionRecord, SessionRef
 from ...domain.signals.tooling import compute_tier_counts
 from .base import (
@@ -206,7 +211,7 @@ class _RolloutAccumulator:
         if name in EXEC_TOOL_NAMES or any(token in name for token in ("bash", "shell", "command", "exec")):
             self._saw_exec = True
             command = _find_command(payload).lower()
-            if any(pattern in command for pattern in TEST_PATTERNS):
+            if is_validation_command(command):
                 self.has_test_commands = True
 
         is_read_tool = name in SKILL_READ_TOOL_NAMES

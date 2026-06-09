@@ -165,7 +165,7 @@ def test_build_personal_report_view_contains_core_sections():
     assert "内存" in view.usage.memory_note
     assert view.work_focus.goal_mix
     assert view.work_focus.goal_mix[0].detail.endswith("%")
-    assert view.work_focus.recent_work[0] == "修复接口错误并完成验证。"
+    assert view.work_focus.recent_work[0] == "修复接口错误"
     assert "从会话语义看" in view.work_focus.headline
     assert "功能实现" in view.work_focus.headline
     assert "终端执行" not in view.work_focus.headline
@@ -176,10 +176,49 @@ def test_build_personal_report_view_contains_core_sections():
     assert len(view.wins.wins) >= 2
     assert len(view.growth_plan.priorities) >= 1
     assert view.style_lens.archetype_name
-    assert len(view.prompt_coach.takeaways) >= 2
+    assert view.prompt_coach.prompt_style is not None
+    assert view.prompt_coach.friction_synthesis
     assert "LLM" in view.prompt_coach.source_note
-    assert len({item.kind for item in view.prompt_coach.takeaways}) >= 2
-    assert all(item.message != item.action for item in view.prompt_coach.takeaways if item.message and item.action)
+
+
+def test_summary_payload_includes_effective_task_contract_metrics():
+    sessions = [_make_session("s1", "D:/repo/a"), _make_session("s2", "D:/repo/b")]
+    sessions[0].task_contract_sources = ["explicit_user"]
+    sessions[0].pre_execution_contract_present = True
+    sessions[0].agent_contract_compliance = "met"
+    sessions[1].task_contract_sources = ["skill_read"]
+    sessions[1].pre_execution_contract_present = True
+    sessions[1].agent_contract_compliance = "missing"
+    facets = [_make_facets("s1"), _make_facets("s2", score_bias=-5)]
+    stats = aggregate(sessions, facets, tool_name="codex")
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    payload = build_personal_summary_payload(view)
+    task_contract = payload["scorecard"]["task_contract"]
+    assert task_contract["effective_contract_rate"] == 1.0
+    assert task_contract["explicit_contract_rate"] == 0.5
+    assert task_contract["skill_contract_rate"] == 0.5
+    assert task_contract["contract_compliance_rate"] == 0.5
+    assert task_contract["source_counts"]["skill_read"] == 1
+
+
+def test_read_only_recon_before_write_does_not_penalize_goal_locking_speed():
+    sessions = [_make_session(f"s{i}", f"D:/repo/{i}") for i in range(5)]
+    facets = [_make_facets(f"s{i}") for i in range(5)]
+    for session in sessions:
+        session.turns_until_first_file_write = 8
+        session.pre_write_read_count = 6
+        session.pre_write_non_read_tool_count = 0
+
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    assert stats.goal_locking_speed == 100.0
 
 
 def test_work_focus_summarizes_noisy_recent_work_as_business_theme():
@@ -233,8 +272,167 @@ def test_work_focus_falls_back_to_prompt_only_for_low_confidence_read():
         catalogs=load_report_label_catalogs("zh"),
     )
 
-    assert view.work_focus.recent_work == ["修复报告闭环与展示问题"]
+    assert view.work_focus.recent_work == ["修复报告闭环，并完善相关文档"]
     assert "不可信摘要" not in view.work_focus.headline
+
+
+def test_work_focus_aggregates_recent_work_from_session_summaries():
+    sessions = [
+        _make_session("s1", "D:/repo/ai-growth-mirror"),
+        _make_session("s2", "D:/repo/ai-growth-mirror"),
+        _make_session("s3", "D:/repo/ai-growth-mirror"),
+        _make_session("s4", "D:/repo/ai-platform"),
+        _make_session("s5", "D:/repo/ai-platform"),
+    ]
+    summaries = [
+        "实现报告视图重构。",
+        "修复 reader 适配问题。",
+        "补充单测覆盖。",
+        "搭建平台鉴权模块。",
+        "优化 API 网关配置。",
+    ]
+    facets = []
+    for session, summary in zip(sessions, summaries, strict=True):
+        facet = _make_facets(session.session_id)
+        facet.work_summary = summary
+        facets.append(facet)
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    assert view.work_focus.recent_work == [
+        "报告视图重构",
+        "reader 适配问题",
+        "单测覆盖",
+        "平台鉴权模块",
+    ]
+    rendered = " / ".join(view.work_focus.recent_work)
+    assert "ai-growth-mirror" not in rendered
+    assert "ai-platform" not in rendered
+    assert "Agentic 分析工具" not in rendered
+
+
+def test_work_focus_filters_prompt_fragments_and_prefers_descriptive_clusters():
+    junk_prompt = "把 git@github.com:org/demo.git 克隆到本地并配置 remote"
+    sessions = []
+    facets = []
+    for index in range(14):
+        session = _make_session(f"s-junk-{index}", "D:/repo/hub", first_prompt=junk_prompt)
+        facet = _make_facets(session.session_id)
+        facet.work_summary = junk_prompt
+        sessions.append(session)
+        facets.append(facet)
+    for index in range(12):
+        session = _make_session(f"s-agents-{index}", "D:/repo/hub", first_prompt="# AGENTS.md 同步全局规则到各仓库")
+        facet = _make_facets(session.session_id)
+        facet.work_summary = "# AGENTS"
+        sessions.append(session)
+        facets.append(facet)
+    for index in range(10):
+        session = _make_session(
+            f"s-java-{index}",
+            "D:/repo/platform",
+            first_prompt="按照DDD四层规范优化Java后端代码结构",
+        )
+        facet = _make_facets(session.session_id)
+        facet.work_summary = "按照DDD四层规范优化Java后端代码结构"
+        sessions.append(session)
+        facets.append(facet)
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+    )
+
+    rendered = " / ".join(view.work_focus.recent_work)
+    assert "git" not in rendered.lower()
+    assert "# AGENTS" not in rendered
+    assert "下" not in view.work_focus.recent_work
+    assert any("DDD" in item or "Java" in item for item in view.work_focus.recent_work)
+    assert "git" not in view.work_focus.headline.lower()
+    assert "# AGENTS" not in view.work_focus.headline
+    assert "remote" not in view.work_focus.headline.lower()
+
+
+def test_work_focus_uses_llm_synthesis_when_llm_provided():
+    from tests.conftest import FakeLLMClient
+
+    llm = FakeLLMClient(
+        queue=[
+            json.dumps(
+                {
+                    "headline": "你最近在推进 ai-growth-mirror 的报告质量与 i18n 治理。",
+                    "recent_work": [
+                        "清理 view_model 硬编码",
+                        "调整 growth_coach 提示词",
+                        "发布 v1.0.0 版本对齐",
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        ]
+    )
+    sessions = [_make_session("s1", "D:/repo/ai-growth-mirror")]
+    facets = [_make_facets("s1")]
+    facets[0].work_summary = "清理 view_model 硬编码文案"
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+        llm=llm,
+    )
+
+    assert view.work_focus.headline == "你最近在推进 ai-growth-mirror 的报告质量与 i18n 治理。"
+    assert view.work_focus.recent_work == [
+        "清理 view_model 硬编码",
+        "调整 growth_coach 提示词",
+        "发布 v1.0.0 版本对齐",
+    ]
+    assert "从会话语义看" not in view.work_focus.headline
+
+
+def test_work_focus_falls_back_to_rules_when_llm_returns_empty():
+    from tests.conftest import FakeLLMClient
+
+    llm = FakeLLMClient(queue=["{}"])
+    sessions = [
+        _make_session(
+            "s1",
+            "D:/repo/demo-platform",
+            first_prompt="目标：修复报告闭环，并完善相关文档。",
+        )
+    ]
+    facets = [_make_facets("s1")]
+    facets[0].work_summary = "修复报告闭环，并完善相关文档"
+    facets[0].work_intent_mix = {"fix_bug": 2}
+    stats = aggregate(sessions, facets, tool_name="codex")
+
+    view = build_personal_report_view(
+        sessions=sessions,
+        session_reads=facets,
+        stats=stats,
+        tool_display_name="Codex CLI",
+        catalogs=load_report_label_catalogs("zh"),
+        llm=llm,
+    )
+
+    assert view.work_focus.recent_work == ["修复报告闭环，并完善相关文档"]
+    assert "修复报告闭环" in view.work_focus.headline
+    assert "从会话语义看" in view.work_focus.headline
 
 
 def test_work_focus_does_not_render_default_goal_or_work_without_evidence():
@@ -417,10 +615,10 @@ def test_prompt_coach_prefers_real_takeaway_examples():
         catalogs=load_report_label_catalogs("zh"),
     )
 
-    assert view.prompt_coach.takeaways
-    assert view.prompt_coach.takeaways[0].label == "先把背景交代完整"
-    assert "帮我看看这个问题" in view.prompt_coach.takeaways[0].evidence
-    assert "相关文件：handler.py" in view.prompt_coach.takeaways[0].better_prompt
+    assert view.prompt_coach.rewrite_cards
+    assert view.prompt_coach.rewrite_cards[0].problem
+    assert "帮我看看这个问题" in view.prompt_coach.rewrite_cards[0].original
+    assert "相关文件：handler.py" in view.prompt_coach.rewrite_cards[0].better_prompt
 
 
 def test_prompt_coach_drops_placeholder_rewrite_cards():
@@ -531,8 +729,6 @@ def test_prompt_coach_does_not_fallback_to_template_without_grounded_rewrite():
     assert view.prompt_coach.prompt_style is not None
     assert view.prompt_coach.prompt_style.suggested_next_prompt == ""
     assert view.prompt_coach.rewrite_cards == []
-    assert view.prompt_coach.universal_template is None
-    assert view.prompt_coach.scenario_templates == []
 
 
 def test_snapshot_trajectory_window_collapses_same_day_points():
@@ -995,7 +1191,7 @@ def test_exemplars_do_not_repeat_same_category():
 
     assert len({item.category_label for item in view.exemplars}) == len(view.exemplars)
     assert all(item.why_keep for item in view.exemplars)
-    assert all(item.technique for item in view.exemplars)
+    assert all(item.technique == "" for item in view.exemplars)
 
 
 def test_snapshot_comparison_data_structure():

@@ -10,23 +10,20 @@ from ..domain.growth.prompting import (
     assess_closure_guidance,
     assess_prompt_style,
     build_friction_synthesis_intents,
-    build_recommended_training_inputs,
 )
 from ..domain.session.model import SessionRecord
 from ..domain.signals.model import PromptLensTakeaway, SessionRead
 from .label_catalogs import ReportLabelCatalogs
 
 if TYPE_CHECKING:
-    from .report_view import (
-        PromptCoachChecklistItemView,
+    from .prompt_coach_views import (
         PromptCoachClosureGuidanceView,
         PromptCoachDeficitView,
         PromptCoachDimensionView,
+        PromptCoachFrictionSynthesisView,
         PromptCoachPromptStyleView,
         PromptCoachRewriteCardView,
         PromptCoachSourceSummaryView,
-        PromptCoachTakeawayView,
-        PromptCoachTemplateView,
         PromptCoachView,
     )
 
@@ -68,8 +65,7 @@ def build_prompt_coach_view(
     catalogs: ReportLabelCatalogs,
     coaching: CoachingContent | None = None,
 ) -> "PromptCoachView":
-    from .report_view import (
-        PromptCoachChecklistItemView,
+    from .prompt_coach_views import (
         PromptCoachClosureGuidanceView,
         PromptCoachDeficitView,
         PromptCoachDimensionView,
@@ -77,8 +73,6 @@ def build_prompt_coach_view(
         PromptCoachPromptStyleView,
         PromptCoachRewriteCardView,
         PromptCoachSourceSummaryView,
-        PromptCoachTakeawayView,
-        PromptCoachTemplateView,
         PromptCoachView,
     )
 
@@ -108,7 +102,6 @@ def build_prompt_coach_view(
     prompt_style_signal, trigger_maturity = assess_prompt_style(sessions, session_reads)
     top_deficit_keys = _rank_top_deficits(stats, prompt_style=prompt_style_signal.prompt_style)
     closure_signal = assess_closure_guidance(sessions, session_reads)
-    universal_template = None
     top_deficits = [
         PromptCoachDeficitView(
             id=f"deficit:{key.replace('-', '_')}",
@@ -128,8 +121,6 @@ def build_prompt_coach_view(
         prompt_style_signal,
         catalogs,
     )
-    scenario_templates: list[PromptCoachTemplateView] = []
-    checklist = _build_preflight_checklist(top_deficits, catalogs)
     prompt_style = PromptCoachPromptStyleView(
         type=prompt_style_signal.prompt_style,
         label=trainer_i18n.get("prompt_style_labels", {}).get(prompt_style_signal.prompt_style, prompt_style_signal.prompt_style),
@@ -157,18 +148,12 @@ def build_prompt_coach_view(
         ],
         coaching_message=_closure_message(closure_signal, catalogs),
     )
-    recommended_training_inputs = build_recommended_training_inputs(
-        prompt_style_signal,
-        closure_signal,
-        top_deficit_keys,
-    )
     source_note = _source_note(stats, session_read_mode, catalogs)
     weak_dimensions = [item.label for item in dimension_scores[:2]]
     deficits = [
         f"{item.label} · {item.confidence}"
         for item in top_deficits
     ]
-    takeaways = _legacy_takeaways(stats, rewrite_cards, top_deficits, catalogs)
     weakest_label = weak_dimensions[0] if weak_dimensions else (_deficit_label(top_deficit_keys[0], catalogs) if top_deficit_keys else "")
     strongest_label = dimension_scores[-1].label if dimension_scores else ""
     if stats.pq_avg_dimensions:
@@ -207,16 +192,11 @@ def build_prompt_coach_view(
         weak_dimensions=weak_dimensions,
         deficits=deficits,
         dimension_scores=dimension_scores,
-        takeaways=takeaways,
         source_summary=source_summary,
         top_deficits=top_deficits,
         rewrite_cards=rewrite_cards,
-        universal_template=universal_template,
-        scenario_templates=scenario_templates,
-        preflight_checklist=checklist,
         prompt_style=prompt_style,
         closure_guidance=closure_guidance,
-        recommended_training_inputs=_recommended_training_inputs(recommended_training_inputs, catalogs),
         friction_synthesis=friction_synthesis,
         light_state_note=light_state_note,
     )
@@ -228,7 +208,7 @@ def _build_friction_synthesis_views(
     intents: list,
     pc_i18n: dict,
 ) -> list["PromptCoachFrictionSynthesisView"]:
-    from .report_view import PromptCoachFrictionSynthesisView
+    from .prompt_coach_views import PromptCoachFrictionSynthesisView
 
     friction_i18n = pc_i18n.get("friction_synthesis", {})
     if coaching and coaching.friction_synthesis:
@@ -256,12 +236,19 @@ def _build_friction_synthesis_views(
         copy = friction_i18n.get(intent.pattern_key, {})
         if not copy:
             continue
+        evidence_text = " / ".join(intent.evidence_refs[:3])
         rule_rows.append(
             PromptCoachFrictionSynthesisView(
                 id=intent.id,
                 label=copy.get("label", ""),
-                explanation=copy.get("explanation", ""),
-                next_action=copy.get("next_action", ""),
+                explanation=(copy.get("explanation", "") or "").format(
+                    evidence=evidence_text,
+                    count=len(intent.evidence_refs),
+                ),
+                next_action=(copy.get("next_action", "") or "").format(
+                    evidence=evidence_text,
+                    count=len(intent.evidence_refs),
+                ),
                 confidence=intent.confidence,
                 evidence_refs=list(intent.evidence_refs),
                 generated_by="rule",
@@ -373,7 +360,7 @@ def _build_rewrite_cards(
     prompt_style_signal,
     catalogs: ReportLabelCatalogs,
 ) -> list["PromptCoachRewriteCardView"]:
-    from .report_view import PromptCoachRewriteCardView
+    from .prompt_coach_views import PromptCoachRewriteCardView
 
     trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
     source_notes = trainer_i18n.get("rewrite_source_notes", {})
@@ -440,161 +427,6 @@ def _build_rewrite_cards(
         if len(cards) >= 4:
             break
     return cards[:4]
-
-
-def _build_universal_template(catalogs: ReportLabelCatalogs) -> "PromptCoachTemplateView":
-    from .report_view import PromptCoachTemplateView
-
-    payload = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("universal_template", {})
-    return PromptCoachTemplateView(
-        id="template:universal",
-        title=payload.get("title", ""),
-        scene="universal",
-        common_gap=payload.get("common_gap", ""),
-        template=payload.get("body", ""),
-    )
-
-
-def _build_scenario_templates(catalogs: ReportLabelCatalogs) -> list["PromptCoachTemplateView"]:
-    from .report_view import PromptCoachTemplateView
-
-    rows = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("scenario_templates", [])
-    return [
-        PromptCoachTemplateView(
-            id=str(row.get("id", "")),
-            title=str(row.get("title", "")),
-            scene=str(row.get("scene", "")),
-            common_gap=str(row.get("common_gap", "")),
-            template=str(row.get("template", "")),
-        )
-        for row in rows
-    ]
-
-
-def _build_preflight_checklist(
-    top_deficits: list["PromptCoachDeficitView"],
-    catalogs: ReportLabelCatalogs,
-) -> list["PromptCoachChecklistItemView"]:
-    from .report_view import PromptCoachChecklistItemView
-
-    checklist_map = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("checklist_map", {})
-    items: list[PromptCoachChecklistItemView] = []
-    seen: set[str] = set()
-    for deficit in top_deficits:
-        for idx, text in enumerate(checklist_map.get(deficit.category, []), start=1):
-            if text in seen:
-                continue
-            seen.add(text)
-            items.append(
-                PromptCoachChecklistItemView(
-                    id=f"check:{deficit.category}:{idx}",
-                    text=text,
-                    related_deficit_id=deficit.id,
-                )
-            )
-    default_items = catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("checklist_default", [])
-    for idx, text in enumerate(default_items, start=1):
-        if text in seen:
-            continue
-        items.append(
-            PromptCoachChecklistItemView(
-                id=f"check:default:{idx}",
-                text=text,
-                related_deficit_id=top_deficits[0].id if top_deficits else "",
-            )
-        )
-    return items[:6]
-
-
-def _legacy_takeaways(
-    stats: GrowthProfile,
-    rewrite_cards: list["PromptCoachRewriteCardView"],
-    top_deficits: list["PromptCoachDeficitView"],
-    catalogs: ReportLabelCatalogs,
-) -> list["PromptCoachTakeawayView"]:
-    from .report_view import PromptCoachTakeawayView
-
-    actions = catalogs.view_model.get("prompt_coach", {}).get("takeaway_actions", {})
-    rows: list[PromptCoachTakeawayView] = []
-    for item in list(getattr(stats, "pq_top_takeaways", []) or [])[:2]:
-        better_prompt = item.better_prompt or ""
-        if _looks_like_placeholder_prompt(better_prompt):
-            better_prompt = ""
-        rows.append(
-            PromptCoachTakeawayView(
-                label=item.label or item.category or "",
-                kind=actions.get("kind_example", "Example"),
-                evidence=item.original or item.message_ref or "",
-                message=item.why or "",
-                action=actions.get("improve", ""),
-                better_prompt=better_prompt,
-            )
-        )
-    if not rows:
-        for card in rewrite_cards[:2]:
-            rows.append(
-                PromptCoachTakeawayView(
-                    label=card.scene,
-                    kind=actions.get("kind_example", "Example"),
-                    evidence=card.original or card.source_note,
-                    message=card.problem,
-                    action=actions.get("improve", ""),
-                    better_prompt=card.better_prompt,
-                )
-            )
-    if not rows and stats.pq_avg_dimensions:
-        dim_labels = catalogs.view_model.get("pq_dim_labels", {})
-        sorted_dims = sorted(
-            ((key, float(score)) for key, score in (stats.pq_avg_dimensions or {}).items()),
-            key=lambda item: item[1],
-        )
-        weakest_key, weakest_score = sorted_dims[0]
-        strongest_key, strongest_score = sorted_dims[-1]
-        rows.append(
-            PromptCoachTakeawayView(
-                label=dim_labels.get(weakest_key, weakest_key),
-                kind=actions.get("kind_reinforce", "Gap"),
-                evidence=f"Prompt 维度均分 {weakest_score:.1f}",
-                message="这条维度当前最弱，说明相关信息经常没有在首轮输入里补齐。",
-                action=actions.get("improve", ""),
-                better_prompt="",
-            )
-        )
-        if strongest_key != weakest_key:
-            rows.append(
-                PromptCoachTakeawayView(
-                    label=dim_labels.get(strongest_key, strongest_key),
-                    kind=actions.get("kind_strength", "Strength"),
-                    evidence=f"Prompt 维度均分 {strongest_score:.1f}",
-                    message="这条维度当前相对稳定，可以继续保留成你的默认输入习惯。",
-                    action=actions.get("reinforce", actions.get("improve", "")),
-                    better_prompt="",
-                )
-            )
-    if top_deficits:
-        deficit = top_deficits[0]
-        rows.append(
-            PromptCoachTakeawayView(
-                label=deficit.label,
-                kind=actions.get("kind_reinforce", "Gap"),
-                evidence=" / ".join(deficit.evidence_refs[:2]),
-                message=deficit.description,
-                action=deficit.impact,
-                better_prompt="",
-            )
-        )
-    elif rows:
-        rows.append(
-            PromptCoachTakeawayView(
-                label=rows[0].label,
-                kind=actions.get("kind_reinforce", "Keep"),
-                evidence=rows[0].evidence,
-                message=catalogs.view_model.get("prompt_coach", {}).get("trainer", {}).get("strength_habit", "").format(label=rows[0].label),
-                action=actions.get("reinforce", actions.get("improve", "")),
-                better_prompt="",
-            )
-        )
-    return rows[:3]
 
 
 def _headline(
@@ -798,28 +630,6 @@ def _closure_message(signal, catalogs: ReportLabelCatalogs) -> str:
     )
 
 
-def _recommended_training_inputs(codes: list[str], catalogs: ReportLabelCatalogs) -> list[str]:
-    trainer_i18n = catalogs.view_model.get("prompt_coach", {}).get("trainer", {})
-    closure_labels = trainer_i18n.get("closure_methods", {})
-    templates = trainer_i18n.get("recommended_training_inputs", {})
-    rows: list[str] = []
-    for code in codes:
-        if code.startswith("style:"):
-            key = code.split(":", 1)[1]
-            text = templates.get(code) or templates.get(f"style:{key}", "")
-        elif code.startswith("deficit:"):
-            key = code.split(":", 1)[1]
-            text = templates.get(code) or templates.get(f"deficit:{key}", "")
-        elif code.startswith("closure:"):
-            key = code.split(":", 1)[1]
-            text = (templates.get("closure") or "").format(method=closure_labels.get(key, key))
-        else:
-            text = ""
-        if text:
-            rows.append(text)
-    return rows[:4]
-
-
 def _deficit_copy(
     key: str,
     prompt_style_signal,
@@ -893,3 +703,84 @@ def _trim_text(value: str, limit: int) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "…"
+
+
+def empty_prompt_coach_view() -> PromptCoachView:
+    from .prompt_coach_views import PromptCoachView
+
+    return PromptCoachView(
+        available=False,
+        headline="",
+        strongest_label="",
+        weakest_label="",
+        evidence_summary="",
+        strength_habit="",
+    )
+
+
+def build_prompt_coach_view_from_payload(payload: dict | None) -> PromptCoachView:
+    from .prompt_coach_views import (
+        PromptCoachFrictionSynthesisView,
+        PromptCoachRewriteCardView,
+        PromptCoachSourceSummaryView,
+        PromptCoachView,
+    )
+
+    if not isinstance(payload, dict) or not payload:
+        return empty_prompt_coach_view()
+    source_summary_payload = payload.get("source_summary") or {}
+    source_summary = PromptCoachSourceSummaryView(
+        llm_session_count=int(source_summary_payload.get("llm_session_count", 0) or 0),
+        heuristic_session_count=int(source_summary_payload.get("heuristic_session_count", 0) or 0),
+        light_session_count=int(source_summary_payload.get("light_session_count", 0) or 0),
+        evaluated_user_messages=int(source_summary_payload.get("evaluated_user_messages", 0) or 0),
+        run_mode=str(source_summary_payload.get("run_mode", "llm") or "llm"),
+        llm_evaluated_count=int(source_summary_payload.get("llm_evaluated_count", 0) or 0),
+        insufficient_count=int(source_summary_payload.get("insufficient_count", 0) or 0),
+        llm_failed_count=int(source_summary_payload.get("llm_failed_count", 0) or 0),
+        llm_unavailable_count=int(source_summary_payload.get("llm_unavailable_count", 0) or 0),
+    )
+    rewrite_cards = [
+        PromptCoachRewriteCardView(
+            id=str(item.get("id", "")),
+            scene=str(item.get("scene", "")),
+            original=str(item.get("original", "")),
+            problem=str(item.get("problem", "")),
+            better_prompt=str(item.get("better_prompt", "")),
+            why=str(item.get("why", "")),
+            category=str(item.get("category", "")),
+            confidence=str(item.get("confidence", "")),
+            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
+            source_note=str(item.get("source_note", "")),
+        )
+        for item in payload.get("rewrite_cards", [])
+        if isinstance(item, dict)
+    ]
+    friction_synthesis = [
+        PromptCoachFrictionSynthesisView(
+            id=str(item.get("id", "")),
+            label=str(item.get("label", "")),
+            explanation=str(item.get("explanation", "")),
+            next_action=str(item.get("next_action", "")),
+            confidence=int(item.get("confidence", 0) or 0),
+            evidence_refs=[str(ref) for ref in item.get("evidence_refs", []) if ref],
+            generated_by=str(item.get("generated_by", "rule") or "rule"),
+        )
+        for item in payload.get("friction_synthesis", [])
+        if isinstance(item, dict)
+    ]
+    return PromptCoachView(
+        available=bool(payload.get("headline") or rewrite_cards or friction_synthesis),
+        headline=str(payload.get("headline", "")),
+        strongest_label=str(payload.get("strongest_label", "")),
+        weakest_label=str(payload.get("weakest_label", "")),
+        evidence_summary=str(payload.get("evidence_summary", "")),
+        strength_habit=str(payload.get("strength_habit", "")),
+        source_note=str(payload.get("source_note", "")),
+        light_state_note=str(payload.get("light_state_note", "")),
+        source_summary=source_summary,
+        weak_dimensions=[str(item) for item in payload.get("weak_dimensions", []) if item],
+        deficits=[str(item) for item in payload.get("deficits", []) if item],
+        rewrite_cards=rewrite_cards,
+        friction_synthesis=friction_synthesis,
+    )

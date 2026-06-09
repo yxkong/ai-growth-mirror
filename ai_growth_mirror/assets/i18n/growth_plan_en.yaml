@@ -50,7 +50,7 @@ priorities:
 
   agentic_system:
     title: "Method systemization"
-    why: "This is not about writing longer prompts. It turns recurring evaluation criteria into rules, skills, or workflows so the next natural-language task starts on the right path by default."
+    why: "This training focuses on turning recurring evaluation criteria into rules, skills, or workflows so similar natural-language tasks start from a steadier path."
     success_signal: "Similar tasks automatically trigger the right skill, rule, or workflow, and the user needs fewer follow-up corrections about boundaries and acceptance."
     stop_doing: "Relying on ad-hoc follow-up corrections to add principles, counterexamples, and acceptance criteria each time."
     week_1_actions: []

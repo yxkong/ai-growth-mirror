@@ -28,7 +28,7 @@ def test_readme_badges_reference_current_versions() -> None:
 
 def test_readme_public_surface_mentions_current_agentic_contracts() -> None:
     readme = (_repo_root() / "README.md").read_text(encoding="utf-8")
-    assert "核心亮点 (v0.8.0)" in readme
+    assert "核心亮点 (v1.0.0)" in readme
     assert "v0.8.0-DESIGN.md" in readme
     assert "goal_locking_speed" in readme
     assert "ai-growth-mirror.summary.json" in readme

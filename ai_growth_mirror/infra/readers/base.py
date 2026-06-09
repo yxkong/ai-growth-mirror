@@ -12,6 +12,7 @@ from ...domain.session.heuristics import (
     CODE_CONTEXT_PATTERNS,
     CONSTRAINT_WORDS,
     EXEC_TOOL_NAMES,
+    READ_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
     TEST_PATTERNS,
     WRITE_TOOL_NAMES,
@@ -19,6 +20,8 @@ from ...domain.session.heuristics import (
     enrich_advanced_features,
     enrich_agentic_signals,
     enrich_prompt_signals,
+    enrich_task_contract_signals,
+    is_validation_command,
 )
 
 if TYPE_CHECKING:
@@ -82,6 +85,11 @@ class BaseSessionAdapter(ABC):
     def _enrich_advanced_features(session: SessionRecord) -> None:
         """Derive higher-order collaboration features uniformly across readers."""
         enrich_advanced_features(session)
+
+    @staticmethod
+    def _enrich_task_contract_signals(session: SessionRecord) -> None:
+        """Derive effective task-contract signals uniformly across readers."""
+        enrich_task_contract_signals(session)
 
     def _quick_extract_project_path(self, raw: SessionRef) -> str:
         """Rapidly extract project path without parsing full session payload."""
@@ -148,6 +156,7 @@ class BaseSessionAdapter(ABC):
             # Enrich advanced features only for fully-loaded records.
             if not session._is_placeholder:
                 self._enrich_advanced_features(session)
+                self._enrich_task_contract_signals(session)
             if since:
                 # Determine the session's last-activity timestamp.
                 last_activity = raw.start_time
@@ -394,4 +403,3 @@ def get_vscdb_mtime(state_db: Path) -> float:
 
     _VSCDB_REVISION_CACHE[db_path_str] = (feature_str, db_mtime)
     return db_mtime
-
