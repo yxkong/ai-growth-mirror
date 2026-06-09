@@ -5,6 +5,8 @@ status: supporting
 updated_at: 2026-06-06
 ---
 
+English version: [AI_GROWTH_MIRROR_OUTPUT_ROOT_CAUSE_ANALYSIS.md](../en/design/AI_GROWTH_MIRROR_OUTPUT_ROOT_CAUSE_ANALYSIS.md)
+
 # AI Growth Mirror 输出根因分析
 
 > **核心使命**：AI 成长镜（AI Growth Mirror）不是为了生成一张“好看的 AI 使用海报”，而是将隐性且难以察觉的 **AI 协作习惯**，转化为显性、可解释、可练习的**能力成长图谱**。

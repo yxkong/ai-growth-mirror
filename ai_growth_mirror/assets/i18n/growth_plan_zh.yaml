@@ -53,7 +53,7 @@ priorities:
 
   agentic_system:
     title: "方法系统化"
-    why: "这项训练不是让你写更长 Prompt，而是把反复补充的评估口径沉到 rule / skill / workflow，让下一次自然语言任务默认走对路径。"
+    why: "这项训练关注把反复补充的评估口径沉到 rule / skill / workflow，让同类自然语言任务更容易沿稳定路径启动。"
     success_signal: "同类任务能自动触发正确 skill / rule / workflow，人工补边界和补验收的次数下降。"
     stop_doing: "每次都靠临场补充原则、反例和验收口径来纠偏。"
     week_1_actions: []

@@ -12,6 +12,9 @@ from ai_growth_mirror.domain.session.heuristics import (
     ADVANCED_FEATURE_KEYS,
     classify_session_quality,
     enrich_advanced_features,
+    enrich_agentic_signals,
+    enrich_task_contract_signals,
+    is_validation_command,
     is_indexed_prompt_session,
     passes_quality_gate,
 )
@@ -173,6 +176,56 @@ def test_quality_high_when_outcome_evidenced():
         has_test_commands=True,
     )
     assert classify_session_quality(s) == "high"
+
+
+def test_build_command_counts_as_validation_command():
+    s = _bare_session(
+        user_message_count=1,
+        tool_counts={"edit": 1, "npm run build": 1},
+        files_modified=1,
+    )
+    enrich_agentic_signals(s)
+    assert s.has_verification_behavior is True
+    assert s.has_test_commands is True
+
+
+def test_validation_command_uses_keyword_boundaries_not_full_allowlist():
+    assert is_validation_command("pwsh -NoProfile -Command ./scripts/run_all.ps1")
+    assert is_validation_command("mvn -DskipTests compile")
+    assert is_validation_command("python tools/custom_verify.py")
+    assert not is_validation_command("show latest report")
+    assert not is_validation_command("git checkout main")
+    assert not is_validation_command("cat build.log")
+    assert not is_validation_command("grep 'test' file.py")
+    assert not is_validation_command("rg 'test' .")
+    assert not is_validation_command("git diff --stat")
+
+
+def test_effective_contract_from_skill_read_not_missing_user_acceptance():
+    s = _bare_session(
+        first_prompt="优化报告体验",
+        assistant_messages=["好的，已加载 skills。我们的验收标准是无报错。"],
+        user_message_count=1,
+        skill_invocation_count=1,
+        unique_skills_used=["ai-growth-mirror-dev"],
+        tool_counts={"read": 3},
+    )
+    enrich_task_contract_signals(s)
+    assert "skill_read" in s.task_contract_sources
+    assert s.pre_execution_contract_present is True
+    assert s.acceptance_contract_source == "skill_read"
+
+
+def test_late_user_correction_is_separate_from_missing_contract():
+    s = _bare_session(
+        first_prompt="优化这个模块",
+        top_user_messages=["优化这个模块", "你为啥要改规范？按照规范执行"],
+        user_message_count=2,
+        files_modified=1,
+    )
+    enrich_task_contract_signals(s)
+    assert s.late_contract_correction is True
+    assert "late_user" in s.task_contract_sources
 
 
 def test_quality_medium_when_signals_but_no_outcome():

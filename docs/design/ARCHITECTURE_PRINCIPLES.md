@@ -1,5 +1,7 @@
 # AI Growth Mirror — 架构总纲
 
+English version: [ARCHITECTURE_PRINCIPLES.md](../en/design/ARCHITECTURE_PRINCIPLES.md)
+
 > **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审查都必须遵循本文。
 
 AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code、CodeBuddy、Trae、QCoder 共 9 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
@@ -35,14 +37,14 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 
 个人版自 v0.7 升级、v0.8 定稿为 **六轴 Agentic 成熟度底盘**（轴名真源 `domain/growth/scorer.py`）：
 
-| 轴 key | 中文名 | v0.8 权重 | 衡量内容 |
-|--------|--------|:---------:|----------|
-| `collaboration_framing` | 协作框定 | **14%** | 协作启动质量：方向清晰、上下文注入、目标锁定速度与主动澄清率（v0.7 旧名 `intent_clarity`） |
+| 轴 key | 中文名 | 权重 | 衡量内容 |
+|--------|--------|:---:|----------|
+| `collaboration_framing` | 协作框定 | **14%** | 协作启动质量，包含目标锁定速度、主动澄清率与有效任务契约（v1.0.0升级） |
 | `execution_driving` | 协作驱动 | **25%** | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场） |
-| `implementation_depth` | 实现下潜 | **20%** | 文件修改量、代码验证覆盖率与实现边界控制 |
-| `delivery_closure` | 交付收口 | **20%** | 任务完成率、验证行为率与测试用例运行表现 |
-| `adaptive_recovery` | 恢复推进 | **10%** | 偏航/报错/阻塞时基于新证据的纠偏质量（已剔除 environmental-recovery 误判） |
-| `agentic_system` | Agentic 系统化 | **11%** | skill/workflow/MCP/subagent 等方法资产化能力（v0.7 升格为第六个正式轴） |
+| `implementation_depth` | 实现下潜 | **19%** | 文件修改量、代码验证覆盖率与实现边界控制 |
+| `delivery_closure` | 交付收口 | **19%** | 任务完成率、验证行为、测试/构建/脚本验证与契约履约表现 |
+| `adaptive_recovery` | 恢复推进 | **10%** | AI 偏航或报错时，纠偏和回到正轨的质量 |
+| `agentic_system` | Agentic 系统化 | **13%** | skill/workflow/MCP/subagent 等方法资产化能力 |
 
 权重合计 100%；演进对照见 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md) 与 [v0.8.0-DESIGN.md](v0.8.0-DESIGN.md)。
 
@@ -299,7 +301,8 @@ ai_growth_mirror/
 │   ├── prompts/                   # LLM 提示词 Jinja2 模板
 │   │   ├── session_read/
 │   │   ├── prompt_lens/
-│   │   └── growth_coach/
+│   │   ├── growth_coach/
+│   │   └── work_focus/
 │   ├── i18n/                      # UI 标签 YAML（非业务逻辑）
 │   └── templates/                 # HTML 渲染模板（Jinja2）
 │       ├── report.html.j2
@@ -353,7 +356,7 @@ application/orchestrator.generate_report_artifacts()
 
 - `infra/extractors/llm.py` 负责优先接入 LLM 语义 PQ；当会话过短或 LLM 不可用时，必须降级到 `infra/extractors/heuristic.py` 的代理回填，而不是直接断档
 - `domain/signals/model.py::PromptLensScores` 携带 `evaluation_status`（`llm_evaluated | insufficient_input | llm_failed | llm_unavailable | not_applicable`）区分评估来源状态；`source_engine`（`llm | heuristic`）仅作内部引擎标记，不上主报告；`coverage`（`full | light | none`）仅表示完整度
-- `domain/cache_schema.py::SESSION_READ_SCHEMA_VERSION` 当前为 `"1.1"`；升版时旧 reads 缓存自动失效并重跑
+- `domain/cache_schema.py::SESSION_READ_SCHEMA_VERSION` 当前由 `CACHE_SCHEMA_VERSION` (1.0) 统一控制；升版时旧 reads 缓存自动失效并重跑
 - `domain/growth/scorer.py` 聚合时输出：`pq_llm_session_count / pq_heuristic_session_count / pq_light_session_count`（向后兼容），以及新增 `pq_llm_evaluated_count / pq_insufficient_count / pq_llm_failed_count / pq_llm_unavailable_count`（按 evaluation_status 统计）
 - `application/report_view.py` / `prompt_coach.py` 展示层按非零子句拼装人话来源说明，严禁把 heuristic 直接说成 LLM Prompt 质量评估，禁止展示 `LLM n / heuristic n / light n` 并列数字
 - `domain/growth/prompting.py` 提供 `closure_guidance.mode`（`open_ended | engineered` 派生，不升 schema）与 `friction_synthesis` 规则意图层；`assets/prompts/growth_coach/system.md.j2` 加性扩展 LLM 输出 `friction_synthesis`，应用层护栏：evidence_refs 为空则丢弃降级规则
@@ -404,10 +407,11 @@ application/orchestrator.generate_report_artifacts()
 - 六轴成长底盘（轴名、状态边界、图表字段）
 - UI 标签、报告框架结构
 
-**LLM 动态生成的内容**（`assets/prompts/*.md.j2`，当前主链仅三目录）：
+**LLM 动态生成的内容**（`assets/prompts/*.md.j2`，当前主链四目录）：
 - 每会话 Session Read 提取（`session_read/`）
 - Prompt Lens 点评（`prompt_lens/`）
 - Coaching 建议（`growth_coach/`）
+- 跨会话「你在做什么」主题综合（`work_focus/`）
 
 **Prompt 文案口径约束**：
 - 面向公开仓库的 system/user prompt 必须使用中性产品口径，如 `evidence packet`、`reflection report`、`prompt lens`
@@ -425,7 +429,7 @@ application/orchestrator.generate_report_artifacts()
 **`assets/prompts/`** — LLM 提示词 Jinja2 模板：
 - 修改提示词只改此目录，不改 Python 代码
 - 决策树 / 分类指令在 `assets/prompts/session_read/guidelines.md.j2`，由 `system.md.j2` include
-- 当前子目录：`session_read`、`prompt_lens`、`growth_coach`
+- 当前子目录：`session_read`、`prompt_lens`、`growth_coach`、`work_focus`
 - 共享输出语言约束放在 `assets/prompts/_partials/output_language.md.j2`
 - `assets/prompts/**/bak/` 只是本地备份区，不是提示词真源，也不参与发布
 
@@ -533,4 +537,43 @@ application/orchestrator.generate_report_artifacts()
 - **计算逻辑**：
   - 在 [base.py](../../ai_growth_mirror/infra/readers/base.py) 的 `_iter_sessions_from_root` 中，若 cache 启用且未命中缓存，先快速构建一个带有 `_is_placeholder = True` 的轻量级 `SessionRecord`，其仅通过子类实现的 `_quick_extract_project_path`（如极速加载 `workspace.json`）带上项目路径。
   - 直到 [orchestrator.py](../../ai_growth_mirror/application/orchestrator.py) 对会话执行完 Scope 过滤和采样限额后，才对最终确定的 sessions 列表调用 `session.ensure_parsed(cache)`，就地完成深度解析并写盘。未选中样本不发生任何深度解析开销。
+
+
+---
+
+## 15. Windows PowerShell 协作与命令转义规范
+
+在 Windows 开发环境下，为确保测试命令与自动化流水线能无缝执行，避免字符展开或语法不兼容，特规定以下三条硬性 Shell 执行协议：
+
+### 15.1 禁用 Bash Heredoc 风格
+- **原则**：在编写测试脚本或版本读取等命令时，禁止使用 Bash 环境特有的 `<<EOF` 或 `<<` heredoc 注入。
+- **替代方案**：统一采用 PowerShell 的纯原生管道、直接参数传递或 Python 简短的交互脚本读取版本号。
+
+### 15.2 显式变量转义与括号保护
+- **原则**：如果在 `pwsh -Command` 外层双引号中执行带有 `$` 临时变量的命令，PowerShell 会在外层预先将其展开为本地变量，从而发生非预期求值（例如将 `$p` 错误解析为外部路径变量）。
+- **替代方案**：凡是需要在 `pwsh -Command` 内由内层 PowerShell 处理的变量，必须在 `$` 前加反引号 `` ` `` 进行强行转义，例如 `` `$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD ``。复杂的多行命令优先封装为临时 `.ps1` 文件或执行纯 Python 脚本，以隔离 Shell 的求值层级。
+
+### 15.3 多关键字固定搜索优先使用 rg
+- **原则**：在进行文本过滤时，避免在 PowerShell 的双引号内编写带有 `|` 等管道符的复杂正则表达式（容易与外层 PowerShell 的管道符冲突）。
+- **替代方案**：统一优先使用 `rg --fixed-strings -e ...` 的多重表达式，将过滤规则在命令行参数层面拆开，保障正则解析的稳定性。
+
+
+## 16. 版本与缓存 Schema 同步策略
+
+为防止开发与发布过程中产生因缓存序列化数据结构变更导致的产品解析崩溃，产品与缓存版本需强同步绑定演进：
+
+### 16.1 两位大版本强对齐
+- **原则**：产品版本的 `MAJOR.MINOR` （如 `v1.0.x`）必须与 `CACHE_SCHEMA_VERSION` 的 `X.Y`（如 `1.0`）严格一致。
+- **机制**：
+  - schema 不变时，产品只更新小版本号（patch），如 `v1.0.0` → `v1.0.1`，表示只修 bug 或更新用户可见文档，无需作缓存驱逐。
+  - 一旦发生 `SessionRecord`、`SessionRead` 等核心 DTO / 缓存协议不兼容的变化，必须升级 `CACHE_SCHEMA_VERSION`（如升级到 `1.1`），产品版本同步进入 `v1.1.0`。旧版本的本地缓存将被自动判定失效重算。
+
+### 16.2 版本联动变更清单
+- **原则**：每次执行版本升级时，不得只修改单一文件。必须在同一 PR 中同步改写以下真源点，缺失一处即为不合规：
+  - `pyproject.toml` 中的 `[project].version`
+  - `ai_growth_mirror/__init__.py` 中的 `__version__`
+  - `domain/cache_schema.py` 中的 `CACHE_SCHEMA_VERSION`
+  - `README.md` 的 Release badge 和 Schema badge
+  - `docs/design/README.md` 的当前版本号与修订记录
+  - `docs/design/PRODUCT_ROADMAP.md` 中的产品路线图版本表
 

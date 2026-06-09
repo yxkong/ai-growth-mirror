@@ -92,3 +92,43 @@ def test_gemini_adapter_no_token_data(tmp_path):
     assert record.cache_read_tokens is None
     assert record.cache_write_tokens is None
     assert record.total_cost_usd is None
+
+
+def test_gemini_adapter_detects_build_validation_and_read_recon(tmp_path):
+    brain_dir = tmp_path / "brain"
+    conv_dir = brain_dir / "test-contract-456"
+    logs_dir = conv_dir / ".system_generated" / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    transcript_path = logs_dir / "transcript.jsonl"
+
+    steps = [
+        {
+            "type": "USER_INPUT",
+            "source": "USER_EXPLICIT",
+            "created_at": "2026-06-06T10:00:00Z",
+            "content": "<USER_REQUEST>优化报告，验收：npm run build 通过</USER_REQUEST>",
+        },
+        {
+            "type": "PLANNER_RESPONSE",
+            "source": "MODEL",
+            "created_at": "2026-06-06T10:01:00Z",
+            "tool_calls": [
+                {"name": "view_file", "args": {"TargetFile": "D:/repo/a.py"}},
+                {"name": "write_to_file", "args": {"TargetFile": "D:/repo/a.py"}},
+                {"name": "run_command", "args": {"CommandLine": "npm run build"}},
+            ],
+        },
+    ]
+    with open(transcript_path, "w", encoding="gbk") as f:
+        for step in steps:
+            f.write(json.dumps(step, ensure_ascii=False) + "\n")
+
+    adapter = GeminiAdapter(data_root=tmp_path)
+    record = adapter.parse_session(list(adapter.iter_raw_sessions())[0])
+
+    assert record.pre_write_read_count == 1
+    assert record.pre_write_non_read_tool_count == 0
+    assert record.has_verification_behavior is True
+    assert record.has_test_commands is True
+    assert record.pre_execution_contract_present is True
+    assert "explicit_user" in record.task_contract_sources

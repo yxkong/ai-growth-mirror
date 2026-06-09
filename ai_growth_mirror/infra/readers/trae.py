@@ -16,11 +16,11 @@ from ...domain.session.model import SessionRef, SessionRecord
 from ...domain.signals.tooling import compute_tier_counts
 from .base import (
     SUBAGENT_TOOL_NAMES,
-    TEST_PATTERNS,
     _common_prefix_path,
     _max_mtime,
     detect_authorship_path,
     detect_language,
+    is_validation_command,
     parse_ts,
 )
 from .workspace_storage import WorkspaceStorageChatAdapter, appdata_path
@@ -306,7 +306,7 @@ class TraeAdapter(WorkspaceStorageChatAdapter):
                     uses_web_search = True
                 if "web_fetch" in input_text.lower() or "fetch" in input_text.lower():
                     uses_web_fetch = True
-                if any(pattern in input_text.lower() for pattern in TEST_PATTERNS):
+                if is_validation_command(input_text):
                     has_test_commands = True
 
             tool_counts["write"] = len(file_paths)
@@ -444,5 +444,4 @@ class TraeAdapter(WorkspaceStorageChatAdapter):
         except Exception:
             pass
         return {}
-
 

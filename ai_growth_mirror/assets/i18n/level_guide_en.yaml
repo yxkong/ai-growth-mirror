@@ -32,7 +32,7 @@ levels:
   L4:
     score_range: "75-89"
     title: "High-leverage orchestrator"
-    description: "You are intentionally composing workflows, tools, and verification paths instead of merely using an assistant."
+    description: "This stage focuses on whether workflow composition, tool use, and verification paths appear consistently."
     signals:
       - "Multi-tool collaboration feels natural"
       - "Hard tasks get split into paths"
@@ -41,7 +41,7 @@ levels:
   L5:
     score_range: "90-100"
     title: "Workflow designer"
-    description: "The question is no longer whether you can use AI, but how well you can scale and share your methods."
+    description: "This stage focuses on whether high-leverage AI work patterns can transfer across tasks and be shared."
     signals:
       - "Templates, skills, and flows are common outputs"
       - "Scoping and acceptance stay stable"

@@ -18,7 +18,7 @@ from .label_catalogs import ReportLabelCatalogs
 
 if TYPE_CHECKING:
     from .growth_plan import GrowthPlanView
-    from .prompt_coach import PromptCoachView
+    from .prompt_coach_views import PromptCoachView
     from .report_view import (
         AgentAssetFootprintView,
         CapabilitySectionView,
@@ -342,7 +342,7 @@ def build_snapshot_compare_page_view(
     catalogs: ReportLabelCatalogs,
     current_training_evidence_payload: dict | None = None,
 ) -> SnapshotComparisonPageView:
-    from .report_view import build_prompt_coach_view_from_payload
+    from .prompt_coach import build_prompt_coach_view_from_payload
 
     comparison = compare_snapshot_sources(left_source, right_source)
     trajectory = _build_latest_vs_previous_view_from_comparison(comparison, catalogs)
@@ -377,37 +377,22 @@ def _build_latest_vs_previous_view_from_comparison(
     confidence_note = _confidence_note(comparison, gt_i18n)
 
     # Localize contract outcomes
-    language = getattr(catalogs, "language", "zh")
+    outcomes_i18n = gt_i18n.get("contract_outcomes", {})
     for outcome in getattr(comparison, "contract_outcomes", []) or []:
         axis_label = capability_meta.get(outcome.axis_key, {}).get("label", outcome.axis_key)
         outcome.axis_label = axis_label
+        delta_val = outcome.delta or 0.0
         if outcome.status == "schema_mismatch":
-            if language == "zh":
-                outcome.explanation = "上期与本期评估维度不一致，维度发生变更，无法进行环比对比。"
-            else:
-                outcome.explanation = "Evaluation schemas do not match between cycles; cannot evaluate."
+            template = outcomes_i18n.get("schema_mismatch", "")
         elif outcome.status == "no_data":
-            if language == "zh":
-                outcome.explanation = f"本期未检测到目标轴【{axis_label}】的充足样本，改善效果暂无法评估。"
-            else:
-                outcome.explanation = f"Insufficient data for target axis [{axis_label}] to evaluate outcome."
+            template = outcomes_i18n.get("no_data", "")
+        elif outcome.status == "improved":
+            template = outcomes_i18n.get("improved", "")
+        elif outcome.status == "partial":
+            template = outcomes_i18n.get("partial", "")
         else:
-            delta_val = outcome.delta or 0.0
-            if outcome.status == "improved":
-                if language == "zh":
-                    outcome.explanation = f"目标轴【{axis_label}】得分提升 {delta_val:+.1f} 分，达到了设定目标，改善效果显著。"
-                else:
-                    outcome.explanation = f"Target axis [{axis_label}] score improved by {delta_val:+.1f} pts. Clear improvement."
-            elif outcome.status == "partial":
-                if language == "zh":
-                    outcome.explanation = f"目标轴【{axis_label}】得分微幅提升 {delta_val:+.1f} 分，已见初步改善，建议继续巩固练习。"
-                else:
-                    outcome.explanation = f"Target axis [{axis_label}] score slightly improved by {delta_val:+.1f} pts. Initial progress made."
-            else:
-                if language == "zh":
-                    outcome.explanation = f"目标轴【{axis_label}】得分无明显提升（{delta_val:+.1f} 分），需要针对瓶颈调整练习方法。"
-                else:
-                    outcome.explanation = f"Target axis [{axis_label}] score showed no significant change ({delta_val:+.1f} pts)."
+            template = outcomes_i18n.get("declined", "")
+        outcome.explanation = template.format(axis_label=axis_label, delta=delta_val)
     # axis_deltas is empty when the two snapshots use incomparable axis schemas;
     # fall back to a schema-honest placeholder instead of indexing [0].
     strongest_gain = (
@@ -550,10 +535,31 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
         if bool(getattr(point, "comparable", True))
     ]
     summary_label = trend_i18n.get("labels", {}).get(trajectory_window.trend_summary.label, trajectory_window.trend_summary.label)
+    score_delta = 0.0
+    if len(points) >= 2:
+        score_delta = points[-1].mirror_score - points[0].mirror_score
     summary_text = trend_i18n.get("explanations", {}).get(
         trajectory_window.trend_summary.explanation,
         trend_i18n.get("explanations", {}).get("insufficient_points", ""),
-    ).format(point_count=len(points))
+    ).format(
+        point_count=len(points),
+        delta=_signed(score_delta),
+        latest=points[-1].mirror_score if points else 0,
+        previous=points[0].mirror_score if points else 0,
+    )
+
+    # 特殊处理：有 2 个点位时，提供已有变化的对比，不显示冷冰冰的“数据不足”
+    if len(points) == 2:
+        delta = points[1].mirror_score - points[0].mirror_score
+        trend_2p_i18n = gt_i18n.get("trend_2points", {})
+        if delta > 0:
+            summary_label = trend_2p_i18n.get("improving", "")
+        elif delta < 0:
+            summary_label = trend_2p_i18n.get("declining", "")
+        else:
+            summary_label = trend_2p_i18n.get("stable", "")
+        summary_text = trend_2p_i18n.get("explanation", "").format(delta=delta)
+
     confidence_note = trend_i18n.get("confidence", {}).get(
         trajectory_window.trend_summary.confidence,
         "",
@@ -576,6 +582,7 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
             values=[point.mirror_score for point in trajectory_window.daily_points],
             points=trajectory_window.daily_points,
             value_mode="score",
+            catalogs=catalogs,
         ),
         axis_series=[
             _series_view(
@@ -588,6 +595,7 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
                 values=[point.axes[axis_key] for point in _comparable_axis_points if axis_key in point.axes],
                 points=[point for point in _comparable_axis_points if axis_key in point.axes],
                 value_mode="axis",
+                catalogs=catalogs,
             )
             for axis_key, color in (
                 ("collaboration_framing", "#ec4899"),
@@ -606,6 +614,7 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
                 values=[point.prompt_quality.get(dim_key, 0.0) for point in trajectory_window.daily_points],
                 points=trajectory_window.daily_points,
                 value_mode="prompt_quality",
+                catalogs=catalogs,
             )
             for dim_key, color in (
                 ("context_provision", "#7c3aed"),
@@ -623,6 +632,7 @@ def _build_trend_view(trajectory_window, catalogs: ReportLabelCatalogs) -> Growt
                 values=[point.friction.get(friction_key, 0) for point in trajectory_window.daily_points],
                 points=trajectory_window.daily_points,
                 value_mode="friction",
+                catalogs=catalogs,
             )
             for friction_key, color in (
                 ("vague_request", "#ef4444"),
@@ -643,6 +653,7 @@ def _series_view(
     values: list[float],
     points: list,
     value_mode: str,
+    catalogs: ReportLabelCatalogs,
 ) -> GrowthTrajectorySeriesView:
     mini = value_mode == "axis"
     svg_points, y_ticks = _chart_points(
@@ -682,12 +693,12 @@ def _series_view(
         latest_delta=round(latest_value - previous_value, 1) if len(values) >= 2 else 0.0,
         latest_value=round(latest_value, 1),
         previous_value=round(previous_value, 1),
-        latest_label=_latest_label(latest_value, value_mode),
-        delta_label=_delta_label(round(latest_value - previous_value, 1) if len(values) >= 2 else 0.0, value_mode),
-        trend_label=_trend_badge(values, value_mode),
+        latest_label=_latest_label(latest_value, value_mode, catalogs),
+        delta_label=_delta_label(round(latest_value - previous_value, 1) if len(values) >= 2 else 0.0, value_mode, catalogs),
+        trend_label=_trend_badge(values, value_mode, catalogs),
         start_label=_short_date(points[0].date) if points else "",
         end_label=_short_date(points[-1].date) if points else "",
-        insufficient_note="数据点不足" if len(values) < 3 else "",
+        insufficient_note=catalogs.view_model.get("growth_trajectory", {}).get("trend_badges", {}).get("insufficient", "") if len(values) < 3 else "",
         area_path=area_path,
     )
 
@@ -879,7 +890,11 @@ def _build_method_assets_view(comparison, gt_i18n: dict) -> GrowthTrajectoryMeth
     asset_i18n = gt_i18n.get("method_assets", {})
     summary_key = "stronger" if comparison.method_assets.stronger_reuse else "weaker"
     return GrowthTrajectoryMethodAssetsView(
-        summary=asset_i18n.get(summary_key, ""),
+        summary=asset_i18n.get(summary_key, "").format(
+            asset_delta=_signed(comparison.method_assets.total_assets.delta, decimals=0),
+            workflow_delta=_signed(comparison.method_assets.workflow_assets.delta, decimals=0),
+            assetization_delta=_signed(comparison.method_assets.assetization_rate.delta),
+        ),
         detail=asset_i18n.get("detail", "").format(
             asset_delta=_signed(comparison.method_assets.total_assets.delta, decimals=0),
             workflow_delta=_signed(comparison.method_assets.workflow_assets.delta, decimals=0),
@@ -919,7 +934,7 @@ def _build_evidence_cards(comparison, catalogs: ReportLabelCatalogs) -> list[Gro
         cards.append(
             GrowthTrajectoryEvidenceCardView(
                 title=evidence_i18n.get(card.topic, {}).get("title", card.topic).format(axis_label=axis_label),
-                body=body.format(axis_label=axis_label),
+                body=body.format(axis_label=axis_label, evidence_count=len(card.summaries)),
                 evidence=card.summaries,
             )
         )
@@ -1115,52 +1130,58 @@ def _chart_points(
     return coords, y_ticks
 
 
-def _latest_label(value: float, value_mode: str) -> str:
+def _latest_label(value: float, value_mode: str, catalogs: ReportLabelCatalogs) -> str:
     if value_mode == "friction":
-        return _friction_band(value)
+        return _friction_band(value, catalogs)
     if value_mode == "score":
         return f"{value:.0f}"
     return f"{value:.1f}"
 
 
-def _delta_label(delta: float, value_mode: str) -> str:
+def _delta_label(delta: float, value_mode: str, catalogs: ReportLabelCatalogs) -> str:
     if value_mode == "friction":
+        gt_i18n = catalogs.view_model.get("growth_trajectory", {})
+        delta_labels = gt_i18n.get("delta_labels", {})
         if delta >= 1:
-            return "较上期增加"
+            return delta_labels.get("friction_increase", "")
         if delta <= -1:
-            return "较上期减少"
-        return "较上期持平"
+            return delta_labels.get("friction_decrease", "")
+        return delta_labels.get("friction_flat", "")
     return _signed(delta)
 
 
-def _trend_badge(values: list[float], value_mode: str) -> str:
+def _trend_badge(values: list[float], value_mode: str, catalogs: ReportLabelCatalogs) -> str:
+    gt_i18n = catalogs.view_model.get("growth_trajectory", {})
+    trend_badges = gt_i18n.get("trend_badges", {})
     if len(values) < 3:
-        return "数据不足"
+        return trend_badges.get("insufficient", "")
     delta = values[-1] - values[0]
     recent = values[-1] - values[-2]
     if value_mode == "friction":
         if recent <= -1 and delta <= -1:
-            return "下降"
+            return trend_badges.get("down", "")
         if recent >= 1 and delta >= 1:
-            return "上升"
-        return "波动"
+            return trend_badges.get("up", "")
+        return trend_badges.get("fluctuating", "")
     if recent <= -3 and delta > 0:
-        return "回撤"
+        return trend_badges.get("pullback", "")
     if delta >= 4:
-        return "上升"
+        return trend_badges.get("up", "")
     if delta <= -4:
-        return "回撤"
-    return "持平"
+        return trend_badges.get("pullback", "")
+    return trend_badges.get("flat", "")
 
 
-def _friction_band(value: float) -> str:
+def _friction_band(value: float, catalogs: ReportLabelCatalogs) -> str:
+    gt_i18n = catalogs.view_model.get("growth_trajectory", {})
+    friction_bands = gt_i18n.get("friction_bands", {})
     if value >= 6:
-        return "高频"
+        return friction_bands.get("high", "")
     if value >= 3:
-        return "中频"
+        return friction_bands.get("medium", "")
     if value > 0:
-        return "低频"
-    return "很少"
+        return friction_bands.get("low", "")
+    return friction_bands.get("rare", "")
 
 
 def _short_date(value: str) -> str:

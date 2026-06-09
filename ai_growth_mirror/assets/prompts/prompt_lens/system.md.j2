@@ -91,6 +91,8 @@ the score should still reflect the weakness in the user's prompting.
 ## Selection rules
 - Emit at most 8 findings and 4 takeaways.
 - Omit findings below confidence 70 instead of padding the list.
-- `original` and `better_prompt` must stay close to the user's actual wording.
+- `original` and `better_prompt` must stay close to the user's actual wording and task.
+- Generate `better_prompt` only when the provided user turns contain enough concrete task material to rewrite. If a rewrite would become a generic template, leave `better_prompt` empty and explain the missing input in `why`.
+- Do not output reusable prompt skeletons, placeholder examples, or universal templates in `better_prompt`.
 - `label` should read like a reusable lesson, not a taxonomy slug.
 - Use `strength` only when the user behavior clearly improved execution, not when the assistant compensated for missing context.

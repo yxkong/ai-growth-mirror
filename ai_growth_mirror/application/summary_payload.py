@@ -177,6 +177,17 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
             "radar_axes": radar_axes,
             "active_clarification_rate": round(view.active_clarification_rate, 4),
             "goal_locking_speed": round(view.goal_locking_speed, 1),
+            "task_contract": {
+                "explicit_contract_rate": round(view.stats.explicit_contract_rate, 4),
+                "effective_contract_rate": round(view.stats.effective_contract_rate, 4),
+                "skill_contract_rate": round(view.stats.skill_contract_rate, 4),
+                "agent_derived_contract_rate": round(view.stats.agent_derived_contract_rate, 4),
+                "late_contract_correction_rate": round(view.stats.late_contract_correction_rate, 4),
+                "contract_compliance_rate": round(view.stats.contract_compliance_rate, 4),
+                "compliance_denominator": view.stats.contract_compliance_denominator,
+                "contract_missing_rate": round(view.stats.contract_missing_rate, 4),
+                "source_counts": dict(view.stats.task_contract_source_counts),
+            },
         },
         "capabilities": [
             {

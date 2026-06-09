@@ -6,6 +6,8 @@ updated_at: 2026-06-06
 score_target: 9.9
 ---
 
+English version: [AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md](../en/design/AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md)
+
 # AI Growth Mirror Personal Detailed Design
 
 ## 1. 产品定位

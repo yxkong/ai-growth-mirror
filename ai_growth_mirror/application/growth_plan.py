@@ -10,7 +10,7 @@ from .label_catalogs import ReportLabelCatalogs
 
 if TYPE_CHECKING:
     from .growth_trajectory import GrowthTrajectoryView
-    from .report_view import PromptCoachView
+    from .prompt_coach_views import PromptCoachView
 
 
 _PROMPT_DIMENSION_BY_DEFICIT = {
@@ -400,6 +400,12 @@ def _priority_why(
     evidence_refs: list[str],
     prompt_coach: "PromptCoachView | None",
 ) -> str:
+    if (
+        linked_deficits
+        and linked_deficits[0].category == "missing-acceptance-criteria"
+        and getattr(prompt_coach, "available", False)
+    ):
+        return "这项训练要区分用户没写验收和契约没有被执行：如果 skill/rule 已经形成任务契约，优先强化 Agent 按契约收口，而不是让用户写更长 prompt。"
     if base_why:
         return base_why
     if linked_deficits:
@@ -510,6 +516,14 @@ def _priority_action_contract(
     high_human_intervention = (getattr(stats, "human_intervention_session_rate", 0.0) or 0.0) >= 0.2
     if (has_friction_synthesis or high_human_intervention) and len(lines) < 6:
         lines.append("纠偏沉淀：把本期最高频的人类补规则点转成下次自动触发的 rule / checklist。")
+    if (
+        getattr(stats, "skill_contract_rate", 0.0) > 0
+        and getattr(stats, "contract_compliance_rate", 0.0) < getattr(stats, "effective_contract_rate", 0.0)
+    ):
+        lines.insert(
+            0,
+            "Rule：任务契约合规规则 — 已有 skill/rule 契约时，Agent 必须先复述目标、边界、验收和验证路径，结尾说明是否按契约完成。",
+        )
 
     deduped: list[str] = []
     seen: set[str] = set()
@@ -521,6 +535,8 @@ def _priority_action_contract(
 
 def _priority_title(title: str, key: str, linked_deficits) -> str:
     if linked_deficits and linked_deficits[0].category == "missing-acceptance-criteria":
+        if key in {"delivery_closure", "verification_gap", "closure_gap"}:
+            return "强化任务契约收口"
         return "把“我要你优化”改成“什么结果算通过”"
     if linked_deficits and linked_deficits[0].category in {"missing-context", "vague-request"}:
         return "协作框定训练"

@@ -23,12 +23,12 @@ from .base import (
     BaseSessionAdapter,
     EXEC_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
-    TEST_PATTERNS,
     WRITE_TOOL_NAMES,
     _common_prefix_path,
     _max_mtime,
     detect_authorship_path,
     detect_language,
+    is_validation_command,
     parse_ts,
 )
 from .workspace_storage import WorkspaceStorageChatAdapter, appdata_path
@@ -276,7 +276,7 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
                 if "web_fetch" in input_text.lower() or "fetch" in input_text.lower():
                     uses_web_fetch = True
                 # Check for test commands
-                if any(pattern in input_text.lower() for pattern in TEST_PATTERNS):
+                if is_validation_command(input_text):
                     has_test_commands = True
 
             # Count tool-like actions
@@ -417,5 +417,4 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
         except Exception:
             pass
         return {}
-
 

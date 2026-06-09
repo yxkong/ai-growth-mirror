@@ -266,6 +266,8 @@ def _compute_growth_level(
     asset_authoring_session_rate: float = 0.0,
     has_token_data: bool = True,
     active_clarification_rate: float = 0.0,
+    effective_contract_rate: float = 0.0,
+    contract_compliance_rate: float = 0.0,
 ) -> tuple[str, int, dict[str, float]]:
     prompt_dimensions = prompt_dimensions or {}
     friction_by_attribution = friction_by_attribution or {}
@@ -276,11 +278,13 @@ def _compute_growth_level(
     user_actionable_ratio = user_actionable / friction_total if friction_total else 0.0
     files_per_session = total_files_modified / max(session_count, 1)
 
+    contract_clarity_rate = max(direction_clarity_rate, effective_contract_rate)
     collaboration_framing = _bounded_average(
-        (direction_clarity_rate * 100.0, 0.20),
+        (contract_clarity_rate * 100.0, 0.24),
         (context_grounding_rate * 100.0, 0.18),
-        (goal_locking_speed, 0.28),
-        (active_clarification_rate * 100.0, 0.34),
+        (goal_locking_speed, 0.24),
+        (active_clarification_rate * 100.0, 0.24),
+        (effective_contract_rate * 100.0, 0.10),
     )
     execution_driving = _bounded_average(
         (_soft_threshold(avg_chain, 1.5, 8.0, 100.0), 0.32),
@@ -307,11 +311,12 @@ def _compute_growth_level(
         )
     implementation_depth = _bounded_average(*impl_depth_items)
     delivery_closure = _bounded_average(
-        (fully_achieved_rate * 100.0, 0.42),
-        (verification_rate * 100.0, 0.24),
-        (test_run_rate * 100.0, 0.18),
+        (fully_achieved_rate * 100.0, 0.36),
+        (verification_rate * 100.0, 0.22),
+        (test_run_rate * 100.0, 0.16),
+        (contract_compliance_rate * 100.0, 0.14),
         (commit_rate * 100.0, 0.08),
-        (code_verification_rate * 100.0, 0.08),
+        (code_verification_rate * 100.0, 0.04),
     )
     adaptive_recovery = _bounded_average(
         (prompt_dimensions.get("correction_quality", 50.0), 0.34),
@@ -897,6 +902,50 @@ def _populate_prompt_signals(stats: GrowthProfile, sessions: list[SessionRecord]
         stats.avg_prompt_word_count = round(sum(prompt_lengths) / len(prompt_lengths), 1)
 
 
+def _populate_task_contract_signals(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
+    source_counter = Counter()
+    explicit_count = 0
+    effective_count = 0
+    skill_count = 0
+    agent_derived_count = 0
+    late_count = 0
+    compliant_count = 0
+    missing_count = 0
+
+    for session in sessions:
+        sources = list(getattr(session, "task_contract_sources", []) or [])
+        for source in sources:
+            source_counter[source] += 1
+        if "explicit_user" in sources:
+            explicit_count += 1
+        if any(source in sources for source in ("skill_read", "workflow_rule", "attached_skill")):
+            skill_count += 1
+        if "agent_derived" in sources:
+            agent_derived_count += 1
+        if getattr(session, "pre_execution_contract_present", False):
+            effective_count += 1
+        if getattr(session, "late_contract_correction", False) or "late_user" in sources:
+            late_count += 1
+        if getattr(session, "agent_contract_compliance", "") == "met":
+            compliant_count += 1
+        if "missing" in sources or getattr(session, "acceptance_contract_source", "") == "missing":
+            missing_count += 1
+
+    stats.task_contract_source_counts = dict(source_counter)
+    if stats.session_count:
+        stats.explicit_contract_rate = round(explicit_count / stats.session_count, 4)
+        stats.effective_contract_rate = round(effective_count / stats.session_count, 4)
+        stats.skill_contract_rate = round(skill_count / stats.session_count, 4)
+        stats.agent_derived_contract_rate = round(agent_derived_count / stats.session_count, 4)
+        stats.late_contract_correction_rate = round(late_count / stats.session_count, 4)
+        stats.contract_compliance_denominator = effective_count
+        if effective_count > 0:
+            stats.contract_compliance_rate = round(compliant_count / effective_count, 4)
+        else:
+            stats.contract_compliance_rate = 1.0
+        stats.contract_missing_rate = round(missing_count / stats.session_count, 4)
+
+
 def _populate_advanced_feature_signals(stats: GrowthProfile, sessions: list[SessionRecord]) -> None:
     feature_counter = Counter()
     for session in sessions:
@@ -977,6 +1026,11 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
     for s in sessions:
         if s.turns_until_first_file_write is not None:
             turns = s.turns_until_first_file_write
+            if (
+                getattr(s, "pre_write_read_count", 0) > 0
+                and getattr(s, "pre_write_non_read_tool_count", 0) == 0
+            ):
+                turns = min(turns, 3)
             read = read_by_id.get(s.session_id)
             if read and getattr(read, "active_clarification", False):
                 turns = max(1, turns - 1)
@@ -1029,6 +1083,8 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
         asset_authoring_session_rate=stats.asset_authoring_session_rate,
         has_token_data=has_token_data,
         active_clarification_rate=stats.active_clarification_rate,
+        effective_contract_rate=stats.effective_contract_rate,
+        contract_compliance_rate=stats.contract_compliance_rate,
     )
     stats.agentic_system_score = round(stats.agentic_sub_scores.get("agentic_system", 0.0), 1)
     stats.goal_locking_speed = round(goal_locking_speed, 1)
@@ -1061,6 +1117,7 @@ def aggregate(
     _populate_framework_fingerprints(stats, sessions)
     _populate_agentic_system_signals(stats, sessions)
     _populate_prompt_signals(stats, sessions)
+    _populate_task_contract_signals(stats, sessions)
     _populate_advanced_feature_signals(stats, sessions)
     _populate_code_session_metrics(stats, sessions)
     _score_profile(stats, session_reads, sessions)

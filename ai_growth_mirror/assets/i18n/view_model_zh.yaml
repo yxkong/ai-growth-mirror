@@ -96,7 +96,7 @@ growth_stage:
     summary: "你已经具备稳定推进多数任务的能力，下一步重点是把闭环做实。"
   L4:
     label: "高效闭环期"
-    summary: "你不只是会推进，还能更稳定地把结果带到验证和交付状态。"
+    summary: "当前数据显示，推进与验证/交付环节的稳定衔接更常见。"
   L5:
     label: "放大复用期"
     summary: "你已经具备较强的复用与放大能力，成长重点转向持续稳定和方法沉淀。"
@@ -206,7 +206,7 @@ exemplar_technique_templates:
   double: "这次之所以有效，关键在于先{first}，再{second}。"
 
 wins:
-  headline: "这些不是泛泛表扬，而是你已经出现、值得继续放大的真实强项。"
+  headline: "当前数据显示以下强项已出现，可作为后续放大的训练方向。"
   cards:
     strongest_dim:
       title: "你已经把“{label}”做成稳定习惯"
@@ -214,20 +214,20 @@ wins:
     delivery_closure:
       title: "你开始把验证带进默认流程"
       evidence: "当前验证行为率约 {pct}%。"
-      why: "这意味着你不只是让 AI 产出内容，而是开始要求交付证明。"
+      why: "相关证据显示，验证或交付证明相关信号已出现在当前流程中。"
       next_action: "把验证动作从测试扩展到日志、构建、页面回归或数据核对。"
     prompt_strength:
       title: "你的 Prompt 强项已经出现在“{label}”"
-      why: "这说明你的输入质量已经在部分环节形成了可复用优势。"
+      why: "当前数据显示，部分输入维度出现可复用优势信号。"
       next_action: "把这项强项复制到弱维度 {weakest_label} 上。"
     exemplars:
       title: "你已经留下了可迁移的方法样本"
       evidence: "本期已识别出 {count} 个高价值样本，代表类型包括 {labels}。"
-      why: "成长不是只看分数，而是把有效方法留住，下次少走弯路。"
-      next_action: "从其中 1 个样本抽出固定提问结构，作为你自己的默认模板。"
+      why: "相关证据显示，有效方法样本已出现；建议关注方法沉淀与复用。"
+      next_action: "下方仅展示证据样本；具体复用方式可由 LLM 结合样本内容生成。"
     style_lens:
       title: "你的协作操作系统已经有鲜明长板"
-      why: "这不是标签化描述，而是你最容易稳定复制的工作方式。"
+      why: "当前数据显示一种可稳定复制的工作方式信号。"
       next_action: "保留这个长板，但让它服务于更稳定的计划和收口。"
 
 summary:
@@ -240,7 +240,7 @@ summary:
     llm: "本次报告基于这期真实会话与深度语义分析生成。"
     coaching_suffix_heuristic: " 训练建议优先使用稳定规则与真实样例。"
   headline:
-    ready: "你当前处于 {growth_level}，说明 AI 已经在你的真实工作流里承担了稳定角色；下一步最值得补的是「{weakest}」，这样才能把结果更稳定地复制出来。"
+    ready: "你当前处于 {growth_level}；相关证据显示 AI 协作信号已出现在工作流中。建议关注「{weakest}」，以提升结果复制的稳定性。"
     unrated: "当前样本还不足以正式判级，先把「{weakest}」补成默认动作，等级才会开始稳定。"
   chips:
     date_range: "分析周期"
@@ -253,7 +253,7 @@ summary:
     unknown: "未知"
   share_lines:
     line1: "这期共分析 {session_count} 个会话、{active_days} 个活跃天，其中 {heavy_session_count} 个会话已经进入高强度代理协作。"
-    line2: "你最稳的长板是「{strongest}」，这说明你已经有可复制的协作方法。"
+    line2: "当前最稳的信号是「{strongest}」；相关证据显示存在可复制的协作方法样本。"
     line3: "下一步只要把「{weakest}」补成默认动作，就更容易把结果稳定带到 {next_focus}。"
 
 work_focus:
@@ -261,6 +261,7 @@ work_focus:
   headline_goal_only: "从会话语义看，你最近主要在处理“{primary_goal}”类工作；本期没有足够稳定的具体工作摘要可展示。"
   headline_work_only: "从可归纳的会话内容看，当前主线是“{primary_work}”；本期没有足够稳定的目标分类可展示。"
   insufficient_headline: "本期没有足够稳定的会话语义可判断你在做什么；该区块不会用默认工作类型代替真实证据。"
+  recent_work_count_suffix: "（关联 {count} 次会话）"
 
 collaboration_rhythm:
   headline: "本期协作更像「{rhythm_label}」——按这个节奏切任务、安排验收，会更顺手。"
@@ -279,7 +280,7 @@ collaboration_rhythm:
       next_action: "开工前先选节奏：探索用短回合，落地用深潜，别混在同一会话里。"
 
 usage_overview:
-  headline: "这里不只看你聊了多少次，而是看这期协作体量有多大、杠杆有多高、缓存效率怎么样。"
+  headline: "当前区块汇总这期协作体量、杠杆使用与缓存效率等指标。"
   summary: "本期共 {session_count} 个会话、约 {tool_calls} 次工具调用，累计 token 体量约 {token_volume}，高杠杆功能使用率 {advanced_feature_ratio}%。"
   hero_support_line: "{summary} 补充支撑：总成本 {total_cost}，单会话均值 {avg_cost}，缓存命中 {cache_hit}。"
   coverage_note_partial: "Token / 成本 / 缓存卡片仅统计含本地 usage 明细的来源：{covered}；{missing} 暂无明细，未计入。"
@@ -288,6 +289,11 @@ usage_overview:
   unknown_cost: "--"
   unknown_cache: "--"
   unknown_usage: "--"
+  compact_number_units:
+    - threshold: 100000000
+      suffix: "亿"
+    - threshold: 10000
+      suffix: "万"
   token_card_label: "Token 体量"
   token_card_value: "{token_volume}"
   token_card_detail: "输入 {input_tokens} / 输出 {output_tokens} / 缓存 {cache_tokens}"
@@ -327,11 +333,11 @@ growth_trajectory:
     medium: "中置信"
     low: "低置信"
   overall:
-    stage_up: "相比上期，你已经完成阶段跃迁；其中最明显的拉动来自「{axis_label}」，说明这条能力开始从偶发成功转向稳定复用。"
-    stage_down: "相比上期，你的阶段判断出现回落；这通常意味着短板轴没有稳住，当前要优先止住退化而不是继续扩面。"
-    score_up: "相比上期，你整体在变强，协作指数 {delta}，说明现在不只是做成任务，而是在积累更可复制的协作方法。"
-    score_down: "相比上期，你整体有回落，协作指数 {delta}；这不是简单分数波动，而是执行稳定性或恢复能力没有跟上任务复杂度。"
-    stable: "相比上期，你整体基本持平，说明已有强项在稳住，但下一次跃迁还没有真正形成。"
+    stage_up: "相比上期，阶段指标出现跃迁；相关证据显示「{axis_label}」拉动最明显，复用信号在增强。"
+    stage_down: "相比上期，阶段指标出现回落；相关证据显示短板轴稳定性不足，建议优先关注退化信号。"
+    score_up: "相比上期，协作指数 {delta}，整体指标上升；相关证据显示可复制协作方法信号在积累。"
+    score_down: "相比上期，协作指数 {delta}，整体指标回落；相关证据显示执行稳定性或恢复能力信号未跟上任务复杂度。"
+    stable: "相比上期，整体指标基本持平；相关证据显示已有强项在稳住，下一次跃迁信号尚未形成。"
   summary_cards:
     stage: "当前阶段"
     score: "协作指数变化"
@@ -352,14 +358,14 @@ growth_trajectory:
       prompt_proxy: "协作输入质量主要来自代理回填或样本不足。"
       prompt_mixed: "协作输入质量来源混合，需要保留边界感。"
   axis:
-    up: "{label} 较上期提升 {delta}，说明这条能力正在变得更稳定；下一步要继续把这种做法复制到更多任务里。"
-    down: "{label} 较上期回落 {delta}，说明它还没有成为默认习惯；接下来优先把「{next_action}」补成稳定动作。"
-    flat: "{label} 基本持平，说明当前还处于守成阶段；若想继续抬升，需要针对这条轴做刻意训练。"
+    up: "{label} 较上期提升 {delta}；相关证据显示这条能力稳定性信号在增强。建议继续把这种做法复制到更多任务里。"
+    down: "{label} 较上期回落 {delta}；相关证据显示默认习惯信号仍偏弱。建议优先把「{next_action}」补成稳定动作。"
+    flat: "{label} 基本持平；相关证据显示当前处于守成阶段。若想继续抬升，可以针对这条轴做刻意训练。"
   prompt_quality:
     headline: "协作输入质量变化"
-    improved: "协作输入质量整体在提升（{delta}），说明输入结构和纠偏质量在变好。"
-    regressed: "协作输入质量出现回落（{delta}），说明输入骨架或纠偏边界还不够稳定。"
-    stable: "协作输入质量基本持平，说明输入习惯尚未出现新的跃迁。"
+    improved: "协作输入质量整体在提升（{delta}）；相关证据显示输入结构与纠偏质量信号在变好。"
+    regressed: "协作输入质量出现回落（{delta}）；相关证据显示输入骨架或纠偏边界信号仍不稳定。"
+    stable: "协作输入质量基本持平；相关证据显示输入习惯尚未出现新的跃迁信号。"
     insufficient: "协作输入质量样本不足，本次只保留来源说明，不给过度确定判断。"
     source_note: "上期 LLM {prev_llm} / heuristic {prev_heuristic} / light {prev_light}；本期 LLM {curr_llm} / heuristic {curr_heuristic} / light {curr_light}"
     source_note_compare: "{prev_label}：{previous} {curr_label}：{current}"
@@ -367,15 +373,15 @@ growth_trajectory:
     confidence_medium: "协作输入质量同时包含 LLM 与 heuristic 代理回填，需要保留边界说明。"
     confidence_low: "协作输入质量样本过少或主要依赖 heuristic，结论只供训练参考。"
   friction:
-    more: "摩擦总量在上升（{delta}），说明当前阻塞还没有被有效吸收。"
-    less: "摩擦总量在下降（{delta}），说明你正在减少无效返工和阻塞。"
+    more: "摩擦总量在上升（{delta}）；相关证据显示当前阻塞吸收信号仍偏弱。"
+    less: "摩擦总量在下降（{delta}）；相关证据显示无效返工与阻塞信号在减少。"
     flat: "摩擦总量变化不大，重点要看阻塞类型是否发生迁移。"
     recovery_up: "恢复推进能力在增强：一旦偏航，你更容易用新证据把协作拉回正轨。"
     recovery_down: "恢复推进能力在走弱：当前最需要的是减少反复偏航和用户侧阻塞。"
     recovery_flat: "恢复推进能力基本持平，需要继续观察是否能把纠偏动作稳定下来。"
   method_assets:
-    stronger: "方法资产沉淀在增强，你正在从一次性提问走向可复用工作流。"
-    weaker: "方法资产沉淀没有跟上本期任务推进，说明结果还更多依赖临场发挥。"
+    stronger: "资产文件变化 {asset_delta}，可复用 workflow 变化 {workflow_delta}，资产化会话占比变化 {assetization_delta}。"
+    weaker: "资产文件变化 {asset_delta}，可复用 workflow 变化 {workflow_delta}，资产化会话占比变化 {assetization_delta}。"
     detail: "资产文件变化 {asset_delta}，可复用 workflow 变化 {workflow_delta}，资产化会话占比变化 {assetization_delta}。"
     metric_total_assets: "资产文件数"
     metric_workflow_assets: "可复用 workflow"
@@ -383,39 +389,39 @@ growth_trajectory:
   evidence_cards:
     overall:
       title: "整体变化依据"
-      up: "这些证据说明本期的整体提升不是偶然，而是多条信号一起在变强。"
-      down: "这些证据说明回落并非单一失误，而是多条稳定信号在走弱。"
-      flat: "这些证据说明你当前更像在守住存量，而不是出现新的成长跃迁。"
+      up: "下方列出 {evidence_count} 条与整体变化相关的证据。"
+      down: "下方列出 {evidence_count} 条与整体变化相关的证据。"
+      flat: "下方列出 {evidence_count} 条与整体变化相关的证据。"
     strongest_gain:
       title: "最大进步依据：{axis_label}"
-      up: "这条轴的改善最明显，说明它已经开始成为你新的增长引擎。"
-      down: "这条轴虽然被标成增长点，但仍有回落风险，需要继续观察。"
-      flat: "这条轴暂时没有形成明确增量。"
+      up: "下方列出 {evidence_count} 条与「{axis_label}」改善相关的证据。"
+      down: "下方列出 {evidence_count} 条与「{axis_label}」变化相关的证据。"
+      flat: "下方列出 {evidence_count} 条与「{axis_label}」变化相关的证据。"
     primary_gap:
       title: "优先补强依据：{axis_label}"
-      up: "虽然它没有继续下滑，但仍然是当前最限制你的能力轴。"
-      down: "这条轴既是当前短板，又出现回落，必须优先训练。"
-      flat: "这条轴还没有真正抬起来，是下一阶段最值得投入的点。"
+      up: "下方列出 {evidence_count} 条与「{axis_label}」短板相关的证据。"
+      down: "下方列出 {evidence_count} 条与「{axis_label}」回落相关的证据。"
+      flat: "下方列出 {evidence_count} 条与「{axis_label}」变化相关的证据。"
     friction:
       title: "摩擦变化依据"
-      up: "这些证据说明阻塞在增加，且已经开始影响交付节奏。"
-      down: "这些证据说明你在减少低效摩擦，恢复推进更顺了。"
-      flat: "这些证据说明阻塞类型在迁移，不能只看总量。"
+      up: "下方列出 {evidence_count} 条与摩擦上升相关的证据。"
+      down: "下方列出 {evidence_count} 条与摩擦下降相关的证据。"
+      flat: "下方列出 {evidence_count} 条与摩擦变化相关的证据。"
     method_assets:
       title: "方法资产依据"
-      up: "这些证据说明你不只是做成任务，还在把做法沉淀成可复用资产。"
-      down: "这些证据说明可复用方法沉淀还没有跟上任务难度。"
-      flat: "这些证据说明资产沉淀基本持平，需要继续观察是否形成复用闭环。"
+      up: "下方列出 {evidence_count} 条与方法资产变化相关的证据。"
+      down: "下方列出 {evidence_count} 条与方法资产变化相关的证据。"
+      flat: "下方列出 {evidence_count} 条与方法资产变化相关的证据。"
   priorities:
     primary: "优先训练「{label}」"
     secondary: "第二优先训练「{label}」"
-    body: "下一阶段不要同时扩太多面，先把这条轴练成稳定动作，再看整体分数是否自然上行。"
+    body: "建议将「{label}」作为下一阶段的训练关注点；下方列出相关依据。"
     reason_codes:
-      weakest_axis: "它仍然是当前最弱的一轴。"
-      regressed_axis: "它也是对比上期回落最明显的一轴。"
-      friction_hotspot: "相关阻塞还在持续出现。"
-      prompt_gap: "协作输入质量在这条能力上的支撑不足。"
-      method_gap: "方法沉淀没有跟上这条能力的需求。"
+      weakest_axis: "对比各轴，本条能力轴得分相对最低。"
+      regressed_axis: "对比上期，本条能力轴回落幅度相对最大。"
+      friction_hotspot: "相关摩擦类型在本期会话中反复出现。"
+      prompt_gap: "协作输入质量相关指标对本条能力轴的支撑样本不足。"
+      method_gap: "方法资产相关指标与本条能力轴的关联样本不足。"
   trend:
     score_label: "协作指数"
     window_label: "近 {days} 天"
@@ -429,15 +435,15 @@ growth_trajectory:
       phased_pullback: "阶段性回落"
       volatile_down: "波动下降"
     explanations:
-      insufficient_points: "近 30 天点位还不够，先展示已有变化，不强行判断长期趋势。"
-      stable_band: "近 30 天整体波动不大，当前更像在稳住已有习惯。"
-      steady_improvement: "近 30 天整体持续抬升，说明稳定方法在逐步成型。"
-      improving_with_swings: "虽然有波动，但整体还在往上走，说明你在试出更有效的协作方式。"
-      overall_up_recent_pullback: "近 30 天整体有提升，但最近一次出现回撤。建议优先观察这次回撤是否来自任务难度变化、样本量变化，还是协作框定 / 交付收口波动。"
-      phased_pullback: "最近几次出现阶段性回落，先不要过度负面解读，优先确认是任务类型变化还是收口动作没有跟上。"
-      declining_with_swings: "最近有明显回撤，而且夹杂波动，优先任务是止住退化。"
-      steady_decline: "近 30 天整体持续回落，说明当前做法还没稳住。"
-      mixed_but_flat: "最近有起伏，但拉长看还没有形成明确趋势。"
+      insufficient_points: "近 30 天共 {point_count} 个点位，样本尚不足以判断长期趋势。"
+      stable_band: "近 30 天共 {point_count} 个点位，协作指数从 {previous} 到 {latest}（变化 {delta}），整体波动较小。"
+      steady_improvement: "近 30 天共 {point_count} 个点位，协作指数从 {previous} 到 {latest}（变化 {delta}）。"
+      improving_with_swings: "近 30 天共 {point_count} 个点位，协作指数从 {previous} 到 {latest}（变化 {delta}），期间存在波动。"
+      overall_up_recent_pullback: "近 30 天共 {point_count} 个点位，整体变化 {delta}；最新点位 {latest}，最早点位 {previous}。"
+      phased_pullback: "近 30 天共 {point_count} 个点位，协作指数从 {previous} 到 {latest}（变化 {delta}），近期出现阶段性变化。"
+      declining_with_swings: "近 30 天共 {point_count} 个点位，协作指数从 {previous} 到 {latest}（变化 {delta}），期间存在波动。"
+      steady_decline: "近 30 天共 {point_count} 个点位，协作指数从 {previous} 到 {latest}（变化 {delta}）。"
+      mixed_but_flat: "近 30 天共 {point_count} 个点位，协作指数从 {previous} 到 {latest}（变化 {delta}），拉长看未形成单一方向。"
     confidence:
       high: "趋势样本和来源都比较完整，可以直接作为训练参考。"
       medium: "趋势可参考，但仍建议结合最近 1-2 次真实任务回看。"
@@ -448,6 +454,33 @@ growth_trajectory:
       scope_drift: "范围漂移"
       missing_acceptance_criteria: "缺少验收标准"
       unclear_correction: "纠偏不清"
+  contract_outcomes:
+    schema_mismatch: "上期与本期评估维度不一致，维度发生变更，无法进行环比对比。"
+    no_data: "本期未检测到目标轴【{axis_label}】的充足样本，改善效果暂无法评估。"
+    improved: "目标轴【{axis_label}】较上期变化 {delta:+.1f} 分，当前状态标记为 improved。"
+    partial: "目标轴【{axis_label}】较上期变化 {delta:+.1f} 分，当前状态标记为 partial。"
+    declined: "目标轴【{axis_label}】较上期变化 {delta:+.1f} 分，当前状态标记为 declined。"
+  trend_2points:
+    improving: "近期上升"
+    declining: "近期下降"
+    stable: "环比持平"
+    explanation: "近 30 天已积累 2 个点位，较上期变化了 {delta:+.0f} 分。先展示已有变化，不强行判断长期趋势。"
+  delta_labels:
+    friction_increase: "较上期增加"
+    friction_decrease: "较上期减少"
+    friction_flat: "较上期持平"
+  trend_badges:
+    insufficient: "数据不足"
+    down: "下降"
+    up: "上升"
+    fluctuating: "波动"
+    pullback: "回撤"
+    flat: "持平"
+  friction_bands:
+    high: "高频"
+    medium: "中频"
+    low: "低频"
+    rare: "很少"
 
 prompt_coach:
   label_pq_improved: "改善项"
@@ -455,159 +488,28 @@ prompt_coach:
   label_rewrite_examples: "改写示例"
   label_friction_synthesis: "摩擦综合判断"
   label_generated_by: "生成方式"
-  label_universal_template: "通用提需求模板"
   label_pq_source_detail: "协作输入质量来源明细"
-  strength_card:
-    label_prefix: "继续保留：{label}"
-    evidence: "这一维度是你当前最稳定的 Prompt 长板，说明它已经开始形成习惯。"
-    message: "不要只盯着短板，也要把现有长板复制到更多任务类型里。"
-    action: "接下来，刻意在 3 个不同任务里复用 {label} 这项输入习惯。"
-  deficit_cards:
-    missing-context:
-      label: "最容易浪费轮次：上下文缺失"
-      kind: "证据"
-      evidence: "最近 {count} 次会话出现上下文不足信号，说明 AI 往往需要先补问再行动。"
-      action: "把目标、现象、文件、约束、验收写成首轮固定骨架。"
-    missing-acceptance-criteria:
-      label: "最容易提前收口：没有验收标准"
-      kind: "证据"
-      evidence: "最近 {count} 次会话没有明确完成标准，AI 更容易过早判断“差不多完成”。"
-      action: "每次都写一个最小可验证的完成标准。"
-    vague-request:
-      label: "最容易变泛建议：请求过泛"
-      kind: "证据"
-      evidence: "最近 {count} 次会话出现愿望式提问，AI 更容易给方向而不是直接产出。"
-      action: "把请求重写成动作序列：定位、修改、验证、总结。"
-    unclear-correction:
-      label: "最容易重复偏航：纠偏不够锐利"
-      kind: "证据"
-      evidence: "最近 {count} 次会话里，纠偏边界不够清楚，AI 容易沿旧方向继续前进。"
-      action: "纠偏时必须同时给出错误点、正确边界和下一步。"
-  deficit_message: "这不是一次输入失误，而是当前最稳定的失败模式。"
-  dimension_gap_message: "这项短板一旦稳定修好，追问次数和返工成本会一起下降。"
-  dimension_cards:
-    context_provision:
-      label: "把背景前置，不要让 AI 先猜"
-      kind: "短板"
-      evidence: "首轮缺少文件、现象或边界时，返工和追问会显著增多。"
-      action: "下次首轮至少写清现象、相关文件、约束和验收。"
-      better_prompt: |
-        【Bug 修复】
-        现象：[具体报错或不符合预期的行为]
-        复现：[触发步骤]
-        相关文件：[文件路径1, 文件路径2]
-        约束：[不允许改动的范围]
-        验收：[怎么证明 bug 已修复]
-    request_specificity:
-      label: "把任务说成动作，不要说成愿望"
-      kind: "短板"
-      evidence: "当请求过于泛化时，AI 更容易给建议，而不是直接产出结果。"
-      action: "把“帮我看看”改成“请定位→修改→验证→总结”。"
-      better_prompt: |
-        【功能实现】
-        目标：[要实现什么功能，一句话]
-        现状：[当前代码 / 系统状态]
-        约束：[不允许改的接口或文件]
-        最小实现：[先做哪一步，不要一次全做]
-        验收：[怎么证明功能完成]
-    scope_management:
-      label: "先锁边界，再开工"
-      kind: "短板"
-      evidence: "边界不清时，AI 很容易顺手扩大改动面。"
-      action: "首轮显式写出只允许改什么、禁止改什么。"
-      better_prompt: |
-        【重构 / 优化】
-        范围：[只允许改动的文件或模块]
-        目标：[改完应该好在哪里，一句话]
-        禁止：[不允许改动的接口 / 行为 / 文件]
-        最小第一步：[从哪里开始，改完什么算第一步完成]
-        验收：[现有测试要绿 + 手动验证点]
-    information_timing:
-      label: "重要信息不要后补"
-      kind: "短板"
-      evidence: "关键信息在第 2、3 轮才补进来，会让前几轮工作白做。"
-      action: "把关键约束和背景前置，而不是等 AI 开始后再纠偏。"
-      better_prompt: |
-        【设计 / 方案决策】
-        决策问题：[需要在哪两个方案之间选择]
-        当前约束：[性能 / 维护性 / 时间等限制]
-        已知背景：[当前架构 / 技术栈]
-        期望输出：[给出方案对比 + 推荐理由，不直接写代码]
-    correction_quality:
-      label: "纠偏要能直接改方向"
-      kind: "短板"
-      evidence: "只说“不对”不足以让 AI 快速收敛。"
-      action: "纠偏时用“哪里错了→正确边界→下一步”三段式。"
-      better_prompt: |
-        【增量推进 / 纠偏】
-        上一轮问题：[具体哪里不符合预期]
-        正确边界：[应该是什么，不应该是什么]
-        这一步只做：[把大任务拆成当前最小一步]
-        停止条件：[这一步完成的明确标志]
-  from_coaching:
-    source_note: "当前 Prompt 教练由 LLM 个性化生成，并优先使用本期真实会话数据。"
-  takeaway_actions:
-    kind_example: "真实样例"
-    kind_reinforce: "继续保留"
-    improve: "下次先照着下面这个结构发第一条消息。"
-    reinforce: "把这个有效结构迁移到另一个任务类型里。"
   friction_synthesis:
     indexed_but_unfront:
-      label: "你不是缺规则，而是没把任务说在前面"
-      explanation: "你已经会用 AGENTS.md / skill / workflow 当索引入口，但本轮仍缺背景或具体对象，AI 往往要先猜再行动。"
-      next_action: "下次在索引词后立刻补上：对象、现象、约束、验收，让入口和任务变量同屏出现。"
+      label: "索引入口与任务变量未同屏出现"
+      explanation: "规则检测到 {count} 条相关信号：{evidence}。"
+      next_action: "当前仅展示规则证据；具体改写建议需由 LLM 基于真实原文生成。"
     closure_mismatch:
-      label: "你不是推进太慢，而是没收口标准"
-      explanation: "任务类型需要明确的完成定义，但本期常见会话里还缺对应的收口动作，容易停在“差不多”。"
-      next_action: "结束前补 1 个最小可验证动作（清单、对比、回放或验收），并写清什么算完成。"
+      label: "任务完成定义与收口动作不一致"
+      explanation: "规则检测到 {count} 条相关信号：{evidence}。"
+      next_action: "当前仅展示规则证据；具体收口动作需由 LLM 基于任务上下文生成。"
     under_specified:
-      label: "你不是不会问，而是问得太轻"
-      explanation: "首轮更像愿望式提问，缺少现象、对象和边界，AI 更容易给方向而不是直接产出。"
-      next_action: "把请求改写成：背景 → 目标 → 约束 → 验收，四段至少各写一句。"
+      label: "首轮请求信息密度偏低"
+      explanation: "规则检测到 {count} 条相关信号：{evidence}。"
+      next_action: "当前仅展示规则证据；具体补充内容需由 LLM 基于真实任务生成。"
     acceptance_gap:
-      label: "你不是要求太高，而是没写清“怎样算过”"
-      explanation: "任务启动了，但完成标准模糊，AI 容易过早判断可以收口。"
-      next_action: "每次补 1 条最小可验证的验收：测试、对比样例、清单勾选或人工确认点。"
+      label: "完成标准未明确写出"
+      explanation: "规则检测到 {count} 条相关信号：{evidence}。"
+      next_action: "当前仅展示规则证据；具体验收表达需由 LLM 基于任务目标生成。"
     general_focus:
-      label: "你不是方向错了，而是摩擦点还没说透"
-      explanation: "本期最稳定的提需求短板还在重复出现，说明同类信息仍常被留到后续轮次。"
-      next_action: "下次同类任务前，先把这条短板对应的信息写进第一条消息。"
-  heuristic_dim_labels:
-    constraint: "约束完备度"
-    context: "上下文质量"
-    clarity: "表达清晰度"
-    depth: "任务深度"
-  heuristic_cards:
-    constraint:
-      message: "在首轮消息里加上「不要做 X」「只改 Y 文件」等明确约束，能减少 30%+ 的追问和返工。"
-      action: "下次首轮至少写清允许改什么、禁止改什么、接口能不能动。"
-    context:
-      message: "贴上相关代码片段或文件引用，让 AI 不用猜上下文，第一轮就能打中目标。"
-      action: "首轮附上目标文件路径、关键代码片段和当前现象。"
-    clarity:
-      message: "工具报错频率偏高，通常是 prompt 描述不够具体。用「现象 + 期望结果 + 环境」三段式描述问题。"
-      action: "把问题改写成：现象是什么、期望结果是什么、运行环境是什么。"
-    depth:
-      message: "给 AI 更复杂、完整的任务，让每次会话物尽其用，减少碎片化低效对话。"
-      action: "下次把定位、修改、验证、总结串成一个完整任务再开聊。"
-  heuristic_reinforce:
-    context:
-      message: "你已经有给代码上下文的习惯，继续保持——在关键任务里也带上相关架构说明。"
-      action: "接下来 3 个关键任务里，首轮额外补一段架构或模块关系说明。"
-    constraint:
-      message: "你在设定约束边界上表现不错，尝试把约束模板化，每次自动带入。"
-      action: "整理一份约束模板，固定包含允许范围、禁止项和验收标准。"
-    default:
-      message: "当前 {label} 是最稳定的输入习惯，持续强化它。"
-      action: "接下来，在 3 个不同任务里刻意复用 {label} 这项习惯。"
-  pq:
-    evidence_summary_heuristic: "基于 {sessions} 个可评估会话，你当前的 Prompt 效率均分约 {score:.1f}。"
-    evidence_summary_llm: "基于 {sessions} 个可评估会话，你当前的 Prompt 效率均分约 {score:.1f}。"
-    strength_habit: "当前最稳定的输入习惯是 {label}。"
-    headline: "你最该优先补的是「{label}」，它会直接影响返工和追问次数。"
-    source_note_heuristic: "当前 Prompt 教练优先根据可解释的真实样例与稳定规则生成。"
-    source_note_llm: "当前 Prompt 教练结合了会话语义判断与真实样例。"
-    source_note_mixed: "当前 Prompt 教练同时使用了 LLM 语义评估与代理信号回填，确保整条 PQ 主链不断档。"
+      label: "重复出现的提需求摩擦信号"
+      explanation: "规则检测到 {count} 条相关信号：{evidence}。"
+      next_action: "当前仅展示规则证据；个性化训练动作需由 LLM 基于本期样本生成。"
   source_breakdown:
     mixed: "本期共覆盖 {total} 个会话，其中 LLM 语义评估 {llm} 个、代理回填 {heuristic} 个、轻量覆盖 {light} 个。"
     llm_only: "本期共覆盖 {total} 个会话，全部来自 LLM 语义评估。"
@@ -620,16 +522,16 @@ prompt_coach:
     llm_unavailable: "{n} 个未配 LLM 使用本地代理；"
     suffix: "代理结果仅作弱提示，不参与强结论。"
   trainer:
-    headline_from_deficit: "你下次最该先修的是「{label}」，它最容易把 AI 带偏。"
-    headline_from_dimension: "你下次最该先补的是「{label}」这条 Prompt 维度。"
-    headline_light: "先把提需求模板和发送前自检用起来，后面趋势会更清楚。"
-    evidence_summary: "当前最主要的短板是「{deficit}」，本期相关信号出现 {count} 次，覆盖 {sessions} 个可评估会话。"
-    light_evidence_summary: "当前可评估会话还不多，先给你轻量模板和自检清单，帮助下一次问得更稳。"
+    headline_from_deficit: "本期协作输入中，「{label}」相关信号最值得优先观察。"
+    headline_from_dimension: "本期协作输入中，「{label}」这条维度最值得优先观察。"
+    headline_light: "当前可评估样本较少，本区只展示来源边界与可观察信号。"
+    evidence_summary: "本期「{deficit}」相关信号出现 {count} 次，覆盖 {sessions} 个可评估会话。"
+    light_evidence_summary: "当前可评估会话还不多，本区不生成具体训练建议。"
     source_note_llm: "本区主要来自 LLM 语义评估。"
     source_note_mixed: "本区同时使用了 LLM 语义评估与 heuristic 代理回填。"
     source_note_heuristic: "本区当前主要来自 heuristic 代理信号。"
-    source_note_light: "本区当前主要提供轻量模板和自检，不对质量做强判断。"
-    light_state_note: "会话样本还偏少，所以这里先给你可直接复用的模板和清单。"
+    source_note_light: "本区当前仅展示轻量代理来源，不对质量做强判断。"
+    light_state_note: "会话样本还偏少，本区先保留来源说明，不生成固定模板。"
     heuristic_state_note: "当前结论包含 heuristic 代理来源，适合拿来训练，不适合当成确定评价。"
     strength_habit: "当前最稳的一项输入习惯是 {label}。"
     prompt_style_labels:
@@ -647,24 +549,19 @@ prompt_coach:
       task_variables_yes: "本次任务变量：已补对象、输入材料或目标结果。"
       task_variables_no: "本次任务变量：仍建议补对象、输入材料、目标结果和收口方式。"
     prompt_style_messages:
-      explicit_requirement_prompt: "你这期更多是在直接写完整需求。这类 Prompt 的优势是独立可执行，下一步重点不是写更长，而是继续把验收和收口前置。"
-      indexed_prompt: "你使用的是索引式提需求方式：用短触发词唤起已有规则、技能路由或工作流。这不属于典型的“背景缺失”。它的优势是启动快，也说明你已经有方法资产。下一步不是每次都写更长，而是补足本次对象、输入材料、目标结果和收口方式。"
-      mixed_prompt: "你已经把触发词和本次任务变量结合起来了。这通常比纯长 Prompt 更稳，也不该被直接判成上下文不足。下一步重点是把对象、材料、目标结果和收口方式补齐。"
-      under_specified_prompt: "这次更像是真正的欠规格输入：既没有完整需求，也没有稳定触发词或规则锚点。优先把背景、目标、约束和验收补成完整首轮输入。"
+      explicit_requirement_prompt: "已检测到完整需求型输入形态：直接写出可独立执行的需求。建议继续把验收和收口前置。"
+      indexed_prompt: "已检测到索引式输入形态：短触发词唤起规则、技能路由或工作流。当前数据未将其归类为典型背景缺失；启动速度较快，方法资产锚点已出现。建议补足本次对象、输入材料、目标结果和收口方式。"
+      mixed_prompt: "已检测到混合输入形态：触发词与本次任务变量已结合。相关证据显示其稳定性通常高于纯长 Prompt。建议把对象、材料、目标结果和收口方式补齐。"
+      under_specified_prompt: "已检测到欠规格输入形态：完整需求与稳定触发词/规则锚点均未出现。建议优先把背景、目标、约束和验收补成完整首轮输入。"
     prompt_style_focus_messages:
       indexed_prompt:
-        missing-context: "你已经在用索引式入口了，当前真正缺的不是规则锚点，而是本次对象、输入材料和目标结果还没有一起前置。"
-        vague-request: "你已经有触发词和流程入口了，当前更该补的是动作顺序与收口方式，别让 AI 只能沿默认 workflow 往下走。"
-        missing-acceptance-criteria: "你已经在用索引式入口了，入口不是主要问题。当前最该补的是完成定义和收口方式，把“什么算通过”跟触发词一起写清。"
+        missing-context: "已检测到索引式入口；当前缺口信号指向本次对象、输入材料和目标结果尚未一起前置。"
+        vague-request: "已检测到触发词与流程入口；建议补充动作顺序与收口方式，避免 AI 沿默认 workflow 推进。"
+        missing-acceptance-criteria: "已检测到索引式入口；入口信号已出现。建议补充完成定义和收口方式，把“什么算通过”与触发词一起写清。"
       mixed_prompt:
-        missing-context: "你这期已经出现了“触发词 + 当前任务变量”的混合写法，但本次对象、输入材料和目标结果还没有稳定地一起前置。"
-        vague-request: "你这期已经在用“触发词 + 当前任务变量”的混合写法了，当前更该补的是动作顺序和收口方式，而不是把 Prompt 一味写长。"
-        missing-acceptance-criteria: "你这期已经在用“触发词 + 当前任务变量”的混合写法了，说明入口不是主要问题。当前最该补的是完成定义和收口方式，别让 AI 按默认 workflow 提前收口。"
-    prompt_style_next_prompt:
-      explicit_requirement_prompt: "背景：...\n当前问题：...\n目标结果：...\n约束条件：...\n验收标准：...\n输出格式：..."
-      indexed_prompt: "沿用触发词：<trigger>\n本次对象：...\n输入材料：...\n目标结果：...\n收口方式：...\n输出格式：..."
-      mixed_prompt: "按照 <trigger> 执行。\n本次对象：...\n当前问题：...\n目标结果：...\n约束条件：...\n收口方式：...\n输出格式：..."
-      under_specified_prompt: "背景：...\n当前问题：...\n目标结果：...\n约束条件：...\n验收标准：...\n输出格式：..."
+        missing-context: "已检测到“触发词 + 当前任务变量”混合写法；当前缺口信号指向本次对象、输入材料和目标结果尚未稳定前置。"
+        vague-request: "已检测到“触发词 + 当前任务变量”混合写法；建议补充动作顺序与收口方式。"
+        missing-acceptance-criteria: "已检测到“触发词 + 当前任务变量”混合写法；入口信号已出现。建议补充完成定义和收口方式，避免 AI 按默认 workflow 提前收口。"
     trigger_maturity:
       stability: "触发词稳定性：{value}"
       rule_support: "规则文件支撑：{value}"
@@ -711,14 +608,6 @@ prompt_coach:
       before_after: "before / after 对照"
     closure_message_with_gap: "{task_type} 不一定需要传统测试，但需要一个收口方式。本期更适合补：{missing}。推荐优先用：{expected}。"
     closure_message_complete: "{task_type} 这类任务当前已经有基本收口动作，后面继续沿用这组方式：{expected}。"
-    recommended_training_inputs:
-      style:indexed_prompt: "沿用触发词，但每次补对象、输入材料、目标结果和收口方式。"
-      style:mixed_prompt: "保留触发词，同时把本次任务变量补成可执行输入。"
-      style:explicit_requirement_prompt: "保持完整需求写法，并把验收和输出格式继续前置。"
-      style:under_specified_prompt: "先把背景、目标、约束、验收和输出格式补成完整首轮输入。"
-      deficit:missing-context: "挑 1 个真实任务，把背景和关键材料写进第一条消息。"
-      deficit:missing-acceptance-criteria: "挑 1 个真实任务，补一句“什么结果算通过”。"
-      closure: "下次至少补 1 个收口动作：{method}。"
     deficits:
       missing-context:
         description: "背景、现象或关键文件没有在第一条消息里交代完整。"
@@ -746,7 +635,7 @@ prompt_coach:
       vague-request: "收口方式待明确"
     indexed_deficit_overrides:
       missing-context:
-        description: "这次并不是没有规则锚点，而是索引入口之后缺少本次对象、输入材料或目标结果。"
+        description: "已检测到索引入口；当前缺口信号指向本次对象、输入材料或目标结果尚未补齐。"
         impact: "AI 能找到流程入口，但仍可能按默认路径执行，导致本次任务变量补得不够前置。"
       vague-request:
         description: "触发词已经给了流程入口，但本次成功标准或收口方式还不够明确。"
@@ -765,118 +654,21 @@ prompt_coach:
     rewrite_source_notes:
       verbatim: "真实原文"
       summary_only: "摘要回填"
-      light_template: "轻量模板"
+      light_template: "轻量代理"
       indexed_summary: "索引入口摘要"
     indexed_rewrite_overrides:
       indexed_prompt:
-        problem: "这条输入更像索引入口，不是典型的背景缺失。真正缺的是本次对象、输入材料、目标结果和收口方式。"
+        problem: "已检测到索引入口形态；当前数据未将其归类为典型背景缺失。缺口信号指向本次对象、输入材料、目标结果和收口方式。"
         why: "保留触发词可以继续复用已有 rules / skill / workflow；补齐本次变量后，AI 更容易按这次任务而不是默认流程收口。"
-        better_prompt: "沿用触发词：<trigger>\n本次对象：...\n输入材料：...\n目标结果：...\n收口方式：...\n输出格式：..."
         problem_map:
-          context_provision: "这条输入已经有索引锚点，问题不在“没有背景”，而在本次对象、材料和目标结果没有一起补齐。"
+          context_provision: "已检测到索引锚点；当前缺口信号指向本次对象、材料和目标结果尚未一起补齐。"
           request_specificity: "触发词已经明确了流程入口，但本次动作顺序和完成定义还需要补齐。"
       mixed_prompt:
-        problem: "你已经补了部分本次变量，这更像“索引入口 + 当前任务变量”的混合写法。下一步是把收口方式和成功标准补全。"
+        problem: "已检测到索引入口与部分任务变量的混合形态；建议补充收口方式与成功标准。"
         why: "保留触发词能继续复用方法资产；补齐对象、边界和收口后，AI 首轮输出会更贴近这次任务。"
-        better_prompt: "按照 <trigger> 执行。\n本次对象：...\n输入材料：...\n目标结果：...\n约束条件：...\n收口方式：...\n输出格式：..."
         problem_map:
           context_provision: "索引入口已经提供了流程背景，当前更该补的是本次任务变量与输入材料。"
           request_specificity: "本次变量已经出现，下一步是把动作顺序、完成定义和收口方式补得更明确。"
-    universal_template:
-      title: "可复制的通用提需求模板"
-      common_gap: "最常见缺口是背景、验收和输出格式没有一起说清。"
-      body: |
-        背景：...
-        当前问题：...
-        目标结果：...
-        约束条件：...
-        参考材料：...
-        验收标准：...
-        输出格式：...
-    scenario_templates:
-      - id: "template:code_review"
-        title: "代码 Review"
-        scene: "code_review"
-        common_gap: "最容易漏的是 review 目标和判断标准。"
-        template: "请帮我 review 这段改动。背景：... 当前问题：... 目标结果：找出风险、回归和缺测试点。约束条件：不要重写架构。参考材料：... 验收标准：输出 findings 优先级。输出格式：按严重度列问题。"
-      - id: "template:requirements_design"
-        title: "需求设计"
-        scene: "requirements_design"
-        common_gap: "最容易漏的是边界、约束和验收。"
-        template: "请帮我做需求设计。背景：... 当前问题：... 目标结果：形成可实施方案。约束条件：... 参考材料：... 验收标准：给出范围、流程、风险、验收。输出格式：分节说明。"
-      - id: "template:bug_triage"
-        title: "Bug 排查"
-        scene: "bug_triage"
-        common_gap: "最容易漏的是现象、复现条件和禁止改动项。"
-        template: "请帮我排查 bug。背景：... 当前问题：... 目标结果：定位根因并给最小修复路径。约束条件：不要改 API 契约。参考材料：日志/文件路径... 验收标准：明确根因和验证方式。输出格式：根因 -> 修改 -> 验证。"
-      - id: "template:architecture_refactor"
-        title: "架构改造"
-        scene: "architecture_refactor"
-        common_gap: "最容易漏的是范围边界和不允许动的部分。"
-        template: "请帮我评估架构改造。背景：... 当前问题：... 目标结果：给出渐进式改造方案。约束条件：不改外部接口。参考材料：... 验收标准：说明收益、风险、迁移步骤。输出格式：方案对比 + 推荐。"
-      - id: "template:copy_polish"
-        title: "文案优化"
-        scene: "copy_polish"
-        common_gap: "最容易漏的是目标受众、语气和通过标准。"
-        template: "请帮我优化文案。背景：... 当前问题：... 目标结果：适合给谁看、希望产生什么效果。约束条件：语气/长度/禁词... 参考材料：原文... 验收标准：更清楚、更有重点。输出格式：原文问题 + 优化版。"
-      - id: "template:chart_analysis"
-        title: "图表分析"
-        scene: "chart_analysis"
-        common_gap: "最容易漏的是你真正想回答的问题。"
-        template: "请帮我分析图表。背景：... 当前问题：我最想知道什么。目标结果：输出关键结论和下一步建议。约束条件：不要编造缺失数据。参考材料：图表/数据... 验收标准：结论可回到数据。输出格式：结论 -> 证据 -> 建议。"
-    checklist_map:
-      missing-context:
-        - "我把背景、现象和关键文件说清楚了吗？"
-        - "我给出目标结果和约束了吗？"
-      vague-request:
-        - "我把任务写成具体动作顺序了吗？"
-        - "我指定输出格式了吗？"
-      late-constraint:
-        - "关键约束是不是已经放在第一条消息里？"
-      unclear-correction:
-        - "如果上一轮偏了，我有没有同时说清错误点、正确边界和下一步？"
-      scope-drift:
-        - "我有没有写清只允许改什么、不允许改什么？"
-      missing-acceptance-criteria:
-        - "我定义什么结果算通过了吗？"
-      assumption-not-surfaced:
-        - "我有没有把默认假设显式说出来？"
-    checklist_default:
-      - "我给出目标结果了吗？"
-      - "我说明不能做什么了吗？"
-      - "我定义验收标准了吗？"
-      - "我指定输出格式了吗？"
-    seven_day_plan:
-      - day: 1
-        theme: "识别 {deficit}"
-        action: "回看今天的一次提需求，找出哪里最容易触发 {deficit}。"
-      - day: 2
-        theme: "补背景"
-        action: "每次发给 AI 前，先补齐背景、目标和约束。"
-      - day: 3
-        theme: "照模板发"
-        action: "挑一个真实任务，完整套用更好的提法。"
-      - day: 4
-        theme: "补验收"
-        action: "所有需求都补一句“什么结果算通过”。"
-      - day: 5
-        theme: "控制范围"
-        action: "明确写出允许改和禁止改的边界。"
-      - day: 6
-        theme: "纠偏训练"
-        action: "如果 AI 跑偏，用“问题 -> 正确边界 -> 下一步”重发一次。"
-      - day: 7
-        theme: "复盘固化"
-        action: "挑一张最有效的改写卡，变成自己的默认模板。"
-  heuristic:
-    unavailable_headline: "当前可用于 Prompt 教练的数据不足，等更多多轮会话后再看会更准。"
-    unavailable_source_note: "当前既没有足够的 Prompt 代理信号，也没有可稳定解释的会话样本。"
-    headline: "从稳定信号看，你现在最值得优先补的是「{label}」。"
-    evidence_summary: "约束完备 {constraint_pct}%，上下文附带 {context_pct}%，工具错误率 {tool_error_pct}%。"
-    strength_habit: "当前最稳定的输入习惯是{label}（代理值 {pct}%）。"
-    source_note: "当前 Prompt 教练基于稳定信号与样例归纳，不依赖逐轮 LLM 评估。"
-    card_evidence_gap: "启发式代理得分约 {pct}%，低于其他输入维度。"
-    card_evidence_strength: "启发式代理得分约 {pct}%，是当前最稳定的输入信号。"
 
 level_evidence:
   growth_level_unrated: "未判级"
@@ -886,23 +678,23 @@ level_evidence:
   headline_unrated: "当前样本还不足以正式判级"
   headline_l5: "L5 是否站稳：你靠什么保持高杠杆协作"
   headline_l5_baseline_met: "L5 保持线已达标"
-  verdict_low_gap: "你已经有真实协作基础，但还缺少足够稳定的基线证据，因此暂时停留在 {current_level}。"
-  verdict_level3_gap: "你已稳定在 {current_level}，但以下指标还差一步，是突破到 {next_level} 的真实阻塞点。"
-  verdict_level4_gap: "你已经到了 {current_level}，下面是迈向 {next_level} 还需要巩固的方向。"
-  verdict_baseline_met: "从基线证据看，你已经稳固达到 {current_level} 的全部门槛指标。"
-  verdict_unrated: "至少需要 {min_session_reads} 个可分析会话才能正式判级；当前先用 L2 起步线观察你最先该补的证据。"
-  verdict_l5: "这里看的不是「还能不能升」，而是你当前的高杠杆协作是否已经形成可持续保持线。"
-  verdict_l5_baseline_met: "从当前样本看，你已经满足 L5 的保持线，接下来重点是扩大可复制范围。"
+  verdict_low_gap: "当前已有协作信号，但部分基线指标尚未达标，因此本期仍显示为 {current_level}。"
+  verdict_level3_gap: "当前显示为 {current_level}；下方列出与 {next_level} 评估线仍有差距的指标。"
+  verdict_level4_gap: "当前显示为 {current_level}；下方列出与 {next_level} 评估线相关的待观察指标。"
+  verdict_baseline_met: "从当前基线证据看，{current_level} 的评估线已全部达标。"
+  verdict_unrated: "至少需要 {min_session_reads} 个可分析会话才能正式判级；当前先用 L2 起步线作为观察基准。"
+  verdict_l5: "当前区块关注高杠杆协作的可持续保持线信号，而非是否继续升级。"
+  verdict_l5_baseline_met: "从当前样本看，L5 保持线指标已达标。"
   target_caption_unrated: "L2 起步线（观察）"
   target_caption_l5: "L5 保持线"
   target_caption_upgrade: "{target_level} 进阶线"
-  blocker_title_unrated: "当前最缺的起步证据"
-  blocker_title_l5: "当前最容易失稳的证据"
-  blocker_title_low: "当前最拖后腿的证据"
-  blocker_title_level3: "跨级前必须补齐的证据"
-  blocker_title_level4: "高阶协作仍未站稳的证据"
-  blocker_title_no_blockers: "当前没有明显硬阻塞"
-  progress_summary_unrated: "当前仅有 {observed_session_reads} 个可分析会话；先用 {target_caption} 观察最先该补的证据。"
+  blocker_title_unrated: "当前样本不足的起步证据"
+  blocker_title_l5: "当前需继续观察的保持线证据"
+  blocker_title_low: "当前差距较大的证据"
+  blocker_title_level3: "与下一评估线相关的待补证据"
+  blocker_title_level4: "与高阶评估线相关的待观察证据"
+  blocker_title_no_blockers: "当前没有明显未达标指标"
+  progress_summary_unrated: "当前仅有 {observed_session_reads} 个可分析会话；先用 {target_caption} 观察样本变化。"
   progress_summary_rated: "当前达标 {met_count} / {total_metrics} 项，评估目标是 {target_caption}。"
   source_note_base: "当前等级来自连续评分模型；本区展示的是下一阶段证据线，用来解释为什么你暂时停在这里。"
   source_note_heuristic_suffix: " 本次判断主要依据稳定行为信号。"
@@ -948,17 +740,8 @@ exemplar_summary:
   separator: "；"
 
 exemplar_why_templates:
-  single: "这次值得保留，不是因为碰巧做成了，而是因为你把“{first}”做成了可复制动作。"
-  double: "这次值得保留，关键在于你先“{first}”，再“{second}”，所以结果更容易稳定闭环。"
-
-exemplar_reuse_actions:
-  deep_delegator: "下次遇到多阶段任务，先把它拆成 2-3 个可连续委托的小闭环，再统一验收。"
-  toolkit_orchestrator: "下次出现重复动作时，优先问自己：这一步能不能沉淀成 Skill、模板或脚本。"
-  verify_first: "下次改完先跑最小验证，再决定要不要继续扩范围。"
-  precision_seeker: "下次首轮继续把目标、文件、约束和验收一次说清，减少补问轮次。"
-  structured_executor: "下次先冻结边界和阶段目标，再进入实现，避免执行中途扩面。"
-  focused_delivery: "下次继续保留单目标短闭环，把“完成定义”写在开头。"
-  general: "下次复用这次最有效的提问顺序和验证动作，而不是只复用一句话术。"
+  single: "相关证据显示「{first}」已形成可复制动作，可作为训练方向保留。"
+  double: "相关证据显示先「{first}」再「{second}」的序列信号，有助于结果稳定收口。"
 
 level_axis_metrics:
   labels:
@@ -1019,10 +802,10 @@ level_axis_metrics:
         hint: "从等待回答走向驱动协作"
       implementation_depth:
         target: "能进入相关代码与关键链路"
-        hint: "不是只停在方向建议"
+        hint: "建议关注进入代码与关键链路"
       delivery_closure:
         target: "开始把一部分任务带到验证和结论"
-        hint: "不是只做出改动"
+        hint: "建议关注验证与结论环节"
       adaptive_recovery:
         target: "出现基于新证据的纠偏动作"
         hint: "偏航后能拉回正轨"
@@ -1054,7 +837,7 @@ level_axis_metrics:
         hint: "多轮交互体现高效框定能力"
       execution_driving:
         target: "会主动调动 subagent、MCP、计划等高杠杆能力"
-        hint: "你在组织一次协作，而不是只在发请求"
+        hint: "检测到协作编排相关信号"
       implementation_depth:
         target: "能稳定进入核心实现与副作用边界"
         hint: "代码理解和推动深度更可靠"
@@ -1082,7 +865,7 @@ level_axis_metrics:
         hint: "事实性由默认闭环保障"
       adaptive_recovery:
         target: "偏航恢复、方法沉淀与资产复用开始联动"
-        hint: "不仅能恢复，还能把恢复方法留下来"
+        hint: "恢复信号与方法沉淀样本均已出现"
       agentic_system:
         target: "方法系统能跨任务稳定复用，并和验证闭环、工具编排联动"
         hint: "这是工作流设计者的核心证据"

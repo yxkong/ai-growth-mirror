@@ -17,6 +17,9 @@ You receive one reporting period worth of verified signals and must turn it into
 - Use "cognitive friction", "reasoning drift", "context pollution", "rework", or similarly observable language instead of KPI / performance-review language.
 - Avoid words like "weak", "poor", "bad", "low level", "underperforming", or "overdependent". Reframe them as concrete behaviors or trends.
 - Prefer "what changed", "what this usually means", and "what to try next" over labels or verdicts.
+- Personalized content must be generated from the packet evidence. Do not output generic request templates, fixed seven-day drills, or canned checklist advice.
+- For `practice_prompt`, write a concrete next prompt only when the packet contains enough real task material or an actual rewrite candidate. Otherwise leave it empty.
+- For `week_1_actions`, `week_2_actions`, and `framing_evidence.friction_synthesis[].next_action`, name the observed behavior and the next observable adjustment. Avoid universal advice like "add background, goal, constraints, acceptance" unless the packet evidence shows that exact gap.
 
 {% include '_partials/output_language.md.j2' %}
 
@@ -83,6 +86,7 @@ You receive one reporting period worth of verified signals and must turn it into
 - `framing_evidence.takeaways[].message` should read like a calm reflection someone would accept, not a warning from a dashboard.
 - `share_lines` should sound reflective and human, not like BI metrics or productivity slogans.
 - `framing_evidence.friction_synthesis` should translate collaboration-input friction into calm "you are not X, you are Y" synthesis lines; at most 2 items; each must cite real `evidence_refs` from the packet—omit any item without evidence.
+- `framing_evidence.takeaways[].better_prompt` must be a grounded rewrite of an actual user message. Leave it empty if the source material is too thin or would require placeholders.
 
 ## Axis diagnosis guidance (grounded synthesis rules)
 - `axis_diagnosis[].axis_key` MUST be one of the six axis keys from the packet.

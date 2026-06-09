@@ -35,9 +35,10 @@ from pathlib import Path
 from typing import Any, Iterator, Optional
 from ...domain.session.heuristics import (
     EXEC_TOOL_NAMES,
+    READ_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
-    TEST_PATTERNS,
     WRITE_TOOL_NAMES,
+    is_validation_command,
 )
 from ...domain.session.model import SessionRecord, SessionRef
 from ...domain.signals.tooling import compute_tier_counts
@@ -87,6 +88,23 @@ _GEMINI_SUBAGENT_TOOLS = frozenset({"invoke_subagent", "define_subagent"})
 
 def _iter_jsonl(path: Path) -> Iterator[dict[str, Any]]:
     """Yield parsed JSON objects from a JSONL file, skipping bad lines."""
+    encodings = ("utf-8", "utf-8-sig", "gbk")
+    for encoding in encodings:
+        try:
+            with path.open("r", encoding=encoding, errors="strict") as fh:
+                for line in fh:
+                    raw = line.strip()
+                    if not raw:
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(obj, dict):
+                        yield obj
+            return
+        except UnicodeDecodeError:
+            continue
     with path.open("r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
             raw = line.strip()
@@ -199,6 +217,7 @@ class _GeminiAccumulator:
     project_path: str = ""
     first_prompt: str = ""
     top_user_messages: list[str] = field(default_factory=list)
+    assistant_messages: list[str] = field(default_factory=list)
     user_message_count: int = 0
     assistant_message_count: int = 0
     tool_counts: dict[str, int] = field(default_factory=dict)
@@ -216,6 +235,8 @@ class _GeminiAccumulator:
     subagent_invocation_count: int = 0
     skill_invocation_count: int = 0
     turns_until_first_file_write: Optional[int] = None
+    pre_write_read_count: int = 0
+    pre_write_non_read_tool_count: int = 0
     unique_skills: set[str] = field(default_factory=set)
     user_message_timestamps: list[str] = field(default_factory=list)
     message_hours: list[int] = field(default_factory=list)
@@ -287,6 +308,12 @@ class _GeminiAccumulator:
         # ── write / exec classification ───────────────────────────────────
         is_write = normalized in _GEMINI_WRITE_TOOLS or normalized in WRITE_TOOL_NAMES
         is_exec = normalized in _GEMINI_EXEC_TOOLS or normalized in EXEC_TOOL_NAMES
+        is_read = normalized in READ_TOOL_NAMES
+        if self.turns_until_first_file_write is None:
+            if is_read:
+                self.pre_write_read_count += 1
+            elif not is_write:
+                self.pre_write_non_read_tool_count += 1
         if is_write:
             self._saw_write = True
             if self.turns_until_first_file_write is None:
@@ -294,7 +321,7 @@ class _GeminiAccumulator:
         if is_exec:
             self._saw_exec = True
             cmd = _command_from_args(args).lower()
-            if any(pat in cmd for pat in TEST_PATTERNS):
+            if is_validation_command(cmd):
                 self.has_test_commands = True
             if self._saw_write:
                 self.has_verification_behavior = True
@@ -363,6 +390,7 @@ class _GeminiAccumulator:
             uses_web_search=self.uses_web_search,
             uses_web_fetch=self.uses_web_fetch,
             top_user_messages=self.top_user_messages,
+            assistant_messages=self.assistant_messages,
             autonomous_chain_lengths=self.autonomous_chain_lengths,
             has_verification_behavior=self.has_verification_behavior,
             has_test_commands=self.has_test_commands,
@@ -375,9 +403,13 @@ class _GeminiAccumulator:
             entrypoint="ide",
             models_used=["gemini"],
             turns_until_first_file_write=self.turns_until_first_file_write,
+            pre_write_read_count=self.pre_write_read_count,
+            pre_write_non_read_tool_count=self.pre_write_non_read_tool_count,
         )
         BaseSessionAdapter._enrich_prompt_signals(record)
         BaseSessionAdapter._enrich_agentic_signals(record)
+        BaseSessionAdapter._enrich_advanced_features(record)
+        BaseSessionAdapter._enrich_task_contract_signals(record)
         return record
 
 
@@ -508,6 +540,10 @@ class GeminiAdapter(BaseSessionAdapter):
             # ── model turn ────────────────────────────────────────────────
             if step_type == "PLANNER_RESPONSE" and source == "MODEL":
                 content = obj.get("content", "")
+                if content:
+                    clean_content = content.strip()
+                    if clean_content and len(state.assistant_messages) < 10:
+                        state.assistant_messages.append(clean_content[:500])
                 tool_calls = obj.get("tool_calls")
                 if not isinstance(tool_calls, list):
                     if content:

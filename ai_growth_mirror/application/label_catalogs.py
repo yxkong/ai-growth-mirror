@@ -18,6 +18,7 @@ class ReportLabelCatalogs:
     growth_plan: dict[str, Any]
     guidance_labels: dict[str, Any]
     collaboration_style: dict[str, Any]
+    language: str = "zh"
 
 
 def load_report_label_catalogs(language: str = "zh") -> ReportLabelCatalogs:
@@ -29,4 +30,6 @@ def load_report_label_catalogs(language: str = "zh") -> ReportLabelCatalogs:
         growth_plan=load_catalog("growth_plan", language),
         guidance_labels=load_catalog("guidance_labels", language),
         collaboration_style=load_catalog("collaboration_style", language),
+        language=language,
     )
+
