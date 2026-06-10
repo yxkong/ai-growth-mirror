@@ -147,8 +147,18 @@ Reusable collaboration patterns distilled from high-scoring sessions (deep deleg
 # After cloning the repo, from the repository root:
 pip install -e .
 
-# For Anthropic/Gemini-backed LLM semantic diagnosis and Coach suggestions:
+# OpenAI-compatible gateways work out of the box; claude / gemini need the extra:
 pip install -e ".[llm]"
+```
+
+Or use [uv](https://github.com/astral-sh/uv) (aligned with `uv.lock`):
+
+```bash
+# Default install includes the OpenAI SDK (deepseek / openai / openai_compatible LLM diagnosis)
+uv sync
+
+# Add Anthropic / Gemini SDKs only when using claude or gemini providers
+uv sync --extra llm
 ```
 
 ### 2. Initialize configuration (optional: API keys and asset roots)
@@ -160,12 +170,27 @@ cp config.example.yaml config.yaml
 
 ### 3. Generate your personal growth report
 
+Pick one invocation style (run from **your workspace directory**, usually a project repo root):
+
 ```bash
-# 1. Change to your development workspace (usually a project repo root)
 cd /path/to/your/project-workspace
 
-# 2. Generate the evolution report and growth snapshot
+# Option A: after pip install -e . (CLI on PATH)
 ai-growth-mirror generate
+
+# Option B: Python module from the ai-growth-mirror repo root (no global CLI)
+python -m ai_growth_mirror.cli generate
+
+# Option C: uv (from the ai-growth-mirror repo root)
+uv run python -m ai_growth_mirror.cli generate
+```
+
+Check version:
+
+```bash
+python -m ai_growth_mirror.cli --version
+# or, when the CLI entry is installed:
+ai-growth-mirror --version
 ```
 
 After a successful run, your current directory will contain:
@@ -178,6 +203,8 @@ After a successful run, your current directory will contain:
 ---
 
 ## Advanced CLI Options
+
+Examples use the CLI entry. Without a global install, replace `ai-growth-mirror` with `python -m ai_growth_mirror.cli` (or `uv run python -m ai_growth_mirror.cli` with uv).
 
 * **This week's sample progress**: `ai-growth-mirror status`
 * **Filter by tools**: `ai-growth-mirror generate --tools cursor,trae`

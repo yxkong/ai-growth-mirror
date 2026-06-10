@@ -140,8 +140,18 @@ v1.0.0 起，系统会区分**用户显式契约**、**Skill/Rule/Workflow 契�
 # 克隆仓库后在根目录运行：
 pip install -e .
 
-# 如果需要使用 Anthropic/Gemini 服务提取 LLM 语义诊断和 Coach 建议：
+# 默认已支持 OpenAI 兼容网关（如 deepseek、openai）；仅 claude / gemini 需额外安装：
 pip install -e ".[llm]"
+```
+
+也可使用 [uv](https://github.com/astral-sh/uv)（与仓库 `uv.lock` 一致）：
+
+```bash
+# 默认已含 openai SDK，支持 deepseek / openai / openai_compatible 等网关的 LLM 语义诊断
+uv sync
+
+# 仅在使用 claude、gemini provider 时需额外安装 Anthropic / Gemini SDK
+uv sync --extra llm
 ```
 
 ### 2. 初始化配置 (可选，用于 API Key 与资产足迹)
@@ -151,12 +161,28 @@ cp config.example.yaml config.yaml
 ```
 
 ### 3. 一键生成个人成长报告
+
+任选一种执行方式（在**你的工作区目录**运行，通常为项目仓库根目录）：
+
 ```bash
-# 1. 切换至您的任意开发工作区目录（通常为项目仓库根目录）
 cd /path/to/your/project-workspace
 
-# 2. 生成进化报告与成长快照
+# 方式 A：已 pip install -e . 安装 CLI 入口
 ai-growth-mirror generate
+
+# 方式 B：不安装全局命令，在 ai-growth-mirror 仓库根目录用 Python 模块
+python -m ai_growth_mirror.cli generate
+
+# 方式 C：uv 环境（在 ai-growth-mirror 仓库根目录）
+uv run python -m ai_growth_mirror.cli generate
+```
+
+查看版本：
+
+```bash
+python -m ai_growth_mirror.cli --version
+# 或（已安装 CLI 时）
+ai-growth-mirror --version
 ```
 
 运行完成后，您的当前目录下将输出：
@@ -169,6 +195,8 @@ ai-growth-mirror generate
 ---
 
 ## 🛠️ 进阶命令参数
+
+以下示例用 CLI 入口；未全局安装时，将 `ai-growth-mirror` 替换为 `python -m ai_growth_mirror.cli`（uv 用户可用 `uv run python -m ai_growth_mirror.cli`）。
 
 * **查看本周样本进度**：`ai-growth-mirror status`
 * **指定工具过滤**：`ai-growth-mirror generate --tools cursor,trae`
