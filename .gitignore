@@ -24,6 +24,7 @@ private/
 *.html
 *.json
 !config.example.yaml
+!/tests/evals/fixtures/*.json
 /snapshot-archive/
 /test-heuristic.*
 /codex-ai-growth-mirror.*

@@ -1,0 +1,83 @@
+{
+  "calibration_schema_version": "1.0",
+  "description": "Synthetic scorer invariants only; contains no real prompts, paths, or usage data.",
+  "base_session": {
+    "tool_name": "calibration",
+    "start_time": "2026-08-31T09:00:00+00:00",
+    "first_prompt": "Implement the synthetic cache contract and verify it.",
+    "user_message_count": 5,
+    "assistant_message_count": 5,
+    "files_modified": 2,
+    "tool_counts": {"read": 4, "edit": 2, "shell_command": 1},
+    "tool_tier_counts": {"read": 4, "write": 2, "execute": 1},
+    "autonomous_chain_lengths": [6],
+    "turns_until_first_file_write": 4,
+    "prompt_word_count": 8,
+    "prompt_has_constraint": true,
+    "prompt_has_code_context": true
+  },
+  "base_session_read": {
+    "tool_name": "calibration",
+    "delivery_outcome": "mostly_achieved",
+    "work_style": "spec_driven",
+    "prompt_lens": {
+      "source": "heuristic",
+      "coverage": "full",
+      "evaluation_status": "llm_evaluated",
+      "evaluated_user_messages": 5,
+      "context_provision": 50,
+      "request_specificity": 50,
+      "scope_management": 50,
+      "information_timing": 50,
+      "correction_quality": 50,
+      "efficiency_score": 50
+    }
+  },
+  "cases": [
+    {"id": "empty-evidence", "sessions": [], "session_reads": []},
+    {
+      "id": "contract-baseline",
+      "sessions": [{"session_id": "contract-b1"}, {"session_id": "contract-b2"}],
+      "session_reads": [{"session_id": "contract-b1"}, {"session_id": "contract-b2"}]
+    },
+    {
+      "id": "effective-contract",
+      "sessions": [
+        {"session_id": "contract-e1", "pre_execution_contract_present": true, "task_contract_sources": ["skill_read"], "acceptance_contract_source": "skill", "boundary_contract_source": "skill", "validation_contract_source": "skill", "agent_contract_compliance": "met"},
+        {"session_id": "contract-e2", "pre_execution_contract_present": true, "task_contract_sources": ["skill_read"], "acceptance_contract_source": "skill", "boundary_contract_source": "skill", "validation_contract_source": "skill", "agent_contract_compliance": "met"}
+      ],
+      "session_reads": [{"session_id": "contract-e1"}, {"session_id": "contract-e2"}]
+    },
+    {
+      "id": "unverified-delivery",
+      "sessions": [{"session_id": "delivery-u1"}, {"session_id": "delivery-u2"}],
+      "session_reads": [{"session_id": "delivery-u1"}, {"session_id": "delivery-u2"}]
+    },
+    {
+      "id": "verified-delivery",
+      "sessions": [
+        {"session_id": "delivery-v1", "has_verification_behavior": true, "has_test_commands": true},
+        {"session_id": "delivery-v2", "has_verification_behavior": true, "has_test_commands": true}
+      ],
+      "session_reads": [{"session_id": "delivery-v1"}, {"session_id": "delivery-v2"}]
+    },
+    {
+      "id": "missing-usage",
+      "sessions": [{"session_id": "usage-m1"}, {"session_id": "usage-m2"}],
+      "session_reads": [{"session_id": "usage-m1"}, {"session_id": "usage-m2"}]
+    },
+    {
+      "id": "explicit-zero-usage",
+      "sessions": [
+        {"session_id": "usage-z1", "input_tokens": 0, "output_tokens": 0},
+        {"session_id": "usage-z2", "input_tokens": 0, "output_tokens": 0}
+      ],
+      "session_reads": [{"session_id": "usage-z1"}, {"session_id": "usage-z2"}]
+    },
+    {
+      "id": "environmental-recovery",
+      "sessions": [{"session_id": "environment-r1"}],
+      "session_reads": [{"session_id": "environment-r1", "resistance_signals": [{"category": "environmental-recovery", "attribution": "environmental", "description": "A synthetic environment dependency was recovered.", "severity": "low", "confidence": 90}]}]
+    }
+  ]
+}
