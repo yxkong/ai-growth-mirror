@@ -15,11 +15,10 @@ from ai_growth_mirror.domain.snapshots.model import SnapshotCoverage, SnapshotMe
 from ai_growth_mirror.domain.snapshots.trajectory import build_snapshot_trajectory_window
 from tests.conftest import load_report_label_catalogs, run_workspace
 from ai_growth_mirror.infra.snapshots import (
-    SNAPSHOT_ARCHIVE_DIRNAME,
-    build_snapshot_comparison,
-    compare_snapshots,
     load_previous_snapshot_source,
 )
+from ai_growth_mirror.product import SNAPSHOT_ARCHIVE_DIRNAME
+from ai_growth_mirror.application.snapshot_service import build_snapshot_comparison, compare_snapshots
 from ai_growth_mirror.application.html_render import render_personal_report_html, render_share_card_html
 
 
@@ -750,6 +749,7 @@ def test_snapshot_trajectory_window_collapses_same_day_points():
                 "implementation_depth": float(score - 4),
                 "delivery_closure": float(score - 6),
                 "adaptive_recovery": float(score - 3),
+                "agentic_system": float(score - 5),
             },
             prompt_quality_dimensions={"context_provision": float(score - 10)},
             actionable_friction_counts={
@@ -1203,6 +1203,7 @@ def test_snapshot_comparison_data_structure():
                 {"key": "implementation_depth", "label": "实现下潜", "score": 20},
                 {"key": "delivery_closure", "label": "交付收口", "score": 50},
                 {"key": "adaptive_recovery", "label": "恢复推进", "score": 35},
+                {"key": "agentic_system", "label": "Agentic 系统化", "score": 32},
             ]
         }
     }
@@ -1214,16 +1215,19 @@ def test_snapshot_comparison_data_structure():
                 {"key": "implementation_depth", "label": "实现下潜", "score": 25},
                 {"key": "delivery_closure", "label": "交付收口", "score": 62},
                 {"key": "adaptive_recovery", "label": "恢复推进", "score": 46},
+                {"key": "agentic_system", "label": "Agentic 系统化", "score": 44},
             ]
         }
     }
     left_summary = {
         "snapshot_id": "20260525-100000",
+        "assessment_policy_version": "2.0",
         "next_focus": "交付收口",
         "weakest_label": "实现下潜",
     }
     right_summary = {
         "snapshot_id": "20260526-100000",
+        "assessment_policy_version": "2.0",
         "next_focus": "恢复推进",
         "weakest_label": "协作驱动",
     }
@@ -1236,7 +1240,7 @@ def test_snapshot_comparison_data_structure():
     )
     assert comparison["current"]["mirror_score"] >= 0
     assert comparison["previous"]["next_focus"] == "交付收口"
-    assert len(comparison["axis_deltas"]) == 5
+    assert len(comparison["axis_deltas"]) == 6
 
 
 def test_generate_personal_report_creates_snapshot_archive(tmp_path: Path):
@@ -1686,6 +1690,7 @@ def test_snapshot_compare_html_escapes_untrusted_summary_fields(tmp_path: Path):
         }
         summary = {
             "snapshot_id": snapshot_id,
+            "assessment_policy_version": "2.0",
             "next_focus": focus,
             "weakest_label": "实现下潜",
         }
@@ -1824,7 +1829,7 @@ def test_action_contract_outcome_evaluation():
         snapshot_id="v1",
         created_at="2026-06-01 10:00:00",
         mirror_score=60,
-        axis_scores={"collaboration_framing": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0, "agentic_system": 50.0},
         coverage=SnapshotCoverage(session_count=10, session_read_count=10),
         action_contracts=[{"axis_key": "collaboration_framing", "title": "提升意图表达"}]
     )
@@ -1833,7 +1838,7 @@ def test_action_contract_outcome_evaluation():
         snapshot_id="v2",
         created_at="2026-06-08 10:00:00",
         mirror_score=66,
-        axis_scores={"collaboration_framing": 56.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 56.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0, "agentic_system": 50.0},
         coverage=SnapshotCoverage(session_count=10, session_read_count=10),
     )
 
@@ -1846,7 +1851,7 @@ def test_action_contract_outcome_evaluation():
         snapshot_id="v2",
         created_at="2026-06-08 10:00:00",
         mirror_score=62,
-        axis_scores={"collaboration_framing": 52.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 52.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0, "agentic_system": 50.0},
         coverage=SnapshotCoverage(session_count=10, session_read_count=10),
     )
     comp_partial = compare_snapshot_sources(prev, curr_partial)
@@ -1857,7 +1862,7 @@ def test_action_contract_outcome_evaluation():
         snapshot_id="v1",
         created_at="2026-06-01 10:00:00",
         mirror_score=60,
-        axis_scores={"collaboration_framing": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0},
+        axis_scores={"collaboration_framing": 50.0, "execution_driving": 50.0, "implementation_depth": 50.0, "delivery_closure": 50.0, "adaptive_recovery": 50.0, "agentic_system": 50.0},
         coverage=SnapshotCoverage(session_count=5, session_read_count=5),
         action_contracts=[{"axis_key": "collaboration_framing", "title": "提升意图表达"}]
     )
@@ -1884,6 +1889,7 @@ def test_render_personal_report_html_with_prior_snapshot_contract_outcomes():
             "implementation_depth": 52.0,
             "delivery_closure": 48.0,
             "adaptive_recovery": 45.0,
+            "agentic_system": 42.0,
         },
         coverage=SnapshotCoverage(session_count=10, session_read_count=10, has_usage_data=True),
         sample_count=10,

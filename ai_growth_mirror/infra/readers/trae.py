@@ -12,9 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, Optional
 
-from ...domain.session.model import SessionRef, SessionRecord
+from ...domain.session.model import SessionRecord
 from ...domain.signals.tooling import compute_tier_counts
 from .base import (
+    SessionRef,
     SUBAGENT_TOOL_NAMES,
     _common_prefix_path,
     _max_mtime,
@@ -444,4 +445,3 @@ class TraeAdapter(WorkspaceStorageChatAdapter):
         except Exception:
             pass
         return {}
-

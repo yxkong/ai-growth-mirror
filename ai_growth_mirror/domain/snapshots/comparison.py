@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from ..growth.assessment_policy import AXIS_WEIGHTS
+
 from .model import (
     AxisDelta,
     ConfidenceAssessment,
@@ -17,27 +19,12 @@ from .model import (
     SnapshotComparison,
     SnapshotSource,
     TrainingPriority,
+    TrendSummary,
     has_legacy_axis_schema,
     is_current_axis_schema,
 )
 
-AXIS_ORDER = (
-    "collaboration_framing",
-    "execution_driving",
-    "implementation_depth",
-    "delivery_closure",
-    "adaptive_recovery",
-    "agentic_system",
-)
-
-AXIS_WEIGHTS = {
-    "collaboration_framing": 0.14,
-    "execution_driving": 0.25,
-    "implementation_depth": 0.19,
-    "delivery_closure": 0.19,
-    "adaptive_recovery": 0.10,
-    "agentic_system": 0.13,
-}
+AXIS_ORDER = tuple(AXIS_WEIGHTS)
 
 LEVEL_ORDER = {"L1": 1, "L2": 2, "L3": 3, "L4": 4, "L5": 5}
 
@@ -82,6 +69,23 @@ def compare_snapshot_sources(
     import dataclasses
     previous = dataclasses.replace(previous, axis_scores=_normalize_axes(previous.axis_scores))
     current = dataclasses.replace(current, axis_scores=_normalize_axes(current.axis_scores))
+    if (
+        not previous.assessment_policy_version
+        or not current.assessment_policy_version
+        or previous.assessment_policy_version != current.assessment_policy_version
+    ):
+        return SnapshotComparison(
+            previous=previous,
+            current=current,
+            confidence=ConfidenceAssessment(
+                level="low",
+                score=0,
+                reasons=["assessment_policy_mismatch"],
+            ),
+            trend_summary=TrendSummary(direction="flat", confidence="low", score_delta=0.0),
+            policy_comparable=False,
+            incomparable_reason="assessment_policy_mismatch",
+        )
     score = _numeric_delta(previous.mirror_score, current.mirror_score, decimals=0)
     level_delta = LEVEL_ORDER.get(current.growth_level, 0) - LEVEL_ORDER.get(previous.growth_level, 0)
     axis_deltas = _build_axis_deltas(previous, current)
@@ -105,7 +109,6 @@ def compare_snapshot_sources(
     else:
         trend_confidence = confidence.level
 
-    from .model import TrendSummary
     trend_summary = TrendSummary(
         direction=trend_direction,
         confidence=trend_confidence,

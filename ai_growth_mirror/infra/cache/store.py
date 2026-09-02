@@ -7,12 +7,13 @@ Two payload tiers, each with its own schema version:
 Schema bumps invalidate only the affected tier; other tiers survive intact.
 
 There is **no time-based TTL**. Entries are reused until ``SCHEMA_VERSION`` changes
-(``cache prune``) or the session's content revision stamp moves forward (see
+(``cache prune``) or the session's content revision stamp changes (see
 ``_source_mtime`` / ``SessionRef.source_mtime``).
 """
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -23,6 +24,9 @@ from ...domain.cache_schema import (
 )
 from ...domain.session.model import SessionRecord
 from ...domain.signals.model import SessionRead
+from ..io.atomic import atomic_write_json
+
+logger = logging.getLogger(__name__)
 
 
 def _is_cache_stale(*, cached_mtime: float, source_mtime: float) -> bool:
@@ -35,7 +39,7 @@ def _is_cache_stale(*, cached_mtime: float, source_mtime: float) -> bool:
         return False
     if cached_mtime <= 0:
         return False
-    return cached_mtime < source_mtime
+    return cached_mtime != source_mtime
 
 
 @dataclass
@@ -75,8 +79,7 @@ class CacheStore:
     ) -> Optional[SessionRecord]:
         """Load cached session record.
 
-        If `source_mtime` is provided and the cached payload's ``_source_mtime``
-        is a positive value strictly older than ``source_mtime``, the entry is
+        If `source_mtime` is provided and both positive revision stamps differ, the entry is
         stale and None is returned.  There is no calendar TTL.  Pass
         ``source_mtime=None`` to skip the revision check.
         """
@@ -93,14 +96,18 @@ class CacheStore:
                 if _is_cache_stale(cached_mtime=cached_mtime, source_mtime=source_mtime):
                     return None
             return SessionRecord.from_dict(d)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AGM-CACHE-RECORD-INVALID tool=%s exception_type=%s",
+                tool_name,
+                type(exc).__name__,
+            )
             return None
 
     def write_record(self, meta: SessionRecord) -> None:
         path = self._record_path(meta.tool_name, meta.session_id, meta.source_machine)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(meta.to_dict(), f, ensure_ascii=False, indent=2)
+        atomic_write_json(path, meta.to_dict())
 
     def read_analysis(
         self,
@@ -134,21 +141,57 @@ class CacheStore:
                 if cached_lang and cached_lang != report_language:
                     return None
             return SessionRead.from_dict(d)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AGM-CACHE-READ-INVALID tool=%s exception_type=%s",
+                tool_name,
+                type(exc).__name__,
+            )
             return None
 
     def write_analysis(self, session_read: SessionRead, source_machine: str = "local") -> None:
         path = self._analysis_path(session_read.tool_name, session_read.session_id, source_machine)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(session_read.to_dict(), f, ensure_ascii=False, indent=2)
+        atomic_write_json(path, session_read.to_dict())
+
+    def iter_record_payloads(self):
+        """Yield local and per-machine cached record payloads from supported layouts."""
+        root = self.cache_dir / "records"
+        if not root.is_dir():
+            return
+        for path in sorted(root.rglob("*.json")):
+            relative = path.relative_to(root)
+            if len(relative.parts) == 2:
+                tool_name, _filename = relative.parts
+                source_machine = "local"
+            elif len(relative.parts) == 3:
+                tool_name, source_machine, _filename = relative.parts
+            else:
+                logger.warning("AGM-CACHE-PATH-SKIP depth=%d", len(relative.parts))
+                continue
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                logger.warning(
+                    "AGM-CACHE-RECORD-INVALID tool=%s exception_type=%s",
+                    tool_name,
+                    type(exc).__name__,
+                )
+                continue
+            if not isinstance(payload, dict):
+                logger.warning(
+                    "AGM-CACHE-RECORD-INVALID tool=%s exception_type=NonObjectPayload",
+                    tool_name,
+                )
+                continue
+            yield source_machine, tool_name, str(payload.get("session_id") or path.stem), payload
 
     def manifest(self, tool_name: str) -> CacheManifest:
         """Return a lightweight summary of cached payloads for `tool_name`."""
 
         def _count(subdir: str) -> int:
             p = self.cache_dir / subdir / tool_name
-            return len(list(p.glob("*.json"))) if p.is_dir() else 0
+            return len(list(p.rglob("*.json"))) if p.is_dir() else 0
 
         return CacheManifest(
             tool_name=tool_name,

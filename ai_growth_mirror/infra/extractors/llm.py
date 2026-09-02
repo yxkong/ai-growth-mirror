@@ -34,6 +34,7 @@ from ...domain.signals.taxonomy import (
 )
 from ..cache.store import CacheStore
 from ..llm.execution import FACET_SESSION_TIMEOUT_SEC, complete_json_with_retries
+from ..llm.privacy import sanitize_outbound_text
 from ..llm.limiter import AdaptiveLimiter
 
 logger = logging.getLogger(__name__)
@@ -221,9 +222,7 @@ def _session_read_system_prompt(env: Environment, *, report_language: str = "zh"
 
 
 def _sanitize(text: str | None, max_chars: int = 300) -> str:
-    if not text:
-        return ""
-    return text.replace("\n", " ").replace("\r", " ").replace("\t", " ")[:max_chars]
+    return sanitize_outbound_text(text, max_chars=max_chars).replace("\n", " ").replace("\t", " ")
 
 
 def _tool_counts_summary(tool_counts: dict[str, int]) -> str:
@@ -370,17 +369,18 @@ def _render_session_read_prompt(meta: SessionRecord, *, language: str) -> tuple[
     env = _jinja_env()
     system_prompt = _session_read_system_prompt(env, report_language=language)
     top_messages = ""
-    if meta.top_user_messages:
+    bounded_messages = list(meta.top_user_messages[:8])
+    if bounded_messages:
         top_messages = "\n".join(
-            f"  {index + 1}. {message}"
-            for index, message in enumerate(meta.top_user_messages)
+            f"  {index + 1}. {_sanitize(message)}"
+            for index, message in enumerate(bounded_messages)
         )
     user_prompt = env.get_template("session_read/user.md.j2").render(
         tool_display_name=meta.tool_name.replace("_", " ").title(),
-        project_path=meta.project_path,
+        project_path=sanitize_outbound_text(meta.project_path),
         duration_minutes=meta.duration_minutes,
         user_message_count=meta.user_message_count,
-        user_messages_shown=len(meta.top_user_messages),
+        user_messages_shown=len(bounded_messages),
         first_prompt=_sanitize(meta.first_prompt),
         top_user_messages=top_messages,
         tool_has_tool_calls=bool(meta.tool_counts),
@@ -429,10 +429,14 @@ def extract_session_read_for_session(
             retry_delays=_RETRY_DELAYS,
             limiter=limiter,
             logger=logger,
-            log_context=f"session-read:{meta.tool_name}/{meta.session_id}",
+            log_context="session-read",
         )
     except Exception as exc:
-        logger.warning("Session read failed for %s/%s: %s", meta.tool_name, meta.session_id, exc)
+        logger.warning(
+            "AGM-LLM-CALL-FAILED context=session-read tool=%s exception_type=%s",
+            meta.tool_name,
+            type(exc).__name__,
+        )
         return SessionRead(
             session_id=meta.session_id,
             tool_name=meta.tool_name,
@@ -675,17 +679,15 @@ def extract_session_reads_batch(
                         results.append(result)
                 except FuturesTimeoutError:
                     logger.warning(
-                        "Session-read timed out for %s/%s after %.0fs",
+                        "AGM-LLM-CALL-TIMEOUT context=session-read tool=%s timeout_seconds=%.0f",
                         session.tool_name,
-                        session.session_id,
                         FACET_SESSION_TIMEOUT_SEC,
                     )
                 except Exception as exc:
                     logger.warning(
-                        "Session-read failed %s/%s: %s",
+                        "AGM-LLM-CALL-FAILED context=session-read-batch tool=%s exception_type=%s",
                         session.tool_name,
-                        session.session_id,
-                        exc,
+                        type(exc).__name__,
                     )
                 progress_state["done"] += 1
                 progress_state["fresh_done"] += 1

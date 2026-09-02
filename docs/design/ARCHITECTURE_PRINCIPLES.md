@@ -1,10 +1,17 @@
+---
+title: AI Growth Mirror Architecture Principles
+domain: growth_mirror
+status: canonical
+updated_at: 2026-09-02
+---
+
 # AI Growth Mirror — 架构总纲
 
 English version: [ARCHITECTURE_PRINCIPLES.md](../en/design/ARCHITECTURE_PRINCIPLES.md)
 
 > **本文是代码库的唯一架构权威文档。** 任何功能开发、重构、代码审查都必须遵循本文。
 
-AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 AI 编码工具的历史会话（Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code、CodeBuddy、Trae、QCoder 共 9 款），生成结构化的成长洞察报告，帮助用户发现协作盲点、提升 AI 工具使用效率。
+AI Growth Mirror 是一款面向 AI 编程工具用户的**个人成长镜子**，也是 **Agentic 操作成熟度评估系统**。它从本机读取 12 款 AI 编码工具的历史会话，生成结构化、可解释的成长洞察报告，帮助用户发现协作盲点、理解原因并验证改进。
 
 **核心目标**：帮助使用 AI 工具的人提升自我，不是给单人用的报告工具，而是对所有 AI 工具用户通用的产品。
 
@@ -35,24 +42,24 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 
 ### 1.2 当前成长评分主轴（产品真源）
 
-个人版自 v0.7 升级、v0.8 定稿为 **六轴 Agentic 成熟度底盘**（轴名真源 `domain/growth/scorer.py`）：
+个人版使用 **六轴 Agentic 成熟度底盘**。policy 语义真源是 `domain/growth/assessment_policy.py`，纯计算真源是 `domain/growth/assessment.py`；`scorer.py` 只把聚合事实映射为领域输入，不拥有第二套公式：
 
 | 轴 key | 中文名 | 权重 | 衡量内容 |
 |--------|--------|:---:|----------|
 | `collaboration_framing` | 协作框定 | **14%** | 协作启动质量，包含目标锁定速度、主动澄清率与有效任务契约（v1.0.0升级） |
-| `execution_driving` | 协作驱动 | **25%** | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场） |
-| `implementation_depth` | 实现下潜 | **19%** | 文件修改量、代码验证覆盖率与实现边界控制 |
+| `execution_driving` | 协作驱动 | **25%** | 连续自主推进、结构化工作流与产生已验证结果的委派 |
+| `implementation_depth` | 实现下潜 | **19%** | 实现会话、代码验证、任务达成与有上限的文件覆盖 |
 | `delivery_closure` | 交付收口 | **19%** | 任务完成率、验证行为、测试/构建/脚本验证与契约履约表现 |
-| `adaptive_recovery` | 恢复推进 | **10%** | AI 偏航或报错时，纠偏和回到正轨的质量 |
-| `agentic_system` | Agentic 系统化 | **13%** | skill/workflow/MCP/subagent 等方法资产化能力 |
+| `adaptive_recovery` | 恢复推进 | **10%** | 真实偏航/报错机会出现后的恢复成功、纠偏质量与验证 |
+| `agentic_system` | Agentic 系统化 | **13%** | skill/workflow/MCP/subagent 等方法与已验证结果的绑定 |
 
-权重合计 100%；演进对照见 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md) 与 [v0.8.0-DESIGN.md](v0.8.0-DESIGN.md)。
+权重合计 100%；当前 policy 为 `2.0`，设计真源见 [v1.0.2-DESIGN.md](v1.0.2-DESIGN.md)。
 
-`mirror_score`（协作指数）与 `growth_level`（L1–L5）由这六轴加权 + 置信修正推出，不得再回退为旧线性加权模型的换皮版本。雷达图按六边形渲染；旧五轴快照加载时 `agentic_system` 标注「暂无数据」，不报错、不强制重算。
+每个分量的值、可用性、置信度、证据量与 reason code 一起进入领域计算。missing 标记为 unavailable；同轴可用分量和总分可用轴动态重归一，并展示 coverage。raw token/files/commit/tool/model/subagent 数量不直接产生能力分。`mirror_score` 仅由可用六轴按 policy 权重计算并受小样本上限约束，不再附加 bonus、floor 或第二公式；跨 policy 快照拒绝计算 delta。
 
 ### 1.2.1 L1–L5 等级分值分布与设计理由
 
-**真源**：`domain/growth/scorer.py → _LEVEL_MIN_SCORE`。任何展示层（report_view、level_guide yaml、README）均以此为唯一权威，禁止另起一套区间。
+**真源**：`domain/growth/assessment_policy.py → LEVEL_MIN_SCORES`。任何计算或展示层均消费此 owner，禁止另起一套区间。
 
 #### 等级区间
 
@@ -68,8 +75,8 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 
 1. **L1 宽（38 分）**：入门跨越大，鼓励用户尽快迈过"问答阶段"。真实用户在 L1 停留时间短，一旦开始用于真实任务即快速进入 L2。
 2. **L2/L3 中等（各约 18–19 分）**：这是绝大多数活跃用户分布的区间，设计为线性成长区，每一分都可感知。
-3. **L4 收窄（15 分）**：进入 L4 不只靠分数，还需满足 Agentic 系统保底条件（见下）；区间收窄确保 L4 代表真实能力水位。
-4. **L5 最窄（11 分）**：设计为稀有等级，须同时满足高 Agentic 系统分、高执行驱动、有效交付等多轴条件，不能靠单轴拉满突破。
+3. **L4 收窄（15 分）**：在 coverage 与小样本上限约束下，进入 L4 需要多轴稳定证据。
+4. **L5 最窄（11 分）**：设计为稀有等级，不能靠活动体量或单轴外挂加分突破。
 
 #### 样本置信封顶
 
@@ -77,16 +84,9 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 |-----------|------------|------|
 | < 8 | 69 | 封顶在 L3 内；不允许样本过少时进 L4 |
 | < 15 | 82 | 封顶在 L4 内；不允许样本过少时进 L5 |
-| ≥ 15 且满足 Agentic 条件 | 无限制 | 由评分公式自然决定 |
+| ≥ 15 | 无限制 | 由 policy 2.0 可用证据自然决定 |
 
 有效 session read < 5 时不输出正式等级（显示「待评估」）。
-
-#### L4/L5 保底抬升条件
-
-为避免 Agentic 能力强但总分因某轴拖累而被低估，设置保底抬升：
-
-- **L4 保底**：`session_count ≥ 15` 且 `agentic_system ≥ 75` 且 `execution_driving ≥ 70` 且 `implementation_depth ≥ 65` 且 `delivery_closure ≥ 50` → 总分至少 75
-- **L5 保底**：`session_count ≥ 15` 且 `agentic_system ≥ 88` 且 `execution_driving ≥ 78` 且 `implementation_depth ≥ 70` 且 `delivery_closure ≥ 65` 且 `adaptive_recovery ≥ 55` → 总分至少 90
 
 #### 分轴达标线（阶段评估展示用，不等同于总分区间）
 
@@ -99,16 +99,16 @@ AI Growth Mirror 统一使用 **四证法** 解释一个人的 AI 使用水平�
 | L4 | 72 | 74 | 70 | 70 | 68 | 75 |
 | L5 | 86 | 86 | 84 | 84 | 82 | 88 |
 
-> **注意**：分轴达标线是解释用的展示门槛，**不是**总分映射规则。总分由六轴加权 + 修正项共同决定，再映射到 `_LEVEL_MIN_SCORE` 确定等级。
+> **注意**：分轴达标线是解释用的展示门槛，**不是**总分映射规则。总分只由 policy 2.0 的可用六轴加权决定，再映射到 `LEVEL_MIN_SCORES`。
 
 ### 1.3 支持的 AI 编码工具
 
-与仓级 `README.md` 一致，当前接入 **9 款** AI 编码工具：
+与仓级 `README.md` 一致，当前接入 **12 款** AI 编码工具；工具列表与 CLI alias 只由 `infra/readers/catalog.py` 派生：
 
 | 类型 | 工具 |
 |------|------|
-| 国际主流 | Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code |
-| 国产 | CodeBuddy、Trae、QCoder |
+| 国际主流 | Claude Code、Codex、Cursor、Gemini、OpenCode、Cline、Kilo Code、DeepSeek Harness |
+| 国产 | CodeBuddy、Trae、QCoder、ZCode |
 
 CLI `--tools all` 一次扫齐；也可按需指定单个或多个。各工具经统一 Adapter 适配层汇入同一套评分与报告链路。
 
@@ -122,11 +122,11 @@ flowchart TB
         direction TB
         subgraph tools_intl["tools_intl"]
             direction LR
-            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini] --- t_cline[Cline] --- t_kilo[Kilo Code]
+            t_claude[Claude Code] --- t_codex[Codex] --- t_cursor[Cursor] --- t_gemini[Gemini] --- t_open[OpenCode] --- t_cline[Cline] --- t_kilo[Kilo Code] --- t_dsh[DeepSeek Harness]
         end
         subgraph tools_cn["tools_cn"]
             direction LR
-            t_buddy[CodeBuddy] --- t_trae[Trae] --- t_qcoder[QCoder]
+            t_buddy[CodeBuddy] --- t_trae[Trae] --- t_qcoder[QCoder] --- t_zcode[ZCode]
         end
         t_adapter[统一 Adapter]
         tools_intl --> t_adapter
@@ -235,7 +235,6 @@ ai_growth_mirror/
 │   ├── session/
 │   │   ├── model.py               # SessionRecord
 │   │   ├── scope.py               # SessionScope + apply_session_scope()
-│   │   ├── tool_registry.py       # 工具选择词汇表
 │   │   └── heuristics.py          # prompt / creation·reuse / growth 规则
 │   ├── ingestion/
 │   │   └── model.py               # CollectionResult / ToolCollectorSpec
@@ -250,6 +249,8 @@ ai_growth_mirror/
 │   │   └── tooling.py             # tool normalization / capability tier 规则
 │   └── growth/
 │       ├── model.py               # GrowthProfile, GrowthScore, AgentAssetStats
+│       ├── assessment_policy.py   # policy 版本、六轴/分量权重、等级真源
+│       ├── assessment.py          # 证据可用性、coverage、六轴与总分纯计算
 │       ├── scorer.py              # aggregate()（纯计算，无 I/O）
 │       ├── highlights.py          # surface_highlights()
 │       ├── evidence.py            # build_core_evidence()（schema-versioned 事实包）
@@ -261,14 +262,17 @@ ai_growth_mirror/
 │
 ├── infra/                         # 基础设施层（一切有 I/O 或技术依赖）
 │   ├── readers/                   # 各 AI 工具 session 读取器
-│   │   ├── base.py                # BaseSessionAdapter + 工具函数
+│   │   ├── base.py                # BaseSessionAdapter + SessionRef/DeferredSessionRecord
+│   │   ├── catalog.py             # reader/CLI alias 唯一目录真源
 │   │   ├── claude_code.py         # ClaudeCodeSessionAdapter
 │   │   ├── cursor.py
 │   │   ├── codex.py
 │   │   ├── json_reader.py
 │   │   ├── workspace_storage.py
 │   │   ├── qoder.py
-│   │   └── trae.py
+│   │   ├── trae.py
+│   │   ├── deepseek_harness.py    # DeepSeek Harness v0 raw/zstd ACL
+│   │   └── zcode.py               # ZCode SQLite 只读 ACL
 │   ├── extractors/                # Signal 提取器（LLM + 规则）
 │   │   ├── llm.py                 # LLM session read 提取（批量+缓存）
 │   │   ├── heuristic.py           # 规则 session read 提取
@@ -329,7 +333,8 @@ application/orchestrator.generate_report_artifacts()
     ├── infra/extractors/        提取 signal（LLM 或规则）
     │       ↓ SessionRead (domain/signals/model.py)
     ├── infra/cache/             缓存 SessionRead
-    ├── domain/growth/scorer.py  汇总 GrowthProfile（纯计算）
+    ├── domain/growth/scorer.py  汇总事实并映射 AssessmentInputs
+    ├── domain/growth/assessment.py  policy 2.0 纯领域评估
     │       ↓ GrowthProfile (domain/growth/model.py)
     ├── application/personal_report_service.py
     │       ├── infra/llm/coach.py            CoachingContent（LLM，可选）
@@ -487,8 +492,9 @@ application/orchestrator.generate_report_artifacts()
 | 新增 Session Read 提取维度 | `domain/signals/model.py` 加字段 + `prompts/session_read/system.md.j2` 更新 schema |
 | 新增报告板块 | `application/report_view.py` + `assets/templates/report.html.j2` |
 | 新增 LLM 生成内容 | `assets/prompts/` 新建模板 + `infra/llm/` 对应调用点 |
-| 修改 Growth Level 门槛 | `domain/growth/scorer.py`（唯一入口） |
-| 修改六轴权重与状态边界 | `domain/growth/scorer.py` 中的底盘规则 |
+| 修改 Growth Level 门槛 | `domain/growth/assessment_policy.py::LEVEL_MIN_SCORES` |
+| 修改六轴/分量权重与状态边界 | `domain/growth/assessment_policy.py`；语义变化必须升 policy 版本 |
+| 新增或改名 reader/CLI alias | `infra/readers/catalog.py`；不得复制列表 |
 
 ---
 
@@ -513,11 +519,8 @@ application/orchestrator.generate_report_artifacts()
 为确保 AI Growth Mirror 在大规模日志、多机器同步、无 Token 数据源等现实场景下的鲁棒性，特设立以下四类研发硬规范及配套计算逻辑：
 
 ### 14.1 缺失型指标动态归一化规范
-- **原则**：若数据源不支持或缺失了某类指标（如 Cursor/Trae/QCoder 等不提供 LLM Token 数量和计费明细），在计算评分时**不得**将其计为 `0` 予以惩罚。
-- **计算逻辑**：
-  - 在 [scorer.py](../../ai_growth_mirror/domain/growth/scorer.py) 汇总前，首先通过 `any(s.input_tokens is not None for s in sessions)` 校验是否有可用的 Token 数据。
-  - 若无 Token 数据，计算 `implementation_depth` 时动态将 `total_token_volume` 权重元组（18%）从 `_bounded_average` 的参数列表中剔除。
-  - `_bounded_average` 内部根据剩余参数的总权重（`0.32 + 0.20 + 0.15 + 0.15 = 0.82`）动态求加权平均，自动完成权重归一化。
+- **原则**：数据源不支持或样本没有证据时标记 `unavailable`，既不按 0 惩罚，也不按满分奖励。
+- **计算逻辑**：`assessment.py` 仅对 available 分量和轴动态归一，并把 coverage/confidence/reason code 作为结果的一部分；coverage 低于 policy 门槛时整轴不可用。Token/成本属于 usage 上下文，不进入 maturity 评分。
 
 ### 14.2 共享数据库 Per-Session Revision 机制
 - **原则**：对于多会话共享单一数据库（如 Trae 或 QCoder 的 `state.vscdb`）的数据源，禁止直接使用整个数据库文件的 `stat().st_mtime` 作为缓存版本戳，防止无关的 IDE UI 状态写入导致缓存过度失效（颠簸）。
@@ -535,8 +538,8 @@ application/orchestrator.generate_report_artifacts()
 ### 14.4 惰性解析与按需加载采样规范
 - **原则**：在大规模日志（数万/多年历史）场景下，为避免扫描阶段因全量载入深度解析造成 CPU 和内存过载，必须采用 Placeholder 惰性解析机制。
 - **计算逻辑**：
-  - 在 [base.py](../../ai_growth_mirror/infra/readers/base.py) 的 `_iter_sessions_from_root` 中，若 cache 启用且未命中缓存，先快速构建一个带有 `_is_placeholder = True` 的轻量级 `SessionRecord`，其仅通过子类实现的 `_quick_extract_project_path`（如极速加载 `workspace.json`）带上项目路径。
-  - 直到 [orchestrator.py](../../ai_growth_mirror/application/orchestrator.py) 对会话执行完 Scope 过滤和采样限额后，才对最终确定的 sessions 列表调用 `session.ensure_parsed(cache)`，就地完成深度解析并写盘。未选中样本不发生任何深度解析开销。
+  - `infra/readers/base.py` 使用基础设施对象 `DeferredSessionRecord` 持有 adapter、raw ref 与 cache；纯领域 `SessionRecord` 不得持有解析器或缓存。
+  - `orchestrator.py` 在 Scope 过滤和采样后，通过 reader 基础设施物化最终样本；未选中样本不深度解析。
 
 
 ---
@@ -569,11 +572,15 @@ application/orchestrator.generate_report_artifacts()
   - 一旦发生 `SessionRecord`、`SessionRead` 等核心 DTO / 缓存协议不兼容的变化，必须升级 `CACHE_SCHEMA_VERSION`（如升级到 `1.1`），产品版本同步进入 `v1.1.0`。旧版本的本地缓存将被自动判定失效重算。
 
 ### 16.2 版本联动变更清单
-- **原则**：每次执行版本升级时，不得只修改单一文件。必须在同一 PR 中同步改写以下真源点，缺失一处即为不合规：
-  - `pyproject.toml` 中的 `[project].version`
-  - `ai_growth_mirror/__init__.py` 中的 `__version__`
-  - `domain/cache_schema.py` 中的 `CACHE_SCHEMA_VERSION`
-  - `README.md` 的 Release badge 和 Schema badge
-  - `docs/design/README.md` 的当前版本号与修订记录
-  - `docs/design/PRODUCT_ROADMAP.md` 中的产品路线图版本表
+- **唯一 owner**：产品版本只由 `pyproject.toml [project].version` 定义；缓存协议只由 `domain/cache_schema.py::CACHE_SCHEMA_VERSION` 定义。
+- **受检 projection**：`ai_growth_mirror/__init__.py::__version__`、`uv.lock`、README badge、设计索引与路线图只投影 owner，不拥有独立裁决权。
+- **变更规则**：产品 patch 升级但 schema 不变时，禁止为“同步”改写 `CACHE_SCHEMA_VERSION`；只有缓存协议不兼容变化才升级 schema owner。
+- **门禁**：同一变更集更新适用 projection，并由 `tests/unit/test_version_alignment.py` 与 cache schema 测试对拍；缺失一处即失败。
 
+## 17. 唯一真源与派生投影
+
+- 每类可变事实只有一个 canonical owner。测试、翻译、示例、lock、badge、skill 和 CLI adapter 都只能是 consumer/projection，禁止复制可变业务规则后独立演化。
+- 中文活动契约位于 `docs/design/`、`docs/config/`；`docs/en/**` 使用 `status: mirror` 与 `canonical_path` 指向中文 owner。翻译保留用户价值，但冲突只由 owner 裁决。
+- snapshot actionable friction 与 friction-topic 映射只在 `domain/snapshots/projection.py`；runtime/archive 路径共同消费。报告主编排只在 `application/orchestrator.generate_report_artifacts`。
+- 不新增独立 truth registry；owner 关系写入现有 canonical 契约，自动门禁从代码与目录动态发现派生面。
+- application 只能 import infra public API；测试只验证 CI action 为 commit pin，不复制当前 SHA；status catalog key schema 只由 `STATUS_LABEL_KEYS` 定义。

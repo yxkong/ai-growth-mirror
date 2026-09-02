@@ -1,18 +1,17 @@
-"""Snapshot archive loading and compare orchestration."""
+"""Snapshot archive persistence, loading, and payload conversion."""
 
 from __future__ import annotations
 
 import json
+import logging
+import os
+import shutil
+import uuid
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from ..application.growth_trajectory import build_snapshot_compare_page_view
-from ..application.html_render import render_snapshot_compare_html
-from ..application.label_catalogs import load_report_label_catalogs
-from ..application.report_view import PersonalReportView
-from ..application.summary_payload import build_personal_summary_payload
 from ..domain.snapshots.model import (
     SnapshotCoverage,
     SnapshotIndexEntry,
@@ -21,155 +20,66 @@ from ..domain.snapshots.model import (
     SnapshotSource,
     SnapshotMeta,
 )
+from ..domain.snapshots.projection import build_actionable_friction_counts, topic_from_friction
 from ..domain.snapshots.trajectory import assess_snapshot_point_confidence
-from ..product import CLI_NAME, LEGACY_SNAPSHOT_ARCHIVE_DIRNAMES, SNAPSHOT_ARCHIVE_DIRNAME
+from ..product import CLI_NAME, LEGACY_SNAPSHOT_ARCHIVE_DIRNAMES
+from .io.atomic import atomic_write_json, atomic_write_text
+
+logger = logging.getLogger(__name__)
 
 INDEX_FILENAME = "index.json"
 SNAPSHOTS_DIRNAME = "snapshots"
 COMPARISONS_DIRNAME = "comparisons"
 
 
-def archive_personal_report_snapshot(
-    *,
-    output_path: Path,
-    html: str,
-    view: PersonalReportView,
-    sidecar_payload: dict[str, Any] | None,
-) -> Path:
-    archive_root = output_path.parent / SNAPSHOT_ARCHIVE_DIRNAME
+def new_snapshot_id(archive_root: Path) -> str:
     snapshots_root = archive_root / SNAPSHOTS_DIRNAME
     snapshots_root.mkdir(parents=True, exist_ok=True)
+    return _new_snapshot_id(snapshots_root)
 
-    snapshot_id = _new_snapshot_id(snapshots_root)
-    snapshot_dir = snapshots_root / snapshot_id
-    snapshot_dir.mkdir(parents=True, exist_ok=False)
-
-    report_path = snapshot_dir / "report.html"
-    report_json_path = snapshot_dir / "report.json"
-    profile_path = snapshot_dir / "profile.json"
-    summary_path = snapshot_dir / "summary.json"
-    normalized_summary_path = snapshot_dir / "normalized-summary.json"
-    meta_path = snapshot_dir / "meta.json"
-
-    profile_dict = asdict(view)
-    summary_dict = _build_snapshot_summary(snapshot_id=snapshot_id, view=view)
-    meta_dict = {
-        "snapshot_id": snapshot_id,
-        "created_at": summary_dict["created_at"],
-        "schema_version": "1.1",
-        "artifact_type": "ai_growth_mirror_snapshot",
-    }
-
-    report_path.write_text(html, encoding="utf-8")
-    report_json_path.write_text(
-        json.dumps(sidecar_payload or {}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    profile_path.write_text(json.dumps(profile_dict, ensure_ascii=False, indent=2), encoding="utf-8")
-    summary_path.write_text(json.dumps(summary_dict, ensure_ascii=False, indent=2), encoding="utf-8")
-    normalized_summary_path.write_text(
-        json.dumps(build_personal_summary_payload(view), ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    meta_path.write_text(json.dumps(meta_dict, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    _update_snapshot_index(
-        archive_root=archive_root,
-        entry=SnapshotIndexEntry(
-            snapshot_id=snapshot_id,
-            created_at=summary_dict["created_at"],
-            tool_display_name=view.tool_display_name,
-            report_title=view.report_title,
-            date_range=view.date_range,
-            report_path=_relative_to_archive(report_path, archive_root),
-            report_json_path=_relative_to_archive(report_json_path, archive_root),
-            profile_path=_relative_to_archive(profile_path, archive_root),
-            summary_path=_relative_to_archive(summary_path, archive_root),
-            normalized_summary_path=_relative_to_archive(normalized_summary_path, archive_root),
-            compare_hint=f"{CLI_NAME} compare {snapshot_id} <other_snapshot_id>",
-        ),
-    )
-    return snapshot_dir
+def relative_to_archive(path: Path, archive_root: Path) -> str:
+    return str(path.relative_to(archive_root))
 
 
-def compare_snapshots(
+def _remove_task_created_directory(candidate: Path, root: Path) -> None:
+    if candidate.parent.resolve() != root.resolve() or not candidate.name:
+        raise RuntimeError("Refusing to remove snapshot directory outside its root")
+    if candidate.exists():
+        shutil.rmtree(candidate)
+
+
+def write_snapshot_bundle(
     *,
     archive_root: Path,
-    left_snapshot_id: str,
-    right_snapshot_id: str,
-    output_path: Path | None = None,
-    language: str = "zh",
+    snapshot_id: str,
+    artifacts: dict[str, str],
+    entry: SnapshotIndexEntry,
 ) -> Path:
-    left_source = load_snapshot_source(archive_root / SNAPSHOTS_DIRNAME / left_snapshot_id)
-    right_source = load_snapshot_source(archive_root / SNAPSHOTS_DIRNAME / right_snapshot_id)
-    right_snapshot_dir = archive_root / SNAPSHOTS_DIRNAME / right_snapshot_id
-    right_normalized = _read_json(right_snapshot_dir / "normalized-summary.json", default={})
-    current_training_evidence = (
-        right_normalized.get("training_evidence", {})
-        if isinstance(right_normalized, dict)
-        else {}
-    )
-    catalogs = load_report_label_catalogs(language)
-    page = build_snapshot_compare_page_view(
-        left_source=left_source,
-        right_source=right_source,
-        catalogs=catalogs,
-        current_training_evidence_payload=current_training_evidence,
-    )
-    comparisons_root = archive_root / COMPARISONS_DIRNAME
-    comparisons_root.mkdir(parents=True, exist_ok=True)
-    if output_path is None:
-        output_path = comparisons_root / f"{left_snapshot_id}__vs__{right_snapshot_id}.html"
-    html = render_snapshot_compare_html(
-        page=page,
-        template_labels=catalogs.template_labels,
-        language=language,
-    )
-    output_path.write_text(html, encoding="utf-8")
-    output_path.with_suffix(".json").write_text(
-        json.dumps(page.data, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    snapshots_root = archive_root / SNAPSHOTS_DIRNAME
+    snapshots_root.mkdir(parents=True, exist_ok=True)
+    snapshot_dir = snapshots_root / snapshot_id
+    staging_dir = snapshots_root / f".{snapshot_id}.{uuid.uuid4().hex}.tmp"
+    staging_dir.mkdir(parents=False, exist_ok=False)
+    published = False
+    try:
+        for relative_name, content in artifacts.items():
+            atomic_write_text(staging_dir / relative_name, content)
+        os.replace(staging_dir, snapshot_dir)
+        published = True
+        _update_snapshot_index(archive_root=archive_root, entry=entry)
+        return snapshot_dir
+    except Exception:
+        if staging_dir.exists():
+            _remove_task_created_directory(staging_dir, snapshots_root)
+        if published and snapshot_dir.exists():
+            _remove_task_created_directory(snapshot_dir, snapshots_root)
+        raise
+
+
+def write_comparison_artifacts(*, output_path: Path, html: str, payload: dict[str, Any]) -> Path:
+    atomic_write_json(output_path.with_suffix(".json"), payload)
+    atomic_write_text(output_path, html)
     return output_path
-
-
-def build_snapshot_comparison(
-    *,
-    left_profile: dict[str, Any],
-    right_profile: dict[str, Any],
-    left_summary: dict[str, Any],
-    right_summary: dict[str, Any],
-    left_report: dict[str, Any] | None = None,
-    right_report: dict[str, Any] | None = None,
-    left_normalized_summary: dict[str, Any] | None = None,
-    right_normalized_summary: dict[str, Any] | None = None,
-    language: str = "zh",
-) -> dict[str, Any]:
-    left_source = _snapshot_source_from_payloads(
-        profile=left_profile,
-        summary=left_summary,
-        report=left_report or {},
-        normalized_summary=left_normalized_summary or {},
-    )
-    right_source = _snapshot_source_from_payloads(
-        profile=right_profile,
-        summary=right_summary,
-        report=right_report or {},
-        normalized_summary=right_normalized_summary or {},
-    )
-    catalogs = load_report_label_catalogs(language)
-    current_training_evidence = (
-        right_normalized_summary.get("training_evidence", {})
-        if isinstance(right_normalized_summary, dict)
-        else {}
-    )
-    page = build_snapshot_compare_page_view(
-        left_source=left_source,
-        right_source=right_source,
-        catalogs=catalogs,
-        current_training_evidence_payload=current_training_evidence,
-    )
-    return page.data
 
 
 def load_previous_snapshot_source(archive_root: Path) -> SnapshotSource | None:
@@ -177,7 +87,11 @@ def load_previous_snapshot_source(archive_root: Path) -> SnapshotSource | None:
     for root in _candidate_snapshot_roots(archive_root):
         try:
             index = load_snapshot_index(root)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AGM-SNAPSHOT-READ-SKIP source=index exception_type=%s",
+                type(exc).__name__,
+            )
             continue
         for entry in index:
             candidates.append((entry.created_at, root, entry.snapshot_id))
@@ -188,7 +102,11 @@ def load_previous_snapshot_source(archive_root: Path) -> SnapshotSource | None:
     for _created_at, root, snapshot_id in candidates:
         try:
             return load_snapshot_source(root / SNAPSHOTS_DIRNAME / snapshot_id)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AGM-SNAPSHOT-READ-SKIP source=snapshot exception_type=%s",
+                type(exc).__name__,
+            )
             continue
     return None
 
@@ -202,7 +120,11 @@ def load_recent_snapshot_sources(
     for root in _candidate_snapshot_roots(archive_root):
         try:
             index = load_snapshot_index(root)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AGM-SNAPSHOT-READ-SKIP source=index exception_type=%s",
+                type(exc).__name__,
+            )
             continue
         for entry in index:
             created_at = _parse_created_at(entry.created_at)
@@ -225,17 +147,21 @@ def load_recent_snapshot_sources(
         seen.add(source_key)
         try:
             sources.append(load_snapshot_source(root / SNAPSHOTS_DIRNAME / snapshot_id))
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "AGM-SNAPSHOT-READ-SKIP source=snapshot exception_type=%s",
+                type(exc).__name__,
+            )
             continue
     return sources
 
 
 def load_snapshot_source(snapshot_dir: Path) -> SnapshotSource:
-    profile = _read_json(snapshot_dir / "profile.json")
-    summary = _read_json(snapshot_dir / "summary.json")
-    report = _read_json(snapshot_dir / "report.json", default={})
-    normalized_summary = _read_json(snapshot_dir / "normalized-summary.json", default={})
-    source = _snapshot_source_from_payloads(
+    profile = read_snapshot_json(snapshot_dir / "profile.json")
+    summary = read_snapshot_json(snapshot_dir / "summary.json")
+    report = read_snapshot_json(snapshot_dir / "report.json", default={})
+    normalized_summary = read_snapshot_json(snapshot_dir / "normalized-summary.json", default={})
+    source = snapshot_source_from_payloads(
         profile=profile,
         summary=summary,
         report=report,
@@ -253,7 +179,11 @@ def load_snapshot_index(archive_root: Path) -> list[SnapshotIndexEntry]:
     for item in index_data.get("snapshots", []):
         try:
             entries.append(SnapshotIndexEntry(**item))
-        except TypeError:
+        except TypeError as exc:
+            logger.warning(
+                "AGM-SNAPSHOT-READ-SKIP source=index-entry exception_type=%s",
+                type(exc).__name__,
+            )
             continue
     return entries
 
@@ -272,7 +202,7 @@ def load_latest_snapshot_meta(archive_root: Path) -> SnapshotMeta | None:
     )
 
 
-def _snapshot_source_from_payloads(
+def snapshot_source_from_payloads(
     *,
     profile: dict[str, Any],
     summary: dict[str, Any],
@@ -299,7 +229,7 @@ def _snapshot_source_from_payloads(
         prompt_coach=training_evidence,
         profile_prompt_coach=profile_prompt_coach,
     )
-    actionable_friction_counts = _build_actionable_friction_counts(
+    actionable_friction_counts = build_actionable_friction_counts(
         pq_deficits=dict(stats.get("pq_deficit_counts", {}) or {}),
         friction_type_counts=dict(stats.get("friction_type_counts", {}) or {}),
     )
@@ -330,6 +260,12 @@ def _snapshot_source_from_payloads(
         strongest_axis_key=strongest,
         weakest_axis_key=weakest,
         axis_scores=axis_scores,
+        assessment_policy_version=str(
+            stats.get("assessment_policy_version")
+            or summary.get("assessment_policy_version")
+            or (profile.get("stats", {}) if isinstance(profile.get("stats"), dict) else {}).get("assessment_policy_version")
+            or ""
+        ),
         prompt_quality_dimensions=prompt_quality_dimensions,
         actionable_friction_counts=actionable_friction_counts,
         prompt_quality=SnapshotPromptQuality(
@@ -395,7 +331,7 @@ def _build_archive_evidence(
             description = str(signal.get("description", "")).strip()
             if description:
                 _push(rows, "friction", description)
-                topic = _topic_from_friction(str(signal.get("category", "")))
+                topic = topic_from_friction(str(signal.get("category", "")))
                 if topic:
                     _push(rows, topic, description)
         for signal in item.get("momentum_signals", [])[:3]:
@@ -447,27 +383,7 @@ def _update_snapshot_index(*, archive_root: Path, entry: SnapshotIndexEntry) -> 
     snapshots.sort(key=lambda item: item["created_at"], reverse=True)
     index_data["latest_snapshot_id"] = entry.snapshot_id
     index_data["snapshots"] = snapshots
-    index_path.write_text(json.dumps(index_data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def _build_snapshot_summary(*, snapshot_id: str, view: PersonalReportView) -> dict[str, Any]:
-    strongest = view.capability.strongest_label if view.capability else ""
-    weakest = view.capability.weakest_label if view.capability else ""
-    return {
-        "snapshot_id": snapshot_id,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "report_title": view.report_title,
-        "tool_display_name": view.tool_display_name,
-        "date_range": view.date_range,
-        "headline": view.summary.headline,
-        "stage": view.summary.growth_level,
-        "score": view.summary.mirror_score,
-        "strongest_label": strongest,
-        "weakest_label": weakest,
-        "next_focus": view.summary.next_focus,
-        "share_title": view.summary.share_title,
-        "share_lines": list(view.summary.share_lines),
-    }
+    atomic_write_json(index_path, index_data)
 
 
 def _candidate_snapshot_roots(primary_archive_root: Path) -> list[Path]:
@@ -479,7 +395,7 @@ def _candidate_snapshot_roots(primary_archive_root: Path) -> list[Path]:
     return roots
 
 
-def _read_json(path: Path, default: dict[str, Any] | None = None) -> dict[str, Any]:
+def read_snapshot_json(path: Path, default: dict[str, Any] | None = None) -> dict[str, Any]:
     if not path.exists():
         return default or {}
     return json.loads(path.read_text(encoding="utf-8"))
@@ -529,20 +445,6 @@ def _prompt_quality_dimensions_from_payloads(
     return {}
 
 
-def _build_actionable_friction_counts(
-    *,
-    pq_deficits: dict[str, Any],
-    friction_type_counts: dict[str, Any],
-) -> dict[str, int]:
-    return {
-        "vague_request": int(pq_deficits.get("vague-request", 0) or 0) + int(friction_type_counts.get("fuzzy-intent", 0) or 0) + int(friction_type_counts.get("ambiguous-request", 0) or 0),
-        "missing_context": int(pq_deficits.get("missing-context", 0) or 0) + int(friction_type_counts.get("missing-context", 0) or 0) + int(friction_type_counts.get("context-gap", 0) or 0) + int(friction_type_counts.get("context-confusion", 0) or 0),
-        "scope_drift": int(pq_deficits.get("scope-drift", 0) or 0) + int(friction_type_counts.get("scope-creep", 0) or 0) + int(friction_type_counts.get("goal-drift", 0) or 0),
-        "missing_acceptance_criteria": int(pq_deficits.get("missing-acceptance-criteria", 0) or 0) + int(friction_type_counts.get("missing-acceptance-criteria", 0) or 0) + int(friction_type_counts.get("incomplete-output", 0) or 0),
-        "unclear_correction": int(pq_deficits.get("unclear-correction", 0) or 0) + int(friction_type_counts.get("off-track", 0) or 0) + int(friction_type_counts.get("outdated-context", 0) or 0) + int(friction_type_counts.get("recurring-pattern", 0) or 0),
-    }
-
-
 def _prompt_dimension_key(label: str) -> str:
     normalized = label.strip().lower().replace("-", "_").replace(" ", "_")
     mapping = {
@@ -573,26 +475,6 @@ def _stats_have_usage(stats: dict[str, Any]) -> bool:
     )
 
 
-def _topic_from_friction(category: str) -> str:
-    return {
-        "ambiguous-request": "collaboration_framing",
-        "context-confusion": "collaboration_framing",
-        "context-gap": "collaboration_framing",
-        "fuzzy-intent": "collaboration_framing",
-        "goal-drift": "adaptive_recovery",
-        "incomplete-output": "delivery_closure",
-        "missing-acceptance-criteria": "delivery_closure",
-        "missing-context": "collaboration_framing",
-        "off-track": "adaptive_recovery",
-        "outdated-context": "adaptive_recovery",
-        "recurring-pattern": "adaptive_recovery",
-        "reference-gap": "implementation_depth",
-        "repetition": "execution_driving",
-        "scope-creep": "execution_driving",
-        "tool-ceiling": "implementation_depth",
-    }.get(category, "")
-
-
 def _push(rows: dict[str, list[str]], key: str, value: str) -> None:
     text = (value or "").strip()
     if not text:
@@ -610,7 +492,3 @@ def _new_snapshot_id(snapshots_root: Path) -> str:
         counter += 1
         candidate = f"{base}-{counter}"
     return candidate
-
-
-def _relative_to_archive(path: Path, archive_root: Path) -> str:
-    return str(path.relative_to(archive_root))

@@ -1,3 +1,10 @@
+---
+title: AI Growth Mirror 产品长期规划与路线图
+domain: growth_mirror
+status: canonical
+updated_at: 2026-09-02
+---
+
 # AI Growth Mirror — 产品长期规划与路线图
 
 English version: [PRODUCT_ROADMAP.md](../en/design/PRODUCT_ROADMAP.md)
@@ -44,7 +51,9 @@ English version: [PRODUCT_ROADMAP.md](../en/design/PRODUCT_ROADMAP.md)
 | **v0.7.0** | 1.4 | **Agentic 操作成熟度体系重构**（六轴 + 三层模型 + environmental-recovery） | ✅ 已发布 |
 | **v0.8.0** | 1.4 | `collaboration_framing` 重定义 + `goal_locking_speed` 新信号 | ✅ 已发布 |
 | **v1.0.0** | 1.0 | 有效任务契约、只读侦察豁免、关键词验证识别、work_focus LLM 综合、Prompt Coach 证据化；产品与 Schema 从 1.0 重新起线 | ✅ 已发布 |
-| **v1.0.1** | 1.0 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
+| **v1.0.1** | 1.0 | LLM 隐私边界、OpenCode/status 正确性、原子持久化、分层硬门、评分校准与跨平台 CI | 发布候选 |
+| **v1.0.2** | 1.0 | DDD 可解释评估 policy 2.0、根任务归一、DeepSeek Harness/ZCode reader | 实现候选 |
+| **v1.0.3+** | 1.0 | 多设备快照聚合与团队聚合看板 | 📅 规划中 |
 | **v2.0.0+** | 2.0 | 插件市场与开放平台 API | 📅 长期规划 |
 
 ---
@@ -155,20 +164,30 @@ English version: [PRODUCT_ROADMAP.md](../en/design/PRODUCT_ROADMAP.md)
 
 ---
 
-## 5. 长期规划 (v1.0.1+)
+## 5. 当前加固与长期规划 (v1.0.2+)
 
-### 5.1 v1.0.1 — 跨机器快照聚合与团队聚合
+### 5.1 v1.0.1 — 可信与韧性加固（发布候选）
+* **核心目标**：在保持 Cache Schema 1.0 和公开 CLI 不变的前提下，关闭隐私、正确性、持久化、分层和发布证据缺口。
+* **主要特性**：统一 LLM 出站脱敏与 prompt-injection 隔离；OpenCode 内容 revision 与单次采集；多机器 `status`；缓存/报告/快照原子写；评分校准夹具；Windows/Linux × Python 3.12/3.13 CI。
+* **设计真源**：[v1.0.1-DESIGN.md](v1.0.1-DESIGN.md) 与 [ADR-v1.0.1-trust-resilience.md](ADR-v1.0.1-trust-resilience.md)。
+
+### 5.2 v1.0.2 — DDD 可解释评估与新工具接入（实现候选）
+* **核心目标**：把评分、读会话与训练闭环放回清晰的限界上下文，消除重复公式、缺失即满分、体量奖励和子会话重复计分。
+* **主要特性**：versioned assessment policy 2.0；coverage/原因解释；DeepSeek Harness 与 ZCode 只读 ACL；根任务汇总；跨 policy 比较拒绝。
+* **设计真源**：[v1.0.2-DESIGN.md](v1.0.2-DESIGN.md) 与 [ADR-v1.0.2-assessment-policy-and-root-task.md](ADR-v1.0.2-assessment-policy-and-root-task.md)。
+
+### 5.3 v1.0.3+ — 跨机器快照聚合与团队聚合
 * **核心目标**：打通多设备使用壁垒，为多端工作的程序员和团队提供无摩擦的聚合视图。
 * **主要特性**：
   - **Cross-Machine CLI Aggregator**：在 CLI 中支持 `--sources` 传递多机器缓存路径，合并生成跨设备统一画像。
   - **团队脱敏看板 (Manager Dashboard)**：支持在完全本地化、匿名且脱敏的原则下，合并多个用户的快照 Sidecar，生成团队/部门的常见协作痛点 Top 3 与能力平均基线。
 
-### 5.2 v2.0.0 — AI Coding 教练平台
+### 5.4 v2.0.0 — AI Coding 教练平台
 * **开放平台 API**：允许第三方 AI 工具（如自定义 IDE 脚本、VS Code 插件）通过 API 输入会话包。
 * **插件市场 (Plugin Market)**：支持开发者基于 `Agentic Evidence Graph` 的六维事实，自定义编写规则/LLM 评估插件，扩展六轴评分。
 * **匿名社区基准 (Community Benchmark)**：在用户完全自愿的前提下，允许上传无敏感数据的匿名 sidecar。平台提供对标服务（例如："您的 Agentic 系统化能力处于全球前 30%"）。
 
-### 5.3 v1.5.0 — IDE 实时自检插件
+### 5.5 v1.5.0 — IDE 实时自检插件
 *(注：此处 v1.5.0 为产品规划的功能版本，与缓存 Schema 版本无关)*
 * **实时自检**：在 IDE 的 Chat 面板增加"发送前自检 (Preflight Check)"悬浮提示，在用户点击发送 Prompt 前进行拦截诊断。
 * **偏航预测**：基于用户最近的成长短板，实时预判当前 Prompts 是否存在上下文缺失或偏航风险。
@@ -179,6 +198,8 @@ English version: [PRODUCT_ROADMAP.md](../en/design/PRODUCT_ROADMAP.md)
 
 | 日期 | 产品版本 | 缓存 Schema | 变更概要 |
 |------|---------|-------------|---------|
+| 2026-09-02 | v1.0.2 | 1.0 | **DDD 可解释评估与 reader 扩展（实现候选）**：policy 2.0 单一真源、missing=unavailable、根任务汇总、DeepSeek Harness/ZCode ACL、解释覆盖与跨 policy 拒绝；团队聚合顺延至 v1.0.3+。 |
+| 2026-09-02 | v1.0.1 | 1.0 | **可信与韧性加固（发布候选）**：统一 LLM 隐私边界、OpenCode/status 正确性、原子持久化、snapshot 分层、评分校准与跨平台锁定 CI；跨机器团队聚合顺延至 v1.0.2+。 |
 | 2026-06-09 | v1.0.0 | 1.0 | **有效任务契约与版本策略收口（发布候选）**：报告新增任务契约来源/履约率；验证命令改为关键词匹配；只读侦察豁免目标锁定惩罚；work_focus LLM 跨会话综合；Prompt Coach / i18n 去固定话术；产品与 cache schema 从 1.0 起线；升级后建议 `cache prune` 或重跑 generate。 |
 | 2026-06-07 | v0.8.0（发布收口） | 1.4 | **v0.7.0 / v0.8.0 发布状态对齐**：版本总表与报告内容表中 v0.7/v0.8 由「📅 规划中」转 ✅ 已发布；六轴权重定稿 `14/25/20/20/10/11`；与 README、ARCHITECTURE_PRINCIPLES、DETAILED_DESIGN 同步六轴口径。 |
 | 2026-06-07 | v0.7.0（规划） | 1.4 | **Agentic 操作成熟度体系重构规划**：产品定位更新为"Agentic 操作成熟度评估"；三层成熟度模型；`agentic_system` 升格第六轴（10%）；`intent_clarity` 降权 20%→15%；`execution_driving` 升权 22%→24%；`environmental-recovery` 修复方案；v0.8.0 `collaboration_framing` 预留；新增 [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md)。 |

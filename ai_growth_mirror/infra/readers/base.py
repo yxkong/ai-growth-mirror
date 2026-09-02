@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, Optional
+from typing import Any, TYPE_CHECKING, Iterator, Optional
 
-from ...domain.session.model import SessionRecord, SessionRef
+from ...domain.session.model import SessionRecord
 from ...domain.session.heuristics import (
     CODE_CONTEXT_PATTERNS,
     CONSTRAINT_WORDS,
@@ -26,6 +27,51 @@ from ...domain.session.heuristics import (
 
 if TYPE_CHECKING:
     from ..cache.store import CacheStore
+
+
+@dataclass
+class SessionRef:
+    """Infrastructure handle for one external session source."""
+
+    session_id: str
+    tool_name: str
+    start_time: datetime
+    source_paths: list[Path]
+    source_mtime: float = 0.0
+
+
+@dataclass
+class DeferredSessionRecord(SessionRecord):
+    """Infrastructure-owned lazy materialization state for a domain record."""
+
+    _is_placeholder: bool = field(default=True, init=False, repr=False)
+    _raw_ref: Optional[SessionRef] = field(default=None, init=False, repr=False)
+    _adapter: Optional[Any] = field(default=None, init=False, repr=False)
+
+    def ensure_parsed(self, cache: Optional["CacheStore"] = None) -> None:
+        if not self._is_placeholder or self._adapter is None or self._raw_ref is None:
+            return
+        real_record = self._adapter.parse_session(self._raw_ref)
+        for key, value in real_record.__dict__.items():
+            if key not in {"_is_placeholder", "_raw_ref", "_adapter"}:
+                setattr(self, key, value)
+        self._is_placeholder = False
+        self._adapter._enrich_prompt_signals(self)
+        self._adapter._enrich_agentic_signals(self)
+        self._adapter._enrich_advanced_features(self)
+        self._adapter._enrich_task_contract_signals(self)
+        if cache is not None:
+            cache.write_record(self)
+
+
+def materialize_deferred_session(
+    session: SessionRecord,
+    cache: Optional["CacheStore"] = None,
+) -> None:
+    """Materialize infrastructure-owned lazy state without polluting the domain DTO."""
+    if not isinstance(session, DeferredSessionRecord):
+        raise TypeError("session_is_not_deferred")
+    session.ensure_parsed(cache)
 
 
 class BaseSessionAdapter(ABC):
@@ -132,13 +178,12 @@ class BaseSessionAdapter(ABC):
                 if cache is not None:
                     # Lazy loading placeholder
                     project_path = self._quick_extract_project_path(raw)
-                    session = SessionRecord(
+                    session = DeferredSessionRecord(
                         session_id=raw.session_id,
                         tool_name=self.tool_name,
                         start_time=raw.start_time.isoformat(),
                         project_path=project_path,
                     )
-                    session._is_placeholder = True
                     session._raw_ref = raw
                     session._adapter = self
                     session._source_mtime = raw.source_mtime
@@ -154,13 +199,13 @@ class BaseSessionAdapter(ABC):
                     self._enrich_agentic_signals(session)
 
             # Enrich advanced features only for fully-loaded records.
-            if not session._is_placeholder:
+            if not getattr(session, "_is_placeholder", False):
                 self._enrich_advanced_features(session)
                 self._enrich_task_contract_signals(session)
             if since:
                 # Determine the session's last-activity timestamp.
                 last_activity = raw.start_time
-                if not session._is_placeholder:
+                if not getattr(session, "_is_placeholder", False):
                     if session.end_time:
                         try:
                             last_activity = parse_iso(session.end_time)

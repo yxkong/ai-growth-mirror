@@ -1,28 +1,10 @@
-"""Session domain models — SessionRef and SessionRecord."""
+"""Pure normalized session domain model."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
-from pathlib import Path
-from typing import Optional, Any
+from dataclasses import dataclass, field, asdict, fields
+from typing import Optional
 
 from ..cache_schema import RECORD_SCHEMA_VERSION
-
-@dataclass
-class SessionRef:
-    """Lightweight session handle used for lazy loading and date filtering.
-
-    `source_mtime` is a **content revision stamp** (not a calendar TTL): per-file
-    ``stat().st_mtime`` for single-session logs, or a per-session timestamp when
-    many sessions share one store (e.g. Cursor DB ``updatedAt``).  The cache
-    layer invalidates only when this stamp moves forward.  Defaults to 0.0.
-    """
-    session_id: str
-    tool_name: str
-    start_time: datetime
-    source_paths: list[Path]
-    source_mtime: float = 0.0
-
 
 @dataclass
 class SessionRecord:
@@ -167,45 +149,19 @@ class SessionRecord:
 
     # v2.3+: max(stat().st_mtime) across source_paths at parse time.  Used by
     # CacheStore.load_*_if_fresh to invalidate cached entries when the source
-    # JSONL has grown (session resumed, new turns appended).  0.0 means
+    # content revision changes. 0.0 means
     # "unknown / never set" — cache layer treats as always stale.
     _source_mtime: float = 0.0
 
-    # Transient fields for lazy parsing (never cached, never serialized)
-    _is_placeholder: bool = field(default=False, init=False, repr=False)
-    _raw_ref: Optional[Any] = field(default=None, init=False, repr=False)
-    _adapter: Optional[Any] = field(default=None, init=False, repr=False)
-
-    def ensure_parsed(self, cache: Optional[Any] = None) -> None:
-        if not self._is_placeholder:
-            return
-        if self._adapter is None or self._raw_ref is None:
-            return
-        real_record = self._adapter.parse_session(self._raw_ref)
-        for k, v in real_record.__dict__.items():
-            if k not in ("_is_placeholder", "_raw_ref", "_adapter"):
-                setattr(self, k, v)
-        self._is_placeholder = False
-        self._adapter._enrich_prompt_signals(self)
-        self._adapter._enrich_agentic_signals(self)
-        self._adapter._enrich_advanced_features(self)
-        self._adapter._enrich_task_contract_signals(self)
-        if cache is not None:
-            try:
-                cache.write_record(self)
-            except Exception:
-                pass
-
     def to_dict(self) -> dict:
-        d = asdict(self)
+        # Serialize the domain contract only. Infrastructure subclasses may
+        # carry lazy materialization state that must never enter the cache DTO.
+        d = {item.name: getattr(self, item.name) for item in fields(SessionRecord)}
         d["SCHEMA_VERSION"] = self.SCHEMA_VERSION
         d.pop("source_machine", None)  # transient — re-derived at runtime, never cached
-        d.pop("_is_placeholder", None)
-        d.pop("_raw_ref", None)
-        d.pop("_adapter", None)
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> "SessionRecord":
-        d = {k: v for k, v in d.items() if k not in {"SCHEMA_VERSION", "_is_placeholder", "_raw_ref", "_adapter"}}
+        d = {k: v for k, v in d.items() if k != "SCHEMA_VERSION"}
         return cls(**d)

@@ -10,11 +10,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
-from ...domain.session.model import SessionRef, SessionRecord
+from ...domain.session.model import SessionRecord
 from ...domain.signals.taxonomy import InteractionKind
 from ...domain.signals.tooling import compute_tier_counts, normalize_tool_name
 from .base import (
     BaseSessionAdapter,
+    SessionRef,
     EXEC_TOOL_NAMES,
     READ_TOOL_NAMES,
     SKILL_READ_TOOL_NAMES,

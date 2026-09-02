@@ -1,8 +1,13 @@
 ﻿from pathlib import Path
 
 from ai_growth_mirror.domain.session.model import SessionRecord
+from ai_growth_mirror.infra.readers.base import DeferredSessionRecord
 from ai_growth_mirror.domain.signals.model import SessionRead
-from ai_growth_mirror.application.orchestrator import GenerateReportRequest, generate_report_artifacts
+from ai_growth_mirror.application.orchestrator import (
+    GenerateReportRequest,
+    _parse_placeholder_sessions,
+    generate_report_artifacts,
+)
 
 
 def _make_session(session_id: str) -> SessionRecord:
@@ -63,6 +68,47 @@ def _make_facets(session_id: str) -> SessionRead:
         capability_depth="incidental",
         work_style="plan_driven",
     )
+
+
+def test_parse_placeholder_sessions_skips_only_broken_session(caplog):
+    import logging
+
+    class Adapter:
+        @staticmethod
+        def parse_session(raw):
+            if raw == "broken":
+                raise ValueError("invalid session payload")
+            return _make_session(str(raw))
+
+        @staticmethod
+        def _enrich_prompt_signals(_session):
+            pass
+
+        @staticmethod
+        def _enrich_agentic_signals(_session):
+            pass
+
+        @staticmethod
+        def _enrich_advanced_features(_session):
+            pass
+
+        @staticmethod
+        def _enrich_task_contract_signals(_session):
+            pass
+
+    sessions = []
+    for session_id in ("valid", "broken"):
+        session = DeferredSessionRecord(session_id=session_id, tool_name="codex")
+        session._raw_ref = session_id
+        session._adapter = Adapter()
+        sessions.append(session)
+
+    with caplog.at_level(logging.WARNING):
+        parsed = _parse_placeholder_sessions(sessions, cache=None)
+
+    assert [session.session_id for session in parsed] == ["valid"]
+    assert "codex/broken" in caplog.text
+    assert "invalid session payload" in caplog.text
 
 
 def test_generate_report_artifacts_personal_heuristic(monkeypatch, tmp_path: Path):

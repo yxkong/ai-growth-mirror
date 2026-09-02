@@ -1,8 +1,9 @@
 ---
 title: AI Growth Mirror Personal Detailed Design
 domain: growth_mirror
-status: canonical
-updated_at: 2026-06-06
+status: mirror
+canonical_path: docs/design/AI_GROWTH_MIRROR_PERSONAL_DETAILED_DESIGN.md
+updated_at: 2026-09-02
 score_target: 9.9
 ---
 

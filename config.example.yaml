@@ -40,6 +40,7 @@ llm:
 report:
   language: zh                  # zh | en
   # output_dir: .               # 报告输出目录，默认当前目录
+  weekly_session_target: 8      # status 本周样本目标，必须为正整数
 
   # 会话质量过滤：低于此等级的会话不参与本期分析
   #   low    : 包含所有会话（含 1 条消息且无任何输出的"无效对话"）

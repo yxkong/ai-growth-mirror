@@ -154,6 +154,7 @@ class ReportConfig:
     # session skill/slash usage.
     local_method_frameworks: list[str] = field(default_factory=list)
     min_quality: str = "medium"
+    weekly_session_target: int = 8
     # Optional scope filters (same semantics as CLI --repo/--dir/--keyword).
     scope_repos: list[str] = field(default_factory=list)
     scope_dirs: list[Path] = field(default_factory=list)
@@ -250,6 +251,11 @@ def _apply_yaml(cfg: GrowthMirrorConfig, data: dict) -> None:
             ]
         if report.get("min_quality"):
             cfg.report.min_quality = str(report.get("min_quality") or "medium")
+        if "weekly_session_target" in report:
+            weekly_target = report["weekly_session_target"]
+            if isinstance(weekly_target, bool) or not isinstance(weekly_target, int) or weekly_target < 1:
+                raise ValueError("report.weekly_session_target must be a positive integer")
+            cfg.report.weekly_session_target = weekly_target
         if report.get("scope_repos"):
             cfg.report.scope_repos = [str(item).strip() for item in report.get("scope_repos", []) if item]
         if report.get("scope_dirs"):

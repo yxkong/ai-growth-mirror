@@ -1,6 +1,5 @@
 from ai_growth_mirror.domain.growth.model import AgentAssetStats
 from ai_growth_mirror.domain.growth.scorer import (
-    _apply_asset_floor,
     _compute_growth_level,
     aggregate,
     format_growth_level_score_range,
@@ -20,6 +19,32 @@ def test_aggregate_single_session():
     st = aggregate([s], [], tool_name="t1")
     assert st.session_count == 1
     assert st.total_user_messages == s.user_message_count
+
+
+def test_delegation_and_recovery_scores_are_bound_to_opportunity_sessions():
+    friction = make_session(session_id="friction")
+    friction.uses_subagent = True
+    friction.subagent_invocation_count = 3
+    friction.tool_errors = 1
+    friction.files_modified = 1
+    clean = make_session(session_id="clean")
+    clean.files_modified = 1
+    clean.has_verification_behavior = True
+    reads = [
+        SessionRead(session_id="friction", delivery_outcome="partially_achieved"),
+        SessionRead(session_id="clean", delivery_outcome="fully_achieved"),
+    ]
+
+    stats = aggregate([friction, clean], reads)
+    axes = {axis.key: axis for axis in stats.axis_assessments}
+    execution = {item.key: item for item in axes["execution_driving"].components}
+    recovery = {item.key: item for item in axes["adaptive_recovery"].components}
+
+    assert execution["delegation_success"].observation.value == 30.0
+    assert execution["delegation_success"].observation.evidence_count == 1
+    assert recovery["recovery_success"].observation.value == 30.0
+    assert recovery["recovery_success"].observation.evidence_count == 1
+    assert recovery["post_friction_verification"].observation.value == 0.0
 
 
 def test_execution_driving_rewards_reusable_asset_authoring():
@@ -71,72 +96,6 @@ def test_execution_driving_rewards_reusable_asset_authoring():
     assert subs["execution_driving"] > 0
 
 
-def test_apply_asset_floor_rewards_smaller_skill_libraries():
-    stats = aggregate([], [], tool_name="demo")
-    stats.agent_asset = AgentAssetStats(skill_files_count=15, prompt_files_count=8, rule_files_count=5, total_asset_files=28, roots_scanned=1)
-    _apply_asset_floor(stats)
-    assert stats.workflow_build_moderate_count >= 2
-    assert stats.workflow_build_substantial_count >= 1
-
-
-def test_apply_asset_floor_skips_when_no_asset_data():
-    """No-asset profile: floor must not synthesize evidence."""
-    stats = aggregate([], [], tool_name="demo")
-    stats.agent_asset = AgentAssetStats()  # has_data == False
-    _apply_asset_floor(stats)
-    assert stats.workflow_build_moderate_count == 0
-    assert stats.workflow_build_substantial_count == 0
-
-
-def test_apply_asset_floor_substantial_kicks_in_at_30_skills():
-    stats = aggregate([], [], tool_name="demo")
-    stats.agent_asset = AgentAssetStats(
-        skill_files_count=35,
-        rule_files_count=8,
-        total_asset_files=43,
-        roots_scanned=1,
-    )
-    _apply_asset_floor(stats)
-    assert stats.workflow_build_substantial_count >= 3
-
-
-def test_asset_maturity_bonus_caps_at_three():
-    """Bonus saturates so a huge asset library can't single-handedly push to L5."""
-    from ai_growth_mirror.domain.growth.scorer import _asset_maturity_bonus
-
-    stats = aggregate([], [], tool_name="demo")
-    stats.agent_asset = AgentAssetStats(
-        skill_files_count=120,
-        prompt_files_count=80,
-        rule_files_count=50,
-        total_asset_files=250,
-        roots_scanned=2,
-    )
-    assert _asset_maturity_bonus(stats) == 3.0
-
-
-def test_asset_maturity_bonus_zero_when_no_assets():
-    from ai_growth_mirror.domain.growth.scorer import _asset_maturity_bonus
-
-    stats = aggregate([], [], tool_name="demo")
-    stats.agent_asset = AgentAssetStats()
-    assert _asset_maturity_bonus(stats) == 0.0
-
-
-def test_asset_maturity_bonus_partial_credits_for_skills_and_rules():
-    from ai_growth_mirror.domain.growth.scorer import _asset_maturity_bonus
-
-    stats = aggregate([], [], tool_name="demo")
-    stats.agent_asset = AgentAssetStats(
-        skill_files_count=12,
-        rule_files_count=6,
-        total_asset_files=18,
-        roots_scanned=1,
-    )
-    # 1.5 from skill+rule combo, no prompt bonus, no >=30 skill bonus
-    assert _asset_maturity_bonus(stats) == 1.5
-
-
 def test_agentic_system_inventory_alone_is_weak_evidence():
     sessions = [make_session(session_id=f"s{i}") for i in range(20)]
     stats = aggregate(
@@ -156,7 +115,7 @@ def test_agentic_system_inventory_alone_is_weak_evidence():
     assert stats.skill_usage_session_rate == 0.0
     assert stats.workflow_fingerprint_session_rate == 0.0
     assert stats.local_method_framework_session_rate == 0.0
-    assert stats.agentic_system_score < 20
+    assert stats.agentic_system_score == 0
     assert stats.growth_level != "L5"
 
 
@@ -290,4 +249,3 @@ def test_goal_locking_speed_rewards_active_clarification():
     # Since r1 active_clarification is True, s1 turns (4) is treated as max(1, 4-1) = 3
     # A turn count of 3 yields 100.0 points. s2 is read-only and excluded.
     assert st.goal_locking_speed == 100.0
-

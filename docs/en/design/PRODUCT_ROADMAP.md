@@ -1,4 +1,12 @@
-Chinese version: [PRODUCT_ROADMAP.md](../../design/PRODUCT_ROADMAP.md)
+---
+title: AI Growth Mirror Product Roadmap
+domain: growth_mirror
+status: mirror
+canonical_path: docs/design/PRODUCT_ROADMAP.md
+updated_at: 2026-09-02
+---
+
+Chinese canonical version: [PRODUCT_ROADMAP.md](../../design/PRODUCT_ROADMAP.md)
 
 # AI Growth Mirror - Product Roadmap
 
@@ -44,7 +52,9 @@ Product version line follows cache Schema for stable iteration:
 | **v0.7.0** | 1.4 | **Agentic maturity system refactor** (six axes + three-layer model + environmental-recovery) | Released |
 | **v0.8.0** | 1.4 | `collaboration_framing` redefinition + `goal_locking_speed` signal | Released |
 | **v1.0.0** | 1.0 | Effective Task Contract, read-only recon exemption, keyword verification, work_focus LLM synthesis, evidence-based Prompt Coach; product and Schema restart from 1.0 | Released |
-| **v1.0.1** | 1.0 | Multi-device snapshot aggregation and team aggregate dashboard | Planned |
+| **v1.0.1** | 1.0 | LLM privacy boundary, OpenCode/status correctness, atomic persistence, strict layering, scoring calibration, and cross-platform CI | Release candidate |
+| **v1.0.2** | 1.0 | DDD explainable assessment policy 2.0, root-task normalization, DeepSeek Harness/ZCode readers | Implementation candidate |
+| **v1.0.3+** | 1.0 | Multi-device snapshot aggregation and team aggregate dashboard | Planned |
 | **v2.0.0+** | 2.0 | Plugin market and open platform API | Long-term |
 
 ---
@@ -156,20 +166,30 @@ Layer 1: Human starts collaboration -> intent_clarity (down to 15%)
 
 ---
 
-## 5. Long-Term Plan (v1.0.1+)
+## 5. Current Hardening and Long-Term Plan (v1.0.2+)
 
-### 5.1 v1.0.1 - Cross-Machine Snapshot Aggregation and Team Aggregate
+### 5.1 v1.0.1 - Trust and Resilience Hardening (Release Candidate)
+* **Goal**: Close privacy, correctness, persistence, layering, and release-evidence gaps while keeping Cache Schema 1.0 and public CLI names stable.
+* **Features**: Unified outbound LLM redaction and prompt-injection isolation; OpenCode content revisions and one-pass collection; multi-machine `status`; atomic cache/report/snapshot writes; scoring calibration fixtures; Windows/Linux and Python 3.12/3.13 CI.
+* **Design authority**: [v1.0.1-DESIGN.md](v1.0.1-DESIGN.md) and [ADR-v1.0.1-trust-resilience.md](ADR-v1.0.1-trust-resilience.md).
+
+### 5.2 v1.0.2 - DDD Explainable Assessment and New Readers (Implementation Candidate)
+* **Goal**: place scoring, session reading, and the learning loop in explicit bounded contexts; remove duplicate formulas, missing-as-perfect behavior, raw-volume rewards, and child-session double counting.
+* **Features**: versioned assessment policy 2.0; coverage and reason explanations; read-only DeepSeek Harness and ZCode ACLs; root-task roll-up; cross-policy comparison rejection.
+* **Design authority**: [v1.0.2-DESIGN.md](v1.0.2-DESIGN.md) and [ADR-v1.0.2-assessment-policy-and-root-task.md](ADR-v1.0.2-assessment-policy-and-root-task.md).
+
+### 5.3 v1.0.3+ - Cross-Machine Snapshot Aggregation and Team Aggregate
 * **Goal**: Remove multi-device barriers; unified view for multi-endpoint developers and teams.
 * **Features**:
   - **Cross-Machine CLI Aggregator**: `--sources` multiple machine cache paths; merged cross-device profile.
   - **Manager Dashboard**: Fully local, anonymous, redacted merge of user snapshot Sidecars; team Top 3 pain points and capability baseline.
 
-### 5.2 v2.0.0 - AI Coding Coach Platform
+### 5.4 v2.0.0 - AI Coding Coach Platform
 * **Open Platform API**: Third-party AI tools (IDE scripts, VS Code plugins) submit session packets via API.
 * **Plugin Market**: Custom rules/LLM plugins on six-dimension Agentic Evidence Graph facts; extend six-axis scoring.
 * **Community Benchmark**: Voluntary anonymous sidecar upload; benchmarking (e.g. "Agentic Systemization in global top 30%").
 
-### 5.3 v1.5.0 - IDE Real-Time Preflight Plugin
+### 5.5 v1.5.0 - IDE Real-Time Preflight Plugin
 *(v1.5.0 is a planned feature version, independent of cache Schema)*
 * **Real-time preflight**: IDE Chat "Preflight Check" before send; intercept diagnosis.
 * **Drift prediction**: From recent gaps, predict missing context or drift risk in current Prompts.
@@ -180,6 +200,8 @@ Layer 1: Human starts collaboration -> intent_clarity (down to 15%)
 
 | Date | Product Version | Cache Schema | Summary |
 |------|---------|-------------|---------|
+| 2026-09-02 | v1.0.2 | 1.0 | **DDD explainable assessment and reader expansion (implementation candidate)**: policy 2.0 single truth, missing=unavailable, root-task roll-up, DeepSeek Harness/ZCode ACLs, coverage explanations, and cross-policy rejection; team aggregation moves to v1.0.3+. |
+| 2026-09-02 | v1.0.1 | 1.0 | **Trust and resilience hardening (release candidate)**: unified LLM privacy boundary, OpenCode/status correctness, atomic persistence, snapshot layering, scoring calibration, and locked cross-platform CI; team aggregation moves to v1.0.2+. |
 | 2026-06-09 | v1.0.0 | 1.0 | **Effective Task Contract and version strategy (release candidate)**: report task contract source/fulfillment; keyword verification; read-only recon exemption; work_focus LLM cross-session synthesis; evidence-based Prompt Coach / i18n; product and cache schema baseline 1.0; run `cache prune` or regenerate after upgrade. |
 | 2026-06-07 | v0.8.0 (release) | 1.4 | **v0.7/v0.8 release alignment**: roadmap tables v0.7/v0.8 planned -> released; six-axis weights finalized 14/25/19/19/10/13; sync README, ARCHITECTURE_PRINCIPLES, DETAILED_DESIGN. |
 | 2026-06-07 | v0.7.0 (plan) | 1.4 | **Agentic maturity refactor plan**: positioning "Agentic operating maturity"; three-layer model; `agentic_system` sixth axis (10%); `intent_clarity` 20%->15%; `execution_driving` 22%->24%; environmental-recovery fix; v0.8.0 collaboration_framing reserved; add [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md). |

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ai_growth_mirror.domain.session.model import SessionRef
+from ai_growth_mirror.infra.readers.base import SessionRef
 from ai_growth_mirror.infra.readers.codex import CodexAdapter
 
 

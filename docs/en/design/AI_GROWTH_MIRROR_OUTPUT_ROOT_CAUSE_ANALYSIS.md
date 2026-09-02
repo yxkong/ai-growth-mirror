@@ -1,8 +1,9 @@
 ---
 title: AI Growth Mirror Output Root Cause Analysis
 domain: growth_mirror
-status: supporting
-updated_at: 2026-06-06
+status: mirror
+canonical_path: docs/design/AI_GROWTH_MIRROR_OUTPUT_ROOT_CAUSE_ANALYSIS.md
+updated_at: 2026-09-02
 ---
 
 Chinese version: [AI_GROWTH_MIRROR_OUTPUT_ROOT_CAUSE_ANALYSIS.md](../../design/AI_GROWTH_MIRROR_OUTPUT_ROOT_CAUSE_ANALYSIS.md)

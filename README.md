@@ -2,7 +2,7 @@
 
 English README: [en/README.md](./en/README.md)
 
-[![Release](https://img.shields.io/badge/Release-v1.0.0-blue.svg)](./pyproject.toml)
+[![Release](https://img.shields.io/badge/Release-v1.0.2-blue.svg)](./pyproject.toml)
 [![Schema Version](https://img.shields.io/badge/Schema-v1.0-blue.svg)](./ai_growth_mirror/domain/cache_schema.py)
 [![Python Version](https://img.shields.io/badge/python-3.12+-green.svg)](./pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](./LICENSE)
@@ -54,23 +54,23 @@ AI Growth Mirror 拒绝无意义的单纯统计（如消息数、敲代码行数
 | 协作能力轴 | 权重 | 衡量内容 |
 |-----------|:----:|---------|
 | **协作框定** (`collaboration_framing`) | **14%** | 协作启动质量，包含目标锁定速度、主动澄清率与有效任务契约（v1.0.0升级） |
-| **协作驱动** (`execution_driving`) | **25%** | 自主工具链长度、子代理编排与人机协作节奏（Agentic 主战场）|
-| **实现下潜** (`implementation_depth`) | **19%** | 文件修改量、代码验证覆盖率与实现边界控制 |
+| **协作驱动** (`execution_driving`) | **25%** | 连续自主推进、结构化工作流，以及产生已验证结果的委派（Agentic 主战场）|
+| **实现下潜** (`implementation_depth`) | **19%** | 实现会话、代码验证、任务达成与有上限的文件覆盖；原始文件量不直接加分 |
 | **交付收口** (`delivery_closure`) | **19%** | 任务完成率、验证行为、测试/构建/脚本验证与契约履约表现 |
-| **恢复推进** (`adaptive_recovery`) | **10%** | AI 偏航或报错时，纠偏和回到正轨的质量 |
-| **Agentic 系统化** (`agentic_system`) | **13%** | Skill/Workflow/MCP/Subagent 等方法资产化能力 |
+| **恢复推进** (`adaptive_recovery`) | **10%** | 只在真实偏航或报错机会出现时，衡量纠偏和回到正轨的质量 |
+| **Agentic 系统化** (`agentic_system`) | **13%** | Skill/Workflow/MCP/Subagent 等方法能否形成复用且已验证的结果 |
 
-> **为什么这样调整**：见 [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md)、[docs/design/v0.8.0-DESIGN.md](docs/design/v0.8.0-DESIGN.md)、[docs/design/v0.8.1-DESIGN.md](docs/design/v0.8.1-DESIGN.md) 与 [docs/design/v1.0.0-DESIGN.md](docs/design/v1.0.0-DESIGN.md)
+> **为什么这样调整**：见 [v1.0.2 可解释评估设计](docs/design/v1.0.2-DESIGN.md)。评估政策 `2.0` 将缺失证据标记为不可用并显示覆盖率；token、commit、工具、模型和子代理数量仅作上下文，不直接奖励成熟度。
 
 ---
 
-## ✨ 核心亮点 (v1.0.0)
+## ✨ 核心亮点 (v1.0.2)
 
 ### 1. 🧭 Agentic 操作成熟度六轴评估
 从 v0.7 起，系统不再围绕"Prompt 写得好不好"做单点判断，而是用 **协作框定、协作驱动、实现下潜、交付收口、恢复推进、Agentic 系统化** 六轴评估真实协作成熟度。v0.8 将 `collaboration_framing` 定稿为正式轴，并把协作启动质量从"首轮完备度"扩展到多轮目标锁定能力。
 
 ### 2. 🎯 目标锁定速度 (Goal Locking Speed)
-v0.8 新增 `goal_locking_speed`：通过 `turns_until_first_file_write` 观察用户能否快速驱动 AI 锁定目标、边界与可交付路径。支持精细工具流的 reader 会记录首次写入前的用户轮数；缺少工具流的历史会话会使用明确 fallback，避免把"没有信号"伪装成深度判断。
+v0.8 新增 `goal_locking_speed`：通过 `turns_until_first_file_write` 观察用户能否快速驱动 AI 锁定目标、边界与可交付路径。支持精细工具流的 reader 会记录首次写入前的用户轮数；缺少工具流时该分量标记为**不可用**，不会猜测或伪造分数。
 
 ### 3. 🕸️ Agentic Evidence Graph + Action Contract
 报告底层会构建六维证据图：任务意图、方法使用、上下文、执行路径、收口状态与人工干预。训练建议不再是固定文案，而是由真实短板、纠偏模式和证据图生成 Rule / Skill / Workflow / Checklist 形式的 Action Contract。
@@ -82,13 +82,18 @@ v1.0.0 起，系统会区分**用户显式契约**、**Skill/Rule/Workflow 契�
 - **成长轨迹**：六轴评分 + 摩擦变化的逐期 delta，SVG 趋势折线 + 变化箭头
 - **CLI `status`**：`ai-growth-mirror status` 即时显示样本进度 + 本周练习提示（< 100ms）
 
-### 5. 🔌 9 款主流 AI 工具一键适配
-一键扫描，自动识别并聚合以下 9 款 AI 工具：
-- **国际主流**：Claude Code、Codex、Cursor、Gemini、Cline、Kilo Code
-- **国产先锋**：CodeBuddy、Trae、QCoder
+### 5. 🔌 12 款主流 AI 工具一键适配
+一键扫描，自动识别并聚合以下 12 款 AI 工具：
+- **国际主流**：Claude Code、Codex、Cursor、Gemini、OpenCode、Cline、Kilo Code、DeepSeek Harness
+- **国产先锋**：CodeBuddy、Trae、QCoder、ZCode
 
-### 6. 🔒 本地优先，隐私可控
-默认使用本地规则引擎离线分析。即使在 `llm` 模式下引入 LLM 语义诊断，也仅发送脱敏后的会话摘要，而非完整代码原文。运行 `generate --redact` 会自动脱敏 HTML 报告、Sidecar、分享卡与快照中的路径和代码隐私。
+DeepSeek Harness 与 ZCode 都按用户可见**根任务**归一：子会话证据只向根任务汇总一次，避免 Agent/Subagent 重复计分。未知版本或缺表会明确拒绝读取；ZCode 不读取包含请求/响应正文的 model-I/O 文件。
+
+### 6. 🧭 可解释评估政策
+每个轴公开 policy 版本、证据覆盖率、可用分量、主要支撑与缺口原因。用户不仅知道“分数是什么”，也能看到“为什么”“缺了什么证据”“下一期该如何验证”；跨 policy 快照不计算伪精确 delta。
+
+### 7. 🔒 本地优先，隐私可控
+默认使用本地规则引擎离线分析；`--no-llm` 可保证分析阶段不发起外部 LLM 请求。启用 `llm` 模式时，只会发送经过统一边界裁剪与规则脱敏的有限会话摘录，而非完整代码文件；系统会遮盖常见密钥、邮箱和本机路径，但无法保证识别任意业务机密。`generate --redact` 另用于脱敏 HTML 报告、Sidecar、分享卡与快照中的路径和代码隐私。
 
 ---
 
@@ -213,6 +218,10 @@ ai-growth-mirror --version
 对于想要深度定制、贡献 Adapter 或调试算法的开发者，请详细参阅我们的 Canonical 文档（英文版见 [en/README.md](./en/README.md) 与 [docs/en/README.md](./docs/en/README.md)）：
 * [分层依赖与架构总纲](./docs/design/ARCHITECTURE_PRINCIPLES.md)
 * [产品路线图](./docs/design/PRODUCT_ROADMAP.md)
+* [v1.0.2 DDD 可解释评估与新工具接入](./docs/design/v1.0.2-DESIGN.md)
+* [ADR：v1.0.2 单一评估政策与根任务反腐层](./docs/design/ADR-v1.0.2-assessment-policy-and-root-task.md)
+* [v1.0.1 可信与韧性加固](./docs/design/v1.0.1-DESIGN.md)
+* [ADR：v1.0.1 可信边界与持久化决策](./docs/design/ADR-v1.0.1-trust-resilience.md)
 * [v1.0.0 有效任务契约与 Agentic 报告校准](./docs/design/v1.0.0-DESIGN.md)
 * [v0.8.1 协作效能公允度升级与冷启动性能优化](./docs/design/v0.8.1-DESIGN.md)
 * [v0.8.0 协作框定与目标锁定速度设计](./docs/design/v0.8.0-DESIGN.md)

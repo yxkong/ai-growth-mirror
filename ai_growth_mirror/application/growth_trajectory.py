@@ -9,6 +9,7 @@ from ..domain.growth.model import GrowthProfile
 from ..domain.signals.model import SessionRead
 from ..domain.snapshots.comparison import compare_snapshot_sources
 from ..domain.snapshots.model import SnapshotCoverage, SnapshotMethodAssets, SnapshotPromptQuality, SnapshotSource
+from ..domain.snapshots.projection import build_actionable_friction_counts, topic_from_friction
 from ..domain.snapshots.trajectory import (
     ACTIONABLE_FRICTION_ORDER,
     assess_snapshot_point_confidence,
@@ -248,7 +249,10 @@ def build_runtime_snapshot_source(
         key: round(float(value), 1)
         for key, value in (stats.pq_avg_dimensions or {}).items()
     }
-    actionable_friction_counts = _build_actionable_friction_counts(stats)
+    actionable_friction_counts = build_actionable_friction_counts(
+        pq_deficits=stats.pq_deficit_counts or {},
+        friction_type_counts=stats.friction_type_counts or {},
+    )
     source = SnapshotSource(
         snapshot_id="current",
         created_at=created_at,
@@ -261,6 +265,7 @@ def build_runtime_snapshot_source(
         strongest_axis_key=strongest,
         weakest_axis_key=weakest,
         axis_scores={item.key: float(item.score) for item in capability.dimensions},
+        assessment_policy_version=stats.assessment_policy_version,
         prompt_quality_dimensions=prompt_quality_dimensions,
         actionable_friction_counts=actionable_friction_counts,
         prompt_quality=SnapshotPromptQuality(
@@ -980,7 +985,7 @@ def _build_runtime_evidence(
         for signal in session_read.resistance_signals[:4]:
             if signal.description:
                 _push(rows, "friction", signal.description)
-                topic = _topic_from_friction(signal.category)
+                topic = topic_from_friction(signal.category)
                 if topic:
                     _push(rows, topic, signal.description)
         for signal in session_read.momentum_signals[:3]:
@@ -1002,38 +1007,6 @@ def _build_runtime_evidence(
         if exemplar.technique:
             _push(rows, "method_assets", exemplar.technique)
     return rows
-
-
-def _build_actionable_friction_counts(stats: GrowthProfile) -> dict[str, int]:
-    pq_deficits = stats.pq_deficit_counts or {}
-    friction_counts = stats.friction_type_counts or {}
-    return {
-        "vague_request": int(pq_deficits.get("vague-request", 0) or 0) + int(friction_counts.get("fuzzy-intent", 0) or 0),
-        "missing_context": int(pq_deficits.get("missing-context", 0) or 0) + int(friction_counts.get("missing-context", 0) or 0) + int(friction_counts.get("context-gap", 0) or 0),
-        "scope_drift": int(pq_deficits.get("scope-drift", 0) or 0) + int(friction_counts.get("scope-creep", 0) or 0) + int(friction_counts.get("goal-drift", 0) or 0),
-        "missing_acceptance_criteria": int(pq_deficits.get("missing-acceptance-criteria", 0) or 0) + int(friction_counts.get("missing-acceptance-criteria", 0) or 0) + int(friction_counts.get("incomplete-output", 0) or 0),
-        "unclear_correction": int(pq_deficits.get("unclear-correction", 0) or 0) + int(friction_counts.get("off-track", 0) or 0) + int(friction_counts.get("outdated-context", 0) or 0),
-    }
-
-
-def _topic_from_friction(category: str) -> str:
-    return {
-        "ambiguous-request": "collaboration_framing",
-        "context-confusion": "collaboration_framing",
-        "context-gap": "collaboration_framing",
-        "fuzzy-intent": "collaboration_framing",
-        "goal-drift": "adaptive_recovery",
-        "incomplete-output": "delivery_closure",
-        "missing-acceptance-criteria": "delivery_closure",
-        "missing-context": "collaboration_framing",
-        "off-track": "adaptive_recovery",
-        "outdated-context": "adaptive_recovery",
-        "recurring-pattern": "adaptive_recovery",
-        "reference-gap": "implementation_depth",
-        "repetition": "execution_driving",
-        "scope-creep": "execution_driving",
-        "tool-ceiling": "implementation_depth",
-    }.get(category, "")
 
 
 def _push(rows: dict[str, list[str]], key: str, value: str) -> None:

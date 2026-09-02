@@ -47,6 +47,37 @@ radar_axes:
     tooltip: "score {score} · skill usage {skill_usage_pct}% · structured workflows {structured_pct}% · asset creation {asset_authoring_pct}%"
     gap_reason: "Agentic System is weak: try using skills, workflows, or MCP configs to capture repeatable cooperation steps."
 
+assessment_explanation:
+  template: "policy {policy}; evidence coverage {coverage}%; main support: {support}; improve next: {gap}"
+  no_data: "policy {policy}; there is not enough opportunity- or outcome-based evidence, so this axis is neither zero nor perfect"
+  component_labels:
+    effective_contract: "task contract"
+    context_grounding: "context grounding"
+    goal_locking: "goal locking"
+    active_clarification: "active clarification"
+    autonomous_chain: "autonomous chain"
+    structured_workflow: "structured workflow"
+    verified_continuation: "verified continuation"
+    delegation_success: "delegation outcome"
+    implementation_sessions: "real implementation"
+    code_verification: "code verification"
+    fully_achieved: "goal achievement"
+    files_per_session: "bounded change breadth"
+    verification: "verification closure"
+    tests: "test evidence"
+    contract_compliance: "contract compliance"
+    recovery_success: "successful recovery"
+    correction_quality: "correction quality"
+    post_friction_verification: "post-friction verification"
+    skill_outcome: "skill outcome"
+    workflow_outcome: "workflow outcome"
+    structured_outcome: "structured outcome"
+    workflow_reuse: "method reuse"
+    asset_authoring: "asset authoring outcome"
+    assetized_outcome: "assetized outcome"
+    advanced_feature_outcome: "advanced-feature outcome"
+    method_saturation: "method coverage"
+
 growth_gaps:
   framing_gap:
     label: "Collaboration framing gap"

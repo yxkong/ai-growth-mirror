@@ -628,10 +628,10 @@ class TestHumanCostTrend:
 
     def test_snapshot_source_from_payloads_extracts_human_intervention_rate(self):
         """Verify the snapshot infra layer reads human_intervention_session_rate from stats."""
-        from ai_growth_mirror.infra.snapshots import _snapshot_source_from_payloads  # noqa: F401
+        from ai_growth_mirror.infra.snapshots import snapshot_source_from_payloads
         # This is an internal function test — verify it exists and is callable
         import inspect
-        sig = inspect.signature(_snapshot_source_from_payloads)
+        sig = inspect.signature(snapshot_source_from_payloads)
         assert "profile" in sig.parameters
         assert "stats" in sig.parameters or "report" in sig.parameters
 
@@ -846,7 +846,7 @@ class TestReviewRegressions:
         assert "missing_context" not in joined.lower()
 
     def test_old_snapshot_compat(self):
-        """Old v0.6 5-axis snapshots compared with v0.7 6-axis snapshots should not crash and should skip agentic_system delta."""
+        """Old five-axis snapshots remain readable but are not numerically comparable."""
         from ai_growth_mirror.domain.snapshots.model import SnapshotSource
         from ai_growth_mirror.domain.snapshots.comparison import compare_snapshot_sources
 
@@ -862,6 +862,7 @@ class TestReviewRegressions:
                 "delivery_closure": 55.0,
                 "adaptive_recovery": 52.0,
             },
+            assessment_policy_version="",
         )
         new_snapshot = SnapshotSource(
             snapshot_id="new_v0.7",
@@ -879,14 +880,9 @@ class TestReviewRegressions:
         )
         comparison = compare_snapshot_sources(old_snapshot, new_snapshot)
         assert comparison is not None
-        # Should only have 5 deltas since agentic_system was missing in previous snapshot
-        assert len(comparison.axis_deltas) == 5
-        # agentic_system must not be in the axis delta keys
-        delta_keys = {item.key for item in comparison.axis_deltas}
-        assert "agentic_system" not in delta_keys
-        # Check that other deltas are computed correctly
-        intent_delta = next(item for item in comparison.axis_deltas if item.key == "collaboration_framing")
-        assert intent_delta.delta == 2.0
+        assert comparison.axis_deltas == []
+        assert comparison.policy_comparable is False
+        assert comparison.incomparable_reason == "assessment_policy_mismatch"
 
     def test_weights_sum_to_one(self):
         """Verify that capability weights defined in comparison.py sum to 1.0."""

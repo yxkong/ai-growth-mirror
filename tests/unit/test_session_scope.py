@@ -51,6 +51,35 @@ def test_scope_dir_matches_project_under_root():
     assert matches_session_scope(session, scope)
 
 
+def test_scope_dir_parses_placeholder_when_quick_path_is_missing():
+    root = Path("D:/work/ai-growth-mirror")
+    session = _session()
+    session._is_placeholder = True
+    parsed_with = []
+
+    def ensure_parsed(cache):
+        parsed_with.append(cache)
+        session.project_path = str(root / "src")
+        session._is_placeholder = False
+
+    session.ensure_parsed = ensure_parsed
+    cache = object()
+
+    assert matches_session_scope(session, SessionScope(dirs=(root,)), cache=cache)
+    assert parsed_with == [cache]
+
+
+def test_scope_dir_keeps_placeholder_lazy_when_quick_path_is_available():
+    root = Path("D:/work/ai-growth-mirror")
+    session = _session(project_path=str(root / "src"))
+    session._is_placeholder = True
+    session.ensure_parsed = lambda _cache: (_ for _ in ()).throw(
+        AssertionError("quick project path should avoid full parsing")
+    )
+
+    assert matches_session_scope(session, SessionScope(dirs=(root,)))
+
+
 def test_scope_keyword_matches_first_prompt():
     session = _session(first_prompt="请用 /delivery-workflow 跑一遍")
     scope = SessionScope(keywords=("delivery-workflow",))

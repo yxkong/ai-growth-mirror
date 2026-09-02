@@ -17,10 +17,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
-from ...domain.session.model import SessionRef, SessionRecord
+from ...domain.session.model import SessionRecord
 from ...domain.signals.tooling import compute_tier_counts, normalize_tool_name
 from .base import (
     BaseSessionAdapter,
+    SessionRef,
     EXEC_TOOL_NAMES,
     SUBAGENT_TOOL_NAMES,
     WRITE_TOOL_NAMES,
@@ -417,4 +418,3 @@ class QCoderAdapter(WorkspaceStorageChatAdapter):
         except Exception:
             pass
         return {}
-

@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
+from .assessment import AxisAssessment
+
 @dataclass
 class AgentAssetStats:
     """Snapshot of the user's AI asset library within the requested time window."""
@@ -38,6 +40,9 @@ class RadarAxis:
     short_reason: str = ""
     confidence: float = 0.0
     has_data: bool = True
+    coverage: float = 0.0
+    components: list[dict] = field(default_factory=list)
+    reason_codes: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -290,13 +295,15 @@ class GrowthProfile:
     code_verification_rate: float = 0.0
 
     # Aggregated growth level (L1–L5) and mirror score (0–100).
-    # Level boundaries: L1 0-37 / L2 38-55 / L3 56-74 / L4 75-89 / L5 90-100 (see scorer._LEVEL_MIN_SCORE).
+    # Level boundaries are owned by growth.assessment_policy.LEVEL_MIN_SCORES.
     growth_level: str = ""
     mirror_score: int = 0
     # Per-axis sub-scores. Keys: collaboration_framing / execution_driving /
     # implementation_depth / delivery_closure / adaptive_recovery. Values are
     # floats (pre-round) and drive the report capability section.
     agentic_sub_scores: dict[str, float] = field(default_factory=dict)
+    assessment_policy_version: str = ""
+    axis_assessments: list[AxisAssessment] = field(default_factory=list)
     radar_axes: list[RadarAxis] = field(default_factory=list)
     gap_rankings: list[GrowthGap] = field(default_factory=list)
     growth_stage: Optional[GrowthStage] = None

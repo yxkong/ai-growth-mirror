@@ -24,6 +24,7 @@ from ...domain.signals.payloads import parse_prompt_lens_payload
 from ...assets.prompts import build_prompt_environment, normalize_report_language
 from ...domain.signals.taxonomy import PQ_DIMENSIONS
 from ..llm.execution import complete_json_with_retries
+from ..llm.privacy import sanitize_outbound_text
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,8 @@ def _format_user_messages(meta: SessionRecord) -> str:
     if not meta.top_user_messages:
         return "(no user messages captured)"
     return "\n".join(
-        f"User#{i+1}: {msg}" for i, msg in enumerate(meta.top_user_messages)
+        f"User#{i+1}: {sanitize_outbound_text(msg, max_chars=300)}"
+        for i, msg in enumerate(meta.top_user_messages[:8])
     )
 
 
@@ -95,7 +97,7 @@ def extract_prompt_lens(
     user_tmpl = env.get_template("prompt_lens/user.md.j2")
     prompt = user_tmpl.render(
         tool_display_name=meta.tool_name.replace("_", " ").title(),
-        project_path=meta.project_path,
+        project_path=sanitize_outbound_text(meta.project_path),
         duration_minutes=meta.duration_minutes,
         user_message_count=meta.user_message_count,
         assistant_message_count=meta.assistant_message_count,
@@ -116,19 +118,21 @@ def extract_prompt_lens(
             ),
             retry_delays=_PQ_RETRY_DELAYS,
             logger=logger,
-            log_context=f"prompt-lens:{meta.tool_name}/{meta.session_id}",
+            log_context="prompt-lens",
         )
-    except Exception as e:
+    except Exception as exc:
         logger.warning(
-            "Prompt-lens extraction failed for %s/%s: %s",
-            meta.tool_name, meta.session_id, e,
+            "AGM-LLM-CALL-FAILED context=prompt-lens tool=%s exception_type=%s",
+            meta.tool_name,
+            type(exc).__name__,
         )
         return None
 
     if not isinstance(raw, dict):
         logger.warning(
-            "Prompt-lens response was not a JSON object for %s/%s: %r",
-            meta.tool_name, meta.session_id, type(raw).__name__,
+            "AGM-LLM-RESPONSE-INVALID context=prompt-lens tool=%s response_type=%s",
+            meta.tool_name,
+            type(raw).__name__,
         )
         return None
 
@@ -141,4 +145,3 @@ __all__ = [
     "extract_prompt_lens",
     "should_extract_prompt_lens",
 ]
-

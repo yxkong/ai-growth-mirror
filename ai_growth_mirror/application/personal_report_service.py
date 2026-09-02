@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json as _json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
@@ -19,15 +19,18 @@ from ..domain.session.scope import SessionScope
 from ..domain.signals.model import SessionRead
 from ..infra.llm.coach import generate_growth_guidance
 from ..infra.snapshots import (
-    SNAPSHOT_ARCHIVE_DIRNAME,
-    archive_personal_report_snapshot,
     load_previous_snapshot_source,
     load_recent_snapshot_sources,
 )
+from ..infra.io.atomic import atomic_write_json, atomic_write_text
+from ..product import SNAPSHOT_ARCHIVE_DIRNAME
 from .label_catalogs import load_report_label_catalogs
 from .html_render import render_personal_report_html, render_share_card_html
 from .summary_payload import build_personal_summary_payload
 from .report_view import build_personal_report_view
+from .snapshot_service import archive_personal_report_snapshot
+
+logger = logging.getLogger(__name__)
 
 
 def generate_personal_report(
@@ -77,8 +80,11 @@ def generate_personal_report(
             )
             if coaching and progress:
                 progress("[Coaching] 个性化内容生成完成")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "AGM-COACHING-UNAVAILABLE exception_type=%s",
+                type(exc).__name__,
+            )
 
     previous_snapshot = load_previous_snapshot_source(
         output_path.parent / SNAPSHOT_ARCHIVE_DIRNAME
@@ -111,7 +117,7 @@ def generate_personal_report(
     html = render_personal_report_html(view=view, language=language, redact=redact)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(html, encoding="utf-8")
+    atomic_write_text(output_path, html)
     normalized_summary_path = output_path.with_name(f"{output_path.stem}.summary.json")
 
     core_payload = core_evidence_to_dict(
@@ -136,10 +142,7 @@ def generate_personal_report(
     core_payload["growth_plan"] = summary_payload.get("growth_plan", {})
     if write_sidecar:
         sidecar_path = output_path.with_suffix(".json")
-        sidecar_path.write_text(
-            _json.dumps(core_payload, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        atomic_write_json(sidecar_path, core_payload)
     share_html = render_share_card_html(
         summary_payload=summary_payload,
         template_labels=catalogs.template_labels,
@@ -147,11 +150,8 @@ def generate_personal_report(
     )
     share_path = output_path.with_name(f"{output_path.stem}-share.html")
     share_path.parent.mkdir(parents=True, exist_ok=True)
-    share_path.write_text(share_html, encoding="utf-8")
-    normalized_summary_path.write_text(
-        _json.dumps(summary_payload, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    atomic_write_text(share_path, share_html)
+    atomic_write_json(normalized_summary_path, summary_payload)
     archive_personal_report_snapshot(
         output_path=output_path,
         html=html,

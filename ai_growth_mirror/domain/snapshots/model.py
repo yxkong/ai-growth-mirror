@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
+
+from ..growth.assessment_policy import ASSESSMENT_POLICY_VERSION
 
 CURRENT_TRAJECTORY_AXIS_KEYS = frozenset(
     {
@@ -11,6 +14,7 @@ CURRENT_TRAJECTORY_AXIS_KEYS = frozenset(
         "implementation_depth",
         "delivery_closure",
         "adaptive_recovery",
+        "agentic_system",
     }
 )
 
@@ -116,6 +120,7 @@ class SnapshotSource:
     # human cost signal: rate of sessions requiring ≥2 user corrections
     human_intervention_session_rate: float | None = None
     action_contracts: list[dict[str, Any]] = field(default_factory=list)
+    assessment_policy_version: str = ASSESSMENT_POLICY_VERSION
 
 
 @dataclass
@@ -337,3 +342,5 @@ class SnapshotComparison:
     human_cost_trend: HumanCostTrend = field(default_factory=HumanCostTrend)
     trend_summary: TrendSummary = field(default_factory=TrendSummary)
     contract_outcomes: list[ContractOutcome] = field(default_factory=list)
+    policy_comparable: bool = True
+    incomparable_reason: str = ""

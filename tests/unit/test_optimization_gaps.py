@@ -5,9 +5,9 @@ import time
 from pathlib import Path
 from datetime import datetime, timezone
 
-from ai_growth_mirror.domain.session.model import SessionRecord, SessionRef
+from ai_growth_mirror.domain.session.model import SessionRecord
 from ai_growth_mirror.domain.growth.scorer import _compute_growth_level
-from ai_growth_mirror.infra.readers.base import get_vscdb_mtime, BaseSessionAdapter
+from ai_growth_mirror.infra.readers.base import get_vscdb_mtime, BaseSessionAdapter, SessionRef
 from ai_growth_mirror.infra.cache.store import CacheStore
 
 
@@ -99,8 +99,8 @@ def test_scorer_token_missing_normalization():
         has_token_data=False,  # Excluded!
     )
 
-    # Missing token data should result in a higher score than penalizing 0 token volume directly
-    assert score_normalized > score_with_zero_tokens
+    # Token volume is cost/intensity context, not evidence of maturity.
+    assert score_normalized == score_with_zero_tokens
 
 
 def test_vscdb_mtime_cache_thrashing_prevention(tmp_path: Path):
@@ -234,5 +234,5 @@ def test_lazy_placeholder_parsing(tmp_path: Path):
     # 3. Iterate again -> Cache hit returns fully parsed record directly
     sessions_cached = list(adapter.iter_sessions(cache=cache))
     assert len(sessions_cached) == 1
-    assert sessions_cached[0]._is_placeholder is False
+    assert getattr(sessions_cached[0], "_is_placeholder", False) is False
     assert sessions_cached[0].first_prompt == "Real prompt details"

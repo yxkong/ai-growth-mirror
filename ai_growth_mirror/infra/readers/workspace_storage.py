@@ -9,9 +9,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from ...domain.session.model import SessionRef, SessionRecord
+from ...domain.session.model import SessionRecord
 from ...domain.signals.tooling import compute_tier_counts
-from .base import BaseSessionAdapter, SUBAGENT_TOOL_NAMES, _max_mtime, detect_language, parse_iso, parse_ts
+from .base import BaseSessionAdapter, SessionRef, SUBAGENT_TOOL_NAMES, _max_mtime, detect_language, parse_iso, parse_ts
 
 
 _SESSION_DIR_CANDIDATES = (

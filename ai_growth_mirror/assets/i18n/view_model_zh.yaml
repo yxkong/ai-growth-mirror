@@ -47,6 +47,37 @@ radar_axes:
     tooltip: "轴分 {score} · skill 使用率 {skill_usage_pct}% · workflow 结构化 {structured_pct}% · 资产创作 {asset_authoring_pct}%"
     gap_reason: "Agentic 系统化能力偏弱：尝试用 skill/workflow/MCP 沉淀可复用协作方法"
 
+assessment_explanation:
+  template: "评分政策 {policy}；证据覆盖 {coverage}%；主要支撑：{support}；优先补强：{gap}"
+  no_data: "评分政策 {policy}；当前没有足够的机会型或结果型证据，本轴不计 0 分也不计满分"
+  component_labels:
+    effective_contract: "任务契约"
+    context_grounding: "上下文落地"
+    goal_locking: "目标锁定"
+    active_clarification: "主动澄清"
+    autonomous_chain: "自主推进链"
+    structured_workflow: "结构化流程"
+    verified_continuation: "验证后续推"
+    delegation_success: "委派结果"
+    implementation_sessions: "真实实现"
+    code_verification: "代码验证"
+    fully_achieved: "目标达成"
+    files_per_session: "受控变更广度"
+    verification: "验证收口"
+    tests: "测试证据"
+    contract_compliance: "契约兑现"
+    recovery_success: "恢复成功"
+    correction_quality: "纠偏质量"
+    post_friction_verification: "纠偏后验证"
+    skill_outcome: "Skill 结果"
+    workflow_outcome: "Workflow 结果"
+    structured_outcome: "结构化结果"
+    workflow_reuse: "方法复用"
+    asset_authoring: "资产创作结果"
+    assetized_outcome: "资产化结果"
+    advanced_feature_outcome: "高级能力结果"
+    method_saturation: "方法覆盖"
+
 growth_gaps:
   framing_gap:
     label: "协作框定短板"

@@ -1,3 +1,4 @@
+UNTRUSTED_EVIDENCE_BEGIN
 Session evidence packet:
 - Tool surface: {{ tool_display_name }}
 - Project context: {{ project_path }}
@@ -23,5 +24,6 @@ Session evidence packet:
 {% if workflow_style_hints %}
 - Work-style evidence: {{ workflow_style_hints }}
 {% endif %}
+UNTRUSTED_EVIDENCE_END
 
 Read this session and return one JSON object that follows the schema exactly.

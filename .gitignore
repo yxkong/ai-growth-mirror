@@ -4,6 +4,7 @@
 /.gemini/
 /.agents/
 /.claude/
+/.opencode/
 # 单测 / 手工验证临时目录（pytest basetemp、cache、manual runs）
 /.tmp/
 /.history/

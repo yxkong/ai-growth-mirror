@@ -2,7 +2,7 @@
 title: AI Growth Mirror Repository Governance
 domain: growth_mirror
 status: canonical
-updated_at: 2026-05-29
+updated_at: 2026-09-02
 ---
 
 English version: [OPEN_SOURCE_GOVERNANCE.md](../en/config/OPEN_SOURCE_GOVERNANCE.md)
@@ -26,7 +26,7 @@ English version: [OPEN_SOURCE_GOVERNANCE.md](../en/config/OPEN_SOURCE_GOVERNANCE
 
 ## 2. 文档 frontmatter
 
-每份 canonical 文档必须包含：
+每份中文 canonical 文档必须包含：
 
 ```yaml
 ---
@@ -36,6 +36,8 @@ status: canonical | draft | archived | superseded
 updated_at: YYYY-MM-DD
 ---
 ```
+
+英文翻译不是第二真源，必须使用 `status: mirror` 与仓库相对 `canonical_path` 指向中文 owner；版本、批准状态等关键元数据由自动门禁对拍。
 
 ## 3. 代码与提示词
 

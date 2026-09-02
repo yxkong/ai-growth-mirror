@@ -2,7 +2,7 @@
 title: AI Growth Mirror Docs Index
 domain: growth_mirror
 status: canonical
-updated_at: 2026-06-09
+updated_at: 2026-09-02
 ---
 
 # AI Growth Mirror 文档入口
@@ -23,4 +23,4 @@ English docs index: [docs/en/README.md](./en/README.md)
 1. **架构先行**：在修改任何核心代码前，须先对齐 **[ARCHITECTURE_PRINCIPLES.md](./design/ARCHITECTURE_PRINCIPLES.md)**，特别是 `Section 14` 的四大研发架构硬规范。
 2. **真源原则**：活动区 canonical 文档以 `docs/design/` 和 `docs/config/` 为准；`docs/**/bak/` 为历史归档备份，不作为当前执行依据。
 3. **保持同步**：所有功能迭代在实现时，均需确保文档中的计算公式与接口契约同步更新，严禁出现文档与实现脱节。
-4. **中英双真源**：面向用户的设计文档分 `docs/design/`（中文）与 `docs/en/design/`（英文）两棵树；**发布或升版时必须同一次变更集内同步更新中英文**，禁止只改一侧。
+4. **Canonical + checked mirror**：中文活动契约是唯一 canonical；`docs/en/**` 是带 `canonical_path` 的受检翻译镜像。发布或升版时同批更新，冲突只回到中文 owner 裁决。

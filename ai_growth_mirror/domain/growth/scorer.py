@@ -10,6 +10,8 @@ from typing import Optional
 from ..session.model import SessionRecord
 from ..signals.framework import detect_frameworks, detect_local_method_frameworks, normalize_method_name
 from ..signals.model import SessionRead
+from .assessment import AssessmentInputs, AssessmentResult, assess_growth
+from .assessment_policy import LEVEL_MIN_SCORES
 from .costs import cache_hit_rate
 from .model import AgentAssetStats, GrowthGap, GrowthProfile, GrowthStage, RadarAxis
 
@@ -18,32 +20,25 @@ MIN_SESSIONS_WARN = 15
 MIN_SESSION_READS_FOR_MIRROR_SCORE = 5
 
 # Canonical L1–L5 score boundaries (single source of truth for assignment + UI).
-_LEVEL_ORDER = ("L1", "L2", "L3", "L4", "L5")
-_LEVEL_MIN_SCORE: dict[str, int] = {
-    "L1": 0,
-    "L2": 38,
-    "L3": 56,
-    "L4": 75,
-    "L5": 90,
-}
+_LEVEL_ORDER = tuple(LEVEL_MIN_SCORES)
 
 
 def growth_level_from_score(score: int) -> str:
     """Map mirror_score to L1–L5 using canonical boundaries."""
     bounded = max(0, min(100, int(score)))
     for level in reversed(_LEVEL_ORDER):
-        if bounded >= _LEVEL_MIN_SCORE[level]:
+        if bounded >= LEVEL_MIN_SCORES[level]:
             return level
     return "L1"
 
 
 def format_growth_level_score_range(level: str) -> str:
     """Return inclusive score range string for a level, e.g. ``'56-74'`` for L3."""
-    if level not in _LEVEL_MIN_SCORE:
+    if level not in LEVEL_MIN_SCORES:
         return ""
     idx = _LEVEL_ORDER.index(level)
-    low = _LEVEL_MIN_SCORE[level]
-    high = (_LEVEL_MIN_SCORE[_LEVEL_ORDER[idx + 1]] - 1) if idx < len(_LEVEL_ORDER) - 1 else 100
+    low = LEVEL_MIN_SCORES[level]
+    high = (LEVEL_MIN_SCORES[_LEVEL_ORDER[idx + 1]] - 1) if idx < len(_LEVEL_ORDER) - 1 else 100
     return f"{low}-{high}"
 
 _CODE_LANGUAGES = frozenset(
@@ -268,170 +263,102 @@ def _compute_growth_level(
     active_clarification_rate: float = 0.0,
     effective_contract_rate: float = 0.0,
     contract_compliance_rate: float = 0.0,
+    contract_compliance_denominator: int = 0,
+    goal_locking_evidence_count: int = 0,
+    clarification_opportunity_count: int = 0,
+    recovery_opportunity_count: int | None = None,
 ) -> tuple[str, int, dict[str, float]]:
-    prompt_dimensions = prompt_dimensions or {}
-    friction_by_attribution = friction_by_attribution or {}
+    result = _assess_legacy_metrics(locals())
+    scores = {axis.key: axis.score for axis in result.axes if axis.score is not None}
+    return result.growth_level or "", result.mirror_score or 0, scores
 
-    structured_rate = workflow_structured_count / max(session_count, 1)
-    user_actionable = float(friction_by_attribution.get("user-actionable", 0))
-    friction_total = float(sum(friction_by_attribution.values()))
-    user_actionable_ratio = user_actionable / friction_total if friction_total else 0.0
-    files_per_session = total_files_modified / max(session_count, 1)
 
-    contract_clarity_rate = max(direction_clarity_rate, effective_contract_rate)
-    collaboration_framing = _bounded_average(
-        (contract_clarity_rate * 100.0, 0.24),
-        (context_grounding_rate * 100.0, 0.18),
-        (goal_locking_speed, 0.24),
-        (active_clarification_rate * 100.0, 0.24),
-        (effective_contract_rate * 100.0, 0.10),
-    )
-    execution_driving = _bounded_average(
-        (_soft_threshold(avg_chain, 1.5, 8.0, 100.0), 0.32),
-        (_soft_threshold(heavy_session_rate, 0.10, 0.40, 100.0), 0.18),
-        (
-            max(
-                _soft_threshold(subagent_session_rate, 0.0, 0.18, 100.0),
-                _soft_threshold(float(total_subagent_invocations), 0.0, 18.0, 100.0),
+def _assess_legacy_metrics(values: dict) -> AssessmentResult:
+    """Translate existing aggregates into the canonical assessment policy.
+
+    Raw consumption and ecosystem counts are accepted for API stability and
+    context reporting, but intentionally never enter a scored observation.
+    """
+    sessions = max(0, int(values["session_count"]))
+    structured_rate = values["workflow_structured_count"] / max(sessions, 1)
+    files_per_session = values["total_files_modified"] / max(sessions, 1)
+    friction = values.get("friction_by_attribution") or {}
+    recovery_opportunities = values.get("recovery_opportunity_count")
+    if recovery_opportunities is None:
+        recovery_opportunities = int(sum(friction.values()))
+    outcome_binding = max(values["fully_achieved_rate"], values["verification_rate"])
+    delegation_evidence = int(values.get("delegation_evidence_count") or 0)
+    clarification_evidence = int(values.get("clarification_evidence_count") or 0)
+    recovery_success_evidence = int(values.get("recovery_success_evidence_count") or 0)
+    correction_evidence = int(values.get("correction_evidence_count") or 0)
+
+    return assess_growth(
+        AssessmentInputs(
+            session_count=sessions,
+            effective_contract_rate=values["effective_contract_rate"],
+            context_grounding_rate=values["context_grounding_rate"],
+            goal_locking_score=(
+                values["goal_locking_speed"]
+                if values["goal_locking_evidence_count"] > 0
+                else None
             ),
-            0.16,
-        ),
-        (_soft_threshold(float(tier_diversity), 2.0, 5.0, 100.0), 0.18),
-        (structured_rate * 100.0, 0.16),
-    )
-    impl_depth_items = [
-        (_soft_threshold(files_per_session, 0.5, 3.0, 100.0), 0.32),
-        (code_verification_rate * 100.0, 0.20),
-        (fully_achieved_rate * 100.0, 0.15),
-        (_soft_threshold(float(total_files_modified), 3.0, 40.0, 100.0), 0.15),
-    ]
-    if has_token_data:
-        impl_depth_items.append(
-            (_soft_threshold(float(total_token_volume), 500_000.0, 12_000_000.0, 100.0), 0.18)
+            goal_locking_evidence_count=values["goal_locking_evidence_count"],
+            active_clarification_rate=(
+                values["active_clarification_rate"]
+                if clarification_evidence > 0
+                else None
+            ),
+            clarification_opportunity_count=values["clarification_opportunity_count"],
+            clarification_evidence_count=clarification_evidence,
+            autonomous_chain_score=_soft_threshold(values["avg_chain"], 1.5, 8.0, 100.0),
+            structured_workflow_rate=structured_rate,
+            verified_continuation_rate=values["verification_rate"],
+            delegation_success_rate=(
+                values.get("delegation_success_rate") if delegation_evidence else None
+            ),
+            delegation_evidence_count=delegation_evidence,
+            implementation_session_rate=values.get("implementation_session_rate"),
+            code_verification_rate=values["code_verification_rate"],
+            fully_achieved_rate=values["fully_achieved_rate"],
+            files_per_session=files_per_session,
+            verification_rate=values["verification_rate"],
+            test_run_rate=values["test_run_rate"],
+            contract_compliance_rate=(
+                values["contract_compliance_rate"]
+                if values["contract_compliance_denominator"] > 0
+                else None
+            ),
+            contract_compliance_denominator=values["contract_compliance_denominator"],
+            recovery_success_rate=(
+                values.get("recovery_success_rate")
+                if recovery_success_evidence > 0
+                else None
+            ),
+            recovery_opportunity_count=recovery_opportunities,
+            recovery_success_evidence_count=recovery_success_evidence,
+            correction_quality=values.get("correction_quality"),
+            correction_evidence_count=correction_evidence,
+            post_friction_verification_rate=(
+                values.get("post_friction_verification_rate")
+                if recovery_opportunities > 0
+                else None
+            ),
+            skill_outcome_rate=values["skill_usage_session_rate"] * outcome_binding,
+            workflow_outcome_rate=values["workflow_fingerprint_session_rate"] * outcome_binding,
+            structured_outcome_rate=structured_rate * outcome_binding,
+            workflow_reuse_depth=values["workflow_reuse_depth"],
+            asset_authoring_outcome_rate=values["asset_authoring_session_rate"] * outcome_binding,
+            assetized_outcome_rate=values["assetized_session_rate"] * outcome_binding,
+            advanced_feature_outcome_rate=values["advanced_feature_ratio"] * outcome_binding,
+            method_saturation=min(1.0, values["workflow_fingerprint_session_rate"]) * outcome_binding,
+            total_token_volume=values["total_token_volume"],
+            total_files_modified=values["total_files_modified"],
+            distinct_tool_count=values["distinct_tool_count"],
+            distinct_model_count=values["distinct_model_count"],
+            total_subagent_invocations=values["total_subagent_invocations"],
+            commit_rate=values["commit_rate"],
         )
-    implementation_depth = _bounded_average(*impl_depth_items)
-    delivery_closure = _bounded_average(
-        (fully_achieved_rate * 100.0, 0.36),
-        (verification_rate * 100.0, 0.22),
-        (test_run_rate * 100.0, 0.16),
-        (contract_compliance_rate * 100.0, 0.14),
-        (commit_rate * 100.0, 0.08),
-        (code_verification_rate * 100.0, 0.04),
     )
-    adaptive_recovery = _bounded_average(
-        (prompt_dimensions.get("correction_quality", 50.0), 0.34),
-        (fully_achieved_rate * 100.0, 0.20),
-        (verification_rate * 100.0, 0.18),
-        ((1.0 - user_actionable_ratio) * 100.0, 0.14),
-        (structured_rate * 100.0, 0.14),
-    )
-
-    tool_bonus = _bounded_average(
-        (_soft_threshold(mcp_session_rate, 0.0, 0.20, 100.0), 0.20),
-        (_soft_threshold(web_session_rate, 0.0, 0.20, 100.0), 0.12),
-        (_soft_threshold(tool_build_rate, 0.0, 0.20, 100.0), 0.18),
-        (
-            _soft_threshold(
-                float(skill_authored_count + mcp_authored_session_count + hook_modified_session_count),
-                0.0,
-                8.0,
-                100.0,
-            ),
-            0.13,
-        ),
-        (_soft_threshold(float(ai_authoring_distinct_categories), 0.0, 3.0, 100.0), 0.12),
-        (_soft_threshold(float(distinct_tool_count), 1.0, 3.0, 100.0), 0.25),
-        (_soft_threshold(float(distinct_model_count), 1.0, 3.0, 100.0), 0.20),
-    )
-    workflow_bonus = _bounded_average(
-        (structured_rate * 100.0, 0.34),
-        (_soft_threshold(float(unique_skill_count), 0.0, 4.0, 100.0), 0.16),
-        (
-            _soft_threshold(
-                float(workflow_build_substantial_count + workflow_build_moderate_count),
-                0.0,
-                5.0,
-                100.0,
-            ),
-            0.16,
-        ),
-        (_soft_threshold(assetized_session_rate, 0.05, 0.35, 100.0), 0.12),
-        (_soft_threshold(float(skill_authored_count), 0.0, 5.0, 100.0), 0.10),
-        (_soft_threshold(float(mcp_authored_session_count), 0.0, 3.0, 100.0), 0.06),
-        (_soft_threshold(float(hook_modified_session_count), 0.0, 3.0, 100.0), 0.06),
-    )
-    inventory_context = min(asset_maturity_bonus / 3.0, 1.0) * 100.0
-    agentic_system = _bounded_average(
-        (skill_usage_session_rate * 100.0, 0.18),
-        (workflow_fingerprint_session_rate * 100.0, 0.14),
-        (structured_rate * 100.0, 0.08),
-        (advanced_feature_ratio * 100.0, 0.08),
-        (_soft_threshold(float(unique_skill_count), 2.0, 12.0, 100.0), 0.08),
-        (_soft_threshold(float(workflow_reuse_depth), 1.0, 8.0, 100.0), 0.08),
-        (asset_authoring_session_rate * 100.0, 0.05),
-        (assetized_session_rate * 100.0, 0.04),
-        (inventory_context, 0.03),
-        (tool_bonus, 0.12),
-        (workflow_bonus, 0.12),
-    )
-
-    weakest_axis = min(
-        collaboration_framing,
-        execution_driving,
-        implementation_depth,
-        delivery_closure,
-        adaptive_recovery,
-        agentic_system,
-    )
-    consistency_modifier = 0.0
-    if weakest_axis >= 65.0:
-        consistency_modifier += 2.0
-    elif weakest_axis < 40.0:
-        consistency_modifier -= 3.0
-
-    total_score = (
-        collaboration_framing * 0.14
-        + execution_driving * 0.25
-        + implementation_depth * 0.19
-        + delivery_closure * 0.19
-        + adaptive_recovery * 0.10
-        + agentic_system * 0.13
-        + asset_maturity_bonus
-        + consistency_modifier
-    )
-    score = max(0, min(100, round(total_score)))
-    if session_count < 8 and score > 69:
-        score = 69
-    elif session_count < 15 and score > 82:
-        score = 82
-    elif (
-        session_count >= 15
-        and agentic_system >= 80.0
-        and execution_driving >= 75.0
-        and implementation_depth >= 68.0
-        and delivery_closure >= 62.0
-        and adaptive_recovery >= 52.0
-    ):
-        score = max(score, 90)
-    elif (
-        session_count >= 15
-        and agentic_system >= 65.0
-        and execution_driving >= 65.0
-        and implementation_depth >= 60.0
-        and delivery_closure >= 48.0
-    ):
-        score = max(score, 75)
-
-    level = growth_level_from_score(score)
-
-    return level, score, {
-        "collaboration_framing": round(collaboration_framing, 1),
-        "execution_driving": round(execution_driving, 1),
-        "implementation_depth": round(implementation_depth, 1),
-        "delivery_closure": round(delivery_closure, 1),
-        "adaptive_recovery": round(adaptive_recovery, 1),
-        "agentic_system": round(agentic_system, 1),
-    }
 
 
 def _axis_status(score: float) -> str:
@@ -449,7 +376,6 @@ def _axis_confidence(stats: GrowthProfile) -> float:
 
 
 def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
-    confidence = _axis_confidence(stats)
     keys = [
         "collaboration_framing",
         "execution_driving",
@@ -459,6 +385,7 @@ def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
         "agentic_system",
     ]
     sub_scores = stats.agentic_sub_scores or {}
+    assessment_by_key = {axis.key: axis for axis in stats.axis_assessments}
     pq_evaluated = max(0, stats.pq_sessions_evaluated)
     has_outcome_signals = (
         stats.workflow_build_substantial_count
@@ -467,10 +394,16 @@ def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
     ) > 0 or bool(stats.top_tools)
     axes: list[RadarAxis] = []
     for key in keys:
-        score = round(sub_scores.get(key, 0.0), 1)
+        assessment = assessment_by_key.get(key)
+        score = round(
+            assessment.score if assessment and assessment.score is not None else sub_scores.get(key, 0.0),
+            1,
+        )
         # Per-axis evidence rules: PQ-driven axes need PQ-evaluated sessions;
         # action-driven axes need at least some recorded tool/workflow signals.
-        if key == "collaboration_framing":
+        if assessment is not None:
+            axis_has_data = assessment.score is not None
+        elif key == "collaboration_framing":
             axis_has_data = pq_evaluated > 0
         elif key == "agentic_system":
             axis_has_data = "agentic_system" in sub_scores and stats.session_count > 0
@@ -489,8 +422,28 @@ def _build_radar_axes(stats: GrowthProfile) -> list[RadarAxis]:
                 score=score,
                 status=_axis_status(score),
                 short_reason="",
-                confidence=confidence,
+                confidence=(assessment.confidence if assessment else _axis_confidence(stats)),
                 has_data=axis_has_data,
+                coverage=(assessment.coverage if assessment else 0.0),
+                components=(
+                    [
+                        {
+                            "key": component.key,
+                            "weight": component.weight,
+                            "normalized_weight": component.normalized_weight,
+                            "value": component.observation.value,
+                            "available": component.observation.available,
+                            "evidence_count": component.observation.evidence_count,
+                            "confidence": component.observation.confidence,
+                            "contribution": component.contribution,
+                            "reason_codes": list(component.observation.reason_codes),
+                        }
+                        for component in assessment.components
+                    ]
+                    if assessment
+                    else []
+                ),
+                reason_codes=list(assessment.reason_codes) if assessment else [],
             )
         )
     return axes
@@ -942,7 +895,7 @@ def _populate_task_contract_signals(stats: GrowthProfile, sessions: list[Session
         if effective_count > 0:
             stats.contract_compliance_rate = round(compliant_count / effective_count, 4)
         else:
-            stats.contract_compliance_rate = 1.0
+            stats.contract_compliance_rate = 0.0
         stats.contract_missing_rate = round(missing_count / stats.session_count, 4)
 
 
@@ -962,38 +915,17 @@ def _populate_code_session_metrics(stats: GrowthProfile, sessions: list[SessionR
         stats.code_verification_rate = round(verified / len(code_sessions), 4)
 
 
-def _apply_asset_floor(stats: GrowthProfile) -> None:
-    agent_asset = getattr(stats, "agent_asset", None)
-    if agent_asset is None or not agent_asset.has_data:
-        return
-    if (
-        agent_asset.skill_files_count >= 5
-        and stats.workflow_build_substantial_count == 0
-        and stats.workflow_build_moderate_count < 2
-    ):
-        stats.workflow_build_moderate_count = 2
-    if agent_asset.skill_files_count >= 15:
-        stats.workflow_build_substantial_count = max(stats.workflow_build_substantial_count, 1)
-    if agent_asset.skill_files_count >= 30:
-        stats.workflow_build_substantial_count = max(stats.workflow_build_substantial_count, 3)
-
-
-def _asset_maturity_bonus(stats: GrowthProfile) -> float:
-    agent_asset = getattr(stats, "agent_asset", None)
-    if agent_asset is None or not agent_asset.has_data:
-        return 0.0
-    bonus = 0.0
-    if agent_asset.skill_files_count >= 10 and agent_asset.rule_files_count >= 5:
-        bonus += 1.5
-    if agent_asset.prompt_files_count >= 10:
-        bonus += 0.8
-    if agent_asset.skill_files_count >= 30:
-        bonus += 0.7
-    return min(bonus, 3.0)
-
-
 def _valid_session_reads(session_reads: list[SessionRead]) -> list[SessionRead]:
     return [read for read in session_reads if not getattr(read, "extraction_failed", False)]
+
+
+def _delivery_outcome_score(read: SessionRead) -> Optional[float]:
+    return {
+        "fully_achieved": 1.0,
+        "mostly_achieved": 0.7,
+        "partially_achieved": 0.3,
+        "ongoing": 0.0,
+    }.get(read.delivery_outcome)
 
 
 def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessions: list[SessionRecord]) -> None:
@@ -1018,10 +950,8 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
         if stats.code_session_count >= 5
         else stats.verification_behavior_rate
     )
-    has_token_data = any(s.input_tokens is not None for s in sessions)
-    _apply_asset_floor(stats)
-    maturity_bonus = _asset_maturity_bonus(stats)
     read_by_id = {r.session_id: r for r in valid_reads}
+    session_by_id = {session.session_id: session for session in sessions}
     locking_speeds = []
     for s in sessions:
         if s.turns_until_first_file_write is not None:
@@ -1035,57 +965,136 @@ def _score_profile(stats: GrowthProfile, session_reads: list[SessionRead], sessi
             if read and getattr(read, "active_clarification", False):
                 turns = max(1, turns - 1)
             locking_speeds.append(_goal_locking_speed_score(turns))
-    goal_locking_speed = sum(locking_speeds) / len(locking_speeds) if locking_speeds else 100.0
-
-    (
-        stats.growth_level,
-        stats.mirror_score,
-        stats.agentic_sub_scores,
-    ) = _compute_growth_level(
-        avg_chain=stats.avg_autonomous_chain_length,
-        verification_rate=verification_rate,
-        heavy_session_rate=stats.heavy_session_rate,
-        heavy_session_count=stats.heavy_session_count,
-        total_token_volume=stats.total_token_volume,
-        mcp_session_rate=stats.mcp_session_rate,
-        subagent_session_rate=stats.subagent_session_rate,
-        total_subagent_invocations=stats.total_subagent_invocations,
-        web_session_rate=stats.web_session_rate,
-        tool_build_rate=stats.tool_build_rate,
-        unique_skill_count=stats.unique_skill_count,
-        tier_diversity=stats.tier_diversity_count,
-        distinct_tool_count=stats.distinct_tool_count,
-        distinct_model_count=stats.distinct_model_count,
-        workflow_build_substantial_count=stats.workflow_build_substantial_count,
-        workflow_build_moderate_count=stats.workflow_build_moderate_count,
-        ai_authoring_distinct_categories=stats.ai_authoring_distinct_categories,
-        fully_achieved_rate=fully_achieved_rate,
-        workflow_structured_count=stats.workflow_structured_session_count,
-        session_count=stats.session_count,
-        skill_authored_count=stats.skill_authored_count,
-        hook_modified_session_count=stats.hook_modified_session_count,
-        mcp_authored_session_count=stats.mcp_authored_session_count,
-        assetized_session_rate=stats.assetized_session_rate,
-        direction_clarity_rate=stats.constraint_prompt_rate,
-        context_grounding_rate=stats.code_context_rate,
-        goal_locking_speed=goal_locking_speed,
-        prompt_dimensions=stats.pq_avg_dimensions,
-        test_run_rate=stats.test_run_rate,
-        code_verification_rate=stats.code_verification_rate,
-        commit_rate=stats.commit_rate,
-        total_files_modified=stats.total_files_modified,
-        friction_by_attribution=stats.friction_by_attribution,
-        asset_maturity_bonus=maturity_bonus,
-        advanced_feature_ratio=stats.advanced_feature_ratio,
-        skill_usage_session_rate=stats.skill_usage_session_rate,
-        workflow_fingerprint_session_rate=stats.workflow_fingerprint_session_rate,
-        workflow_reuse_depth=stats.workflow_reuse_depth,
-        asset_authoring_session_rate=stats.asset_authoring_session_rate,
-        has_token_data=has_token_data,
-        active_clarification_rate=stats.active_clarification_rate,
-        effective_contract_rate=stats.effective_contract_rate,
-        contract_compliance_rate=stats.contract_compliance_rate,
+    goal_locking_speed = sum(locking_speeds) / len(locking_speeds) if locking_speeds else 0.0
+    clarification_ids = {
+        session.session_id for session in sessions if session.user_message_count > 1
+    }
+    clarification_reads = [read_by_id[item] for item in clarification_ids if item in read_by_id]
+    clarification_rate = (
+        sum(bool(read.active_clarification) for read in clarification_reads)
+        / len(clarification_reads)
+        if clarification_reads
+        else None
     )
+
+    delegation_ids = {session.session_id for session in sessions if session.uses_subagent}
+    delegation_outcomes = [
+        score
+        for item in delegation_ids
+        if (read := read_by_id.get(item)) is not None
+        if (score := _delivery_outcome_score(read)) is not None
+    ]
+
+    recovery_ids = {
+        session.session_id
+        for session in sessions
+        if session.tool_errors > 0 or session.user_interruptions > 0
+    }
+    recovery_ids.update(read.session_id for read in valid_reads if read.resistance_signals)
+    recovery_outcomes = [
+        score
+        for item in recovery_ids
+        if (read := read_by_id.get(item)) is not None
+        if (score := _delivery_outcome_score(read)) is not None
+    ]
+    recovery_corrections = [
+        float(read_by_id[item].prompt_lens.correction_quality)
+        for item in recovery_ids
+        if item in read_by_id and read_by_id[item].prompt_lens is not None
+    ]
+    post_friction_sessions = [session_by_id[item] for item in recovery_ids if item in session_by_id]
+    post_friction_verification_rate = (
+        sum(
+            bool(session.has_verification_behavior or session.has_test_commands)
+            for session in post_friction_sessions
+        )
+        / len(post_friction_sessions)
+        if post_friction_sessions
+        else None
+    )
+    implementation_session_rate = (
+        sum(session.files_modified > 0 for session in sessions) / len(sessions)
+        if sessions
+        else None
+    )
+    values = {
+        "avg_chain": stats.avg_autonomous_chain_length,
+        "verification_rate": verification_rate,
+        "heavy_session_rate": stats.heavy_session_rate,
+        "heavy_session_count": stats.heavy_session_count,
+        "total_token_volume": stats.total_token_volume,
+        "mcp_session_rate": stats.mcp_session_rate,
+        "subagent_session_rate": stats.subagent_session_rate,
+        "total_subagent_invocations": stats.total_subagent_invocations,
+        "web_session_rate": stats.web_session_rate,
+        "tool_build_rate": stats.tool_build_rate,
+        "unique_skill_count": stats.unique_skill_count,
+        "tier_diversity": stats.tier_diversity_count,
+        "distinct_tool_count": stats.distinct_tool_count,
+        "distinct_model_count": stats.distinct_model_count,
+        "workflow_build_substantial_count": stats.workflow_build_substantial_count,
+        "workflow_build_moderate_count": stats.workflow_build_moderate_count,
+        "ai_authoring_distinct_categories": stats.ai_authoring_distinct_categories,
+        "fully_achieved_rate": fully_achieved_rate,
+        "workflow_structured_count": stats.workflow_structured_session_count,
+        "session_count": stats.session_count,
+        "skill_authored_count": stats.skill_authored_count,
+        "hook_modified_session_count": stats.hook_modified_session_count,
+        "mcp_authored_session_count": stats.mcp_authored_session_count,
+        "assetized_session_rate": stats.assetized_session_rate,
+        "direction_clarity_rate": stats.constraint_prompt_rate,
+        "context_grounding_rate": stats.code_context_rate,
+        "goal_locking_speed": goal_locking_speed,
+        "prompt_dimensions": stats.pq_avg_dimensions,
+        "test_run_rate": stats.test_run_rate,
+        "code_verification_rate": stats.code_verification_rate,
+        "commit_rate": stats.commit_rate,
+        "total_files_modified": stats.total_files_modified,
+        "friction_by_attribution": stats.friction_by_attribution,
+        "asset_maturity_bonus": 0.0,
+        "advanced_feature_ratio": stats.advanced_feature_ratio,
+        "skill_usage_session_rate": stats.skill_usage_session_rate,
+        "workflow_fingerprint_session_rate": stats.workflow_fingerprint_session_rate,
+        "workflow_reuse_depth": stats.workflow_reuse_depth,
+        "asset_authoring_session_rate": stats.asset_authoring_session_rate,
+        "has_token_data": any(s.input_tokens is not None for s in sessions),
+        "active_clarification_rate": clarification_rate,
+        "effective_contract_rate": stats.effective_contract_rate,
+        "contract_compliance_rate": stats.contract_compliance_rate,
+        "contract_compliance_denominator": stats.contract_compliance_denominator,
+        "goal_locking_evidence_count": len(locking_speeds),
+        "clarification_opportunity_count": len(clarification_ids),
+        "clarification_evidence_count": len(clarification_reads),
+        "delegation_success_rate": (
+            sum(delegation_outcomes) / len(delegation_outcomes)
+            if delegation_outcomes
+            else None
+        ),
+        "delegation_evidence_count": len(delegation_outcomes),
+        "implementation_session_rate": implementation_session_rate,
+        "recovery_opportunity_count": len(recovery_ids),
+        "recovery_success_rate": (
+            sum(recovery_outcomes) / len(recovery_outcomes)
+            if recovery_outcomes
+            else None
+        ),
+        "recovery_success_evidence_count": len(recovery_outcomes),
+        "correction_quality": (
+            sum(recovery_corrections) / len(recovery_corrections)
+            if recovery_corrections
+            else None
+        ),
+        "correction_evidence_count": len(recovery_corrections),
+        "post_friction_verification_rate": post_friction_verification_rate,
+    }
+    assessment = _assess_legacy_metrics(values)
+    stats.growth_level = assessment.growth_level or ""
+    stats.mirror_score = assessment.mirror_score or 0
+    stats.agentic_sub_scores = {
+        axis.key: axis.score for axis in assessment.axes if axis.score is not None
+    }
+    stats.assessment_policy_version = assessment.policy_version
+    stats.axis_assessments = list(assessment.axes)
     stats.agentic_system_score = round(stats.agentic_sub_scores.get("agentic_system", 0.0), 1)
     stats.goal_locking_speed = round(goal_locking_speed, 1)
     stats.radar_axes = _build_radar_axes(stats)

@@ -30,6 +30,7 @@ from ...domain.growth.diagnosis import (
 )
 from ...domain.growth.planning import rank_growth_priorities
 from .execution import complete_json_with_retries
+from .privacy import sanitize_outbound_text
 
 _COACH_RETRY_DELAYS = (2.0, 5.0)
 
@@ -94,8 +95,14 @@ def generate_growth_guidance(
         stats,
         capability_scores,
         ranked_priorities,
-        recent_friction_snippets=recent_friction_snippets,
-        recent_takeaway_snippets=recent_takeaway_snippets,
+        recent_friction_snippets=[
+            sanitize_outbound_text(item, max_chars=300)
+            for item in (recent_friction_snippets or [])[:5]
+        ],
+        recent_takeaway_snippets=[
+            sanitize_outbound_text(item, max_chars=300)
+            for item in (recent_takeaway_snippets or [])[:5]
+        ],
         trend_info=trend_info,
         schema_mismatch=schema_mismatch,
     )
@@ -145,7 +152,10 @@ def generate_growth_guidance(
             PromptRenderRequest(asset_path="user.md.j2", context=ctx)
         )
     except Exception as exc:
-        logger.warning("coaching template render failed: %s", exc)
+        logger.warning(
+            "AGM-LLM-CALL-FAILED context=growth-coach-template exception_type=%s",
+            type(exc).__name__,
+        )
         return None
 
     try:
@@ -157,7 +167,10 @@ def generate_growth_guidance(
             log_context="growth-coach",
         )
         if not isinstance(raw, dict):
-            logger.warning("growth guidance response was not a JSON object: %r", type(raw).__name__)
+            logger.warning(
+                "AGM-LLM-RESPONSE-INVALID context=growth-coach response_type=%s",
+                type(raw).__name__,
+            )
             return None
         coaching = parse_coaching_payload(raw)
         # Stage-3: if LLM didn't produce a diagnosis, fall back to rule layer
@@ -165,7 +178,8 @@ def generate_growth_guidance(
             coaching.diagnosis = rule_fallback_diagnosis(diagnosis_packet)
         return coaching
     except Exception as exc:
-        logger.warning("growth guidance LLM call failed: %s", exc)
+        logger.warning(
+            "AGM-LLM-CALL-FAILED context=growth-coach exception_type=%s",
+            type(exc).__name__,
+        )
         return None
-
-

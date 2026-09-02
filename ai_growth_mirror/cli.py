@@ -27,7 +27,7 @@ from .application.orchestrator import (
     resolve_requested_tools,
 )
 from .domain.session.scope import SessionScope
-from .infra.snapshots import compare_snapshots
+from .application.snapshot_service import compare_snapshots
 
 _LOG_RUN_ID: ContextVar[str] = ContextVar("growth_mirror_log_run_id", default="-")
 _LOG_STAGE: ContextVar[str] = ContextVar("growth_mirror_log_stage", default="-")

@@ -139,6 +139,10 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
             "status": item.status,
             "short_reason": item.short_reason,
             "confidence": item.confidence,
+            "has_data": item.has_data,
+            "coverage": item.coverage,
+            "components": list(item.components),
+            "reason_codes": list(item.reason_codes),
         }
         for item in view.radar_axes
     ]
@@ -149,6 +153,7 @@ def build_personal_summary_payload(view: PersonalReportView) -> dict[str, object
         "tool_display_name": view.tool_display_name,
         "date_range": view.date_range,
         "generated_at": view.generated_at,
+        "assessment_policy_version": view.stats.assessment_policy_version,
         "summary": {
             "headline": view.summary.headline,
             "mirror_score": view.summary.mirror_score,

@@ -70,9 +70,13 @@ def matches_session_scope(
     scope: SessionScope,
     cache: Optional[Any] = None,
 ) -> bool:
-    if scope.repos or scope.keywords:
-        if getattr(session, "_is_placeholder", False):
-            session.ensure_parsed(cache)
+    needs_full_parse = bool(
+        scope.repos
+        or scope.keywords
+        or (scope.dirs and not session.project_path)
+    )
+    if needs_full_parse and getattr(session, "_is_placeholder", False):
+        session.ensure_parsed(cache)
     if scope.repos:
         repo_haystacks = []
         if session.git_origin_url:

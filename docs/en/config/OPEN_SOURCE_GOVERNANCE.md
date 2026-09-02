@@ -1,8 +1,9 @@
 ---
 title: AI Growth Mirror Repository Governance
 domain: growth_mirror
-status: canonical
-updated_at: 2026-05-29
+status: mirror
+canonical_path: docs/config/OPEN_SOURCE_GOVERNANCE.md
+updated_at: 2026-09-02
 ---
 
 Chinese version: [OPEN_SOURCE_GOVERNANCE.md](../../config/OPEN_SOURCE_GOVERNANCE.md)
@@ -26,7 +27,7 @@ Forbidden: long-term design docs inside `ai_growth_mirror/` package; parallel pl
 
 ## 2. Document Frontmatter
 
-Every canonical document must include:
+Every Chinese canonical document must include:
 
 ```yaml
 ---
@@ -36,6 +37,8 @@ status: canonical | draft | archived | superseded
 updated_at: YYYY-MM-DD
 ---
 ```
+
+English translations are not a second authority. They use `status: mirror` and a repository-relative `canonical_path` that points to the Chinese owner; automated gates compare version and approval metadata.
 
 ## 3. Code and Prompts
 

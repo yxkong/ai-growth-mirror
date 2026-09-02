@@ -11,7 +11,8 @@ def test_is_cache_stale_requires_positive_stamps():
     assert not _is_cache_stale(cached_mtime=0.0, source_mtime=100.0)
     assert not _is_cache_stale(cached_mtime=50.0, source_mtime=0.0)
     assert _is_cache_stale(cached_mtime=50.0, source_mtime=100.0)
-    assert not _is_cache_stale(cached_mtime=100.0, source_mtime=50.0)
+    assert _is_cache_stale(cached_mtime=100.0, source_mtime=50.0)
+    assert not _is_cache_stale(cached_mtime=100.0, source_mtime=100.0)
 
 
 def test_read_analysis_reuses_unstamped_mtime(tmp_path: Path):
@@ -28,7 +29,7 @@ def test_read_analysis_reuses_unstamped_mtime(tmp_path: Path):
     assert loaded.delivery_outcome == "mostly_achieved"
 
 
-def test_read_analysis_invalidates_when_revision_advances(tmp_path: Path):
+def test_read_analysis_invalidates_when_revision_changes(tmp_path: Path):
     store = CacheStore(tmp_path / "cache")
     facets = SessionRead(
         session_id="s1",
@@ -37,7 +38,8 @@ def test_read_analysis_invalidates_when_revision_advances(tmp_path: Path):
         _source_mtime=100.0,
     )
     store.write_analysis(facets)
-    assert store.read_analysis("codex", "s1", source_mtime=50.0) is not None
+    assert store.read_analysis("codex", "s1", source_mtime=100.0) is not None
+    assert store.read_analysis("codex", "s1", source_mtime=50.0) is None
     assert store.read_analysis("codex", "s1", source_mtime=200.0) is None
 
 

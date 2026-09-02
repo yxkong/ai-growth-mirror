@@ -79,6 +79,8 @@ _CAPABILITY_ORDER = [
 def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) -> list[RadarAxis]:
     capability_meta = _view_i18n(catalogs).get("capability_meta", {})
     radar_i18n = _view_i18n(catalogs).get("radar_axes", {})
+    assessment_i18n = _view_i18n(catalogs).get("assessment_explanation", {})
+    component_labels = assessment_i18n.get("component_labels", {})
     axes: list[RadarAxis] = []
     for axis in stats.radar_axes:
         axis_i18n = radar_i18n.get(axis.key, {})
@@ -105,6 +107,29 @@ def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
                     structured_pct=round(stats.workflow_fingerprint_session_rate * 100),
                     asset_authoring_pct=round(stats.asset_authoring_session_rate * 100),
                 )
+        available_components = [
+            component
+            for component in (getattr(axis, "components", []) or [])
+            if component.get("available") and component.get("value") is not None
+        ]
+        if not getattr(axis, "has_data", True):
+            short_reason = assessment_i18n.get(
+                "no_data",
+                "Insufficient evidence for this axis.",
+            ).format(policy=stats.assessment_policy_version or "-")
+        elif available_components:
+            strongest = max(available_components, key=lambda component: component["contribution"])
+            weakest = min(available_components, key=lambda component: component["value"])
+            explanation = assessment_i18n.get(
+                "template",
+                "Policy {policy}; coverage {coverage}%; support {support}; improve {gap}.",
+            ).format(
+                policy=stats.assessment_policy_version or "-",
+                coverage=round(getattr(axis, "coverage", 0.0) * 100),
+                support=component_labels.get(strongest["key"], strongest["key"]),
+                gap=component_labels.get(weakest["key"], weakest["key"]),
+            )
+            short_reason = f"{short_reason} · {explanation}" if short_reason else explanation
         axes.append(
             RadarAxis(
                 key=axis.key,
@@ -114,6 +139,9 @@ def _localize_radar_axes(stats: GrowthProfile, catalogs: ReportLabelCatalogs) ->
                 short_reason=short_reason,
                 confidence=axis.confidence,
                 has_data=getattr(axis, "has_data", True),
+                coverage=getattr(axis, "coverage", 0.0),
+                components=list(getattr(axis, "components", []) or []),
+                reason_codes=list(getattr(axis, "reason_codes", []) or []),
             )
         )
     return axes

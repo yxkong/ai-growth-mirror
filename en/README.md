@@ -1,8 +1,9 @@
+<!-- status: mirror; canonical_path: README.md -->
 # AI Growth Mirror (AI Collaboration Growth Mirror)
 
 Chinese README: [README.md](../README.md)
 
-[![Release](https://img.shields.io/badge/Release-v1.0.0-blue.svg)](../pyproject.toml)
+[![Release](https://img.shields.io/badge/Release-v1.0.2-blue.svg)](../pyproject.toml)
 [![Schema Version](https://img.shields.io/badge/Schema-v1.0-blue.svg)](../ai_growth_mirror/domain/cache_schema.py)
 [![Python Version](https://img.shields.io/badge/python-3.12+-green.svg)](../pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](../LICENSE)
@@ -54,17 +55,17 @@ Each report projects your results onto a **six-axis collaboration radar** (the *
 | Axis | Weight | What it measures |
 |------|:------:|------------------|
 | **Collaboration Framing** (`collaboration_framing`) | **14%** | Collaboration kickoff quality: goal-locking speed, proactive clarification rate, and Effective Task Contract (v1.0.0) |
-| **Execution Driving** (`execution_driving`) | **25%** | Autonomous tool-chain length, sub-agent orchestration, and human-AI rhythm (the Agentic main battlefield) |
-| **Implementation Depth** (`implementation_depth`) | **19%** | File change volume, code verification coverage, and implementation boundary control |
+| **Execution Driving** (`execution_driving`) | **25%** | Continuous autonomous progress, structured workflows, and delegation that produces verified outcomes |
+| **Implementation Depth** (`implementation_depth`) | **19%** | Implementation sessions, code verification, task achievement, and bounded file coverage; raw volume does not score |
 | **Delivery Closure** (`delivery_closure`) | **19%** | Task completion rate, verification behavior, test/build/script validation, and contract fulfillment |
-| **Adaptive Recovery** (`adaptive_recovery`) | **10%** | Quality of correction and return-to-track when AI drifts or errors |
-| **Agentic Systemization** (`agentic_system`) | **13%** | Method assetization: Skill, Workflow, MCP, Subagent, and related patterns |
+| **Adaptive Recovery** (`adaptive_recovery`) | **10%** | Correction quality only when a real drift or error opportunity exists |
+| **Agentic Systemization** (`agentic_system`) | **13%** | Whether Skill, Workflow, MCP, and Subagent methods produce reusable verified outcomes |
 
-> **Why these weights**: see [docs/design/v0.7.0-DESIGN.md](docs/design/v0.7.0-DESIGN.md), [docs/design/v0.8.0-DESIGN.md](docs/design/v0.8.0-DESIGN.md), [docs/design/v0.8.1-DESIGN.md](docs/design/v0.8.1-DESIGN.md), and [docs/design/v1.0.0-DESIGN.md](docs/design/v1.0.0-DESIGN.md)
+> **Why these weights**: see the [v1.0.2 explainable assessment design](../docs/en/design/v1.0.2-DESIGN.md). Assessment policy `2.0` marks missing evidence unavailable and exposes coverage; raw token, commit, tool, model, and subagent counts are context, not maturity rewards.
 
 ---
 
-## Core Highlights (v1.0.0)
+## Core Highlights (v1.0.2)
 
 ### 1. Six-Axis Agentic Operation Maturity Assessment
 
@@ -72,7 +73,7 @@ Since v0.7, the system no longer judges "how good your prompt is" in isolation. 
 
 ### 2. Goal Locking Speed
 
-v0.8 added `goal_locking_speed`: via `turns_until_first_file_write`, it observes how quickly you drive AI to lock goals, boundaries, and a deliverable path. Readers with fine-grained tool streams record user turns before the first write; sessions without tool streams use an explicit fallback so "no signal" is never disguised as a deep judgment.
+v0.8 added `goal_locking_speed`: via `turns_until_first_file_write`, it observes how quickly you drive AI to lock goals, boundaries, and a deliverable path. Readers with fine-grained tool streams record user turns before the first write; without that signal, the component is **unavailable** rather than guessed.
 
 ### 3. Agentic Evidence Graph + Action Contract
 
@@ -86,15 +87,24 @@ From v1.0.0, the system distinguishes **user-explicit contracts**, **Skill/Rule/
 - **Growth trajectory**: per-period deltas on six-axis scores and friction changes, with SVG trend lines and change arrows
 - **CLI `status`**: `ai-growth-mirror status` shows sample progress and this week's practice hint in under 100ms
 
-### 5. One-Click Support for 9 Major AI Tools
+### 5. One-Click Support for 12 Major AI Tools
 
-Scan once; automatically detect and aggregate sessions from these **9** tools:
-- **International**: Claude Code, Codex, Cursor, Gemini, Cline, Kilo Code
-- **China ecosystem**: CodeBuddy, Trae, QCoder
+Scan once; automatically detect and aggregate sessions from these **12** tools:
+- **International**: Claude Code, Codex, Cursor, Gemini, OpenCode, Cline, Kilo Code, DeepSeek Harness
+- **China ecosystem**: CodeBuddy, Trae, QCoder, ZCode
 
-### 6. Local-First, Privacy Under Your Control
+DeepSeek Harness and ZCode normalize to a user-visible **root task**: child-session evidence rolls up once, avoiding Agent/Subagent double counting. Unknown versions or missing tables fail closed, and ZCode model-I/O request/response payloads are never used as a fallback.
 
-Analysis runs offline with a local rules engine by default. Even in `llm` mode, only redacted session summaries, not full source code, are sent for semantic diagnosis. Run `generate --redact` to redact paths and code-sensitive content in HTML reports, sidecars, share cards, and snapshots.
+### 6. Explainable Assessment Policy
+
+Each axis exposes its policy version, evidence coverage, available components,
+main support, and missing-evidence reason. Users can see what happened, why it
+was assessed that way, what evidence is absent, and how to verify improvement in
+the next period. Snapshots from different policies do not produce false-precision deltas.
+
+### 7. Local-First, Privacy Under Your Control
+
+Analysis uses the local rules engine by default; `--no-llm` guarantees that the analysis stage makes no external LLM request. In `llm` mode, only bounded excerpts pass through one rule-based redaction boundary, never complete source files. Common credentials, email addresses, and local paths are masked, but arbitrary business secrets cannot be guaranteed detectable. `generate --redact` separately redacts paths and code-sensitive content in HTML reports, sidecars, share cards, and snapshots.
 
 ---
 
@@ -221,6 +231,10 @@ Examples use the CLI entry. Without a global install, replace `ai-growth-mirror`
 For customization, new adapters, or algorithm debugging, see the canonical docs (Chinese versions linked from each English page):
 * [Layering, dependencies, and architecture](../docs/en/design/ARCHITECTURE_PRINCIPLES.md)
 * [Product roadmap](../docs/en/design/PRODUCT_ROADMAP.md)
+* [v1.0.2 DDD explainable assessment and readers](../docs/en/design/v1.0.2-DESIGN.md)
+* [ADR: v1.0.2 single assessment policy and root-task ACL](../docs/en/design/ADR-v1.0.2-assessment-policy-and-root-task.md)
+* [v1.0.1 Trust and resilience hardening](../docs/en/design/v1.0.1-DESIGN.md)
+* [ADR: v1.0.1 trust boundary and persistence](../docs/en/design/ADR-v1.0.1-trust-resilience.md)
 * [v1.0.0 Effective Task Contract and Agentic report calibration](../docs/en/design/v1.0.0-DESIGN.md)
 * [v0.8.1 collaboration fairness and cold-start performance](../docs/en/design/v0.8.1-DESIGN.md)
 * [v0.8.0 Collaboration Framing and goal locking speed](../docs/en/design/v0.8.0-DESIGN.md)

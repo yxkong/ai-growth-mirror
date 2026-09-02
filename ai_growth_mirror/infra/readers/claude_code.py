@@ -17,10 +17,11 @@ from ...domain.session.heuristics import (
     WRITE_TOOL_NAMES,
     is_validation_command,
 )
-from ...domain.session.model import SessionRecord, SessionRef
+from ...domain.session.model import SessionRecord
 from ...domain.signals.tooling import compute_tier_counts
 from .base import (
     BaseSessionAdapter,
+    SessionRef,
     SKILL_READ_TOOL_NAMES,
     detect_authorship_path,
     detect_language,

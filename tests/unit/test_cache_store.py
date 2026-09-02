@@ -24,3 +24,17 @@ def test_cache_meta_roundtrip(tmp_path: Path):
     loaded = store.read_record("claude_code", "abc")
     assert loaded is not None
     assert loaded.session_id == "abc"
+
+
+def test_cache_revision_change_is_stale_even_when_revision_decreases(tmp_path: Path):
+    store = CacheStore(tmp_path / "cache")
+    meta = SessionRecord(
+        session_id="revision",
+        tool_name="opencode",
+        start_time="2026-01-01T00:00:00Z",
+    )
+    meta._source_mtime = 9.0
+    store.write_record(meta)
+
+    assert store.read_record("opencode", "revision", source_mtime=9.0) is not None
+    assert store.read_record("opencode", "revision", source_mtime=4.0) is None

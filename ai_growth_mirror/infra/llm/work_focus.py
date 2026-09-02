@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
@@ -19,16 +18,11 @@ from ...domain.common.contracts import (
     PromptRenderRequest,
     PromptTemplateGateway,
 )
-from ...domain.growth.evidence import clean_project_name
 from .execution import complete_json_with_retries
+from .privacy import sanitize_outbound_text
 
 _WORK_FOCUS_RETRY_DELAYS = (2.0, 5.0)
 _MAX_SESSION_ROWS = 40
-_PATH_RE = re.compile(
-    r"(?:[A-Za-z]:[\\/][^\s，。；;]+|/Users/[^\s，。；;]+|/home/[^\s，。；;]+|\\\\\?\\[^\s，。；;]+)"
-)
-
-
 class WorkFocusTemplateAdapter(PromptTemplateGateway):
     """Prompt-template adapter for the work-focus synthesis prompt bundle."""
 
@@ -51,9 +45,8 @@ def _fallback_summary_from_prompt(session: "SessionRecord") -> str:
         text = (session.top_user_messages[0] or "").strip()
     if not text:
         return ""
-    text = _PATH_RE.sub(" ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text[:200]
+    text = sanitize_outbound_text(text, max_chars=200)
+    return " ".join(text.split())
 
 
 def _build_session_rows(
@@ -67,6 +60,7 @@ def _build_session_rows(
         reverse=True,
     )[:_MAX_SESSION_ROWS]
     rows: list[dict[str, Any]] = []
+    project_aliases: dict[str, str] = {}
     for session in sorted_sessions:
         read = read_by_session.get(session.session_id)
         summary = ""
@@ -82,10 +76,13 @@ def _build_session_rows(
             confidence = (read.confidence or "").strip()
         if not summary:
             summary = _fallback_summary_from_prompt(session)
+        project_key = (session.project_path or "").replace("\\", "/").casefold().strip()
+        if project_key and project_key not in project_aliases:
+            project_aliases[project_key] = f"project-{len(project_aliases) + 1:02d}"
         rows.append(
             {
-                "project_name": clean_project_name(session.project_path or ""),
-                "work_summary": summary,
+                "project_name": project_aliases.get(project_key, ""),
+                "work_summary": sanitize_outbound_text(summary, max_chars=300),
                 "work_intent_mix": intent_mix,
                 "confidence": confidence,
             }
@@ -125,7 +122,10 @@ def generate_work_focus_summary(
             PromptRenderRequest(asset_path="user.md.j2", context=ctx)
         )
     except Exception as exc:
-        logger.warning("work-focus template render failed: %s", exc)
+        logger.warning(
+            "AGM-LLM-CALL-FAILED context=work-focus-template exception_type=%s",
+            type(exc).__name__,
+        )
         return None
 
     try:
@@ -137,7 +137,10 @@ def generate_work_focus_summary(
             log_context="work-focus",
         )
         if not isinstance(raw, dict):
-            logger.warning("work-focus response was not a JSON object: %r", type(raw).__name__)
+            logger.warning(
+                "AGM-LLM-RESPONSE-INVALID context=work-focus response_type=%s",
+                type(raw).__name__,
+            )
             return None
         headline = raw.get("headline")
         recent_work = raw.get("recent_work")
@@ -150,5 +153,8 @@ def generate_work_focus_summary(
             "recent_work": [item.strip() for item in recent_work if isinstance(item, str) and item.strip()],
         }
     except Exception as exc:
-        logger.warning("work-focus LLM call failed: %s", exc)
+        logger.warning(
+            "AGM-LLM-CALL-FAILED context=work-focus exception_type=%s",
+            type(exc).__name__,
+        )
         return None

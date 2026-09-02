@@ -1,126 +1,39 @@
-# Common Agent Rules (core)
+首跳:
+- project-specific domain work -> ai-growth-mirror-dev
+- live environment / service / MySQL / Redis / Kafka / port / process / logs -> ops-bootstrap before delivery-workflow
+- debug / feature / refactor / SQL / API / frontend -> delivery-workflow
+- Spec / ADR / Security / Release / 9.8 score -> ai-development-governance
+- docs / SQL / scripts backup and placement -> doc-script-governance
+- browser black-box verification -> webapp-testing
+- create skill -> skill-discovery -> skill-engineering only when no reusable candidate exists
+- reusable prompt -> prompt-engineering; human-readable insight -> project-insight-extractor
+- unknown asset placement -> agent-asset-router; do not enter media workflow
 
-High-signal defaults only. Procedures and details belong in skills—see §技能路由。
+## 个人工程偏好
 
-**本文档是 Agent 全局必遵规则**（同步到各仓库 `AGENTS.md`、`.cursor/rules/00-common.mdc` 等）。`skills/share/README.md` 供**人**查阅技能目录，**不是** Agent 入口。
+- 复杂领域用 DDD 识别领域、用例和边界；简单 CRUD 不为形式强套聚合、分层或模式。
+- 保持高内聚、低耦合；模块只有一个主要变化原因，依赖指向稳定边界。
+- DRY 消除重复知识、业务规则和契约，不因表面代码相似而提前抽象。
+- 优先项目已有架构、样板、命名和扩展点；个人模式偏好不得覆盖项目指纹。
+- 全局“高效能”在工程中投影为高性能：明确时延、吞吐、资源、事务、成本和降级预算。
 
-## Goals
+## 工程决策卡
 
-- Hard constraints first: no garbled text, no broken structure, no unsafe shortcuts.
-- Reduce detours: prefer the shortest correct path, avoid rework, avoid duplicate investigation.
-- Save tokens: read the minimum useful context; prefer canonical sources over scattered history.
-- Design before implementation: non-trivial work should be designed and aligned before code lands.
-- Learn after failure: when a change fails or causes rework, extract the lesson in reusable form.
+- 元原则：问题暴露得越早，修正成本越低；每进入一个更高成本阶段前，先暴露并处理本阶段能够发现的关键问题。
+- 姿态：先边界、再诊断、再最小改动、再验证；不确定就声明，同错两次停止叠补丁并重判。
+- 架构：项目内部只遵循自身唯一指纹；跨项目约束仅在 `contract_groups` 命中时加载，参考项目不得成为内部模板。
+- 架构透镜：设计与选型时用四高（高价值、高可信、高性能、高演进）、二低（低上下文成本、低变更成本）、三底座（可维护、安全、可观测）暴露问题；不得等实现后再补九项评分。
+- 优先级：`安全 / 已冻结共享契约（命中时） / 项目指纹 > 四高 > 二低`；目标、计划和局部绿灯不得冒充完成证据。
+- 长链路不持有 DB 长事务；配置必须有生效证据；变化进入既有扩展点，不新增第二真源和无退出兼容层。
 
-## Output
+## 零跳门禁卡
 
-- Default to **Simplified Chinese** and **Markdown** unless the user asks otherwise.
-- Keep answers **concise** and **actionable**.
-- Separate **fact / assumption / unknown / risk** when that affects the next action.
-- Put **executable commands** in fenced code blocks matching the shell environment.
-
-## Hard Constraints
-
-- **Preserve existing encoding** when editing; new files prefer **UTF-8 without BOM + LF**.
-- Prefer the **smallest effective change**; avoid scope creep; reuse before inventing.
-- For **non-trivial work**, align on goals, constraints, and acceptance before implementation.
-- Validate with the **smallest safe check**; no remote/deploy/production commands unless explicitly asked.
-- **Windows shell 强规则**：在 Windows 上执行命令时，默认**显式使用 `pwsh`（PowerShell 7+）**；只有在**刻意验证 `powershell.exe` / Windows PowerShell 5.1 兼容性**时，才允许退回旧宿主。不得因为本机终端默认配置与工具宿主不一致，就默认假设自己跑在 `pwsh` 上。
-- Do not fabricate tool output, private state, dates, or unavailable facts.
-- Pause before irreversible, expensive, destructive, or production-impacting actions.
-- When a change fails, find the root cause and land the lesson in reusable form.
-
-## 研发全流程（Agent 全局必遵）
-
-真实研发任务的 **节奏** 与 **文档/SQL 资产** 由 **`delivery-workflow`** + **`doc-script-governance`** 固定搭配；**端到端治理总线**（Spec / ADR / 门禁 / scorecard）由 **`ai-development-governance`** 承担（不合并为一个 skill；**不得**在各仓库 `docs/guide/` 复制本段全文）。
-
-### 固定顺序
-
-1. 研发任务进场 → **`delivery-workflow`**（阶段门；Full Path 先设计收敛；前置可读 **`ai-development-governance`**）。
-2. 规范 / Spec / ADR / Security / Release 门禁 / 9.8 评分 → **`ai-development-governance`**（不替代 delivery 执行）。
-3. 要写/改 `docs/`、SQL、合并 plan → **`doc-script-governance`**。
-4. 写代码/页面/接口 → **项目领域技能**（`rules/projects/<key>/PROJECT_RULES.md` + `skills/projects/<key>/`）。
-5. 上线前 → **`ai-development-governance`** Release / Security Gate（Fast Path 开发环境可轻量化）。
-6. 找某仓库已有终版 → 该仓库 `docs/README.md`、`docs/design/<domain>/README.md`（各项目自建）。
-
-### 分工（禁止混淆）
-
-| | ai-development-governance | delivery-workflow | doc-script-governance |
-|--|---------------------------|-------------------|------------------------|
-| **管** | G0–G8、Spec/ADR/Task Contract 模板、Security/Release/Quality 门禁、scorecard | 阶段门、契约、验证、失败沉淀 R3 | 类型 ID、目录、模板、备份、项目 docs 元数据 |
-| **不管** | 具体代码实现；docs 备份 SOP 细则 | 文档放哪个文件夹 | 业务方案、排期、代码实现 |
-
-**设计整合门**（delivery §5.1）：plan 并入 `docs/design` 终版；可执行契约与终版一致；**项目 docs** 按 doc-script 更新 YAML + §修订记录（share 技能 `references/` **不写**修订表）。
-
-**冲突**：研发 + 文档落点并存时 → **`delivery-workflow` 主导**，文档细则转 **`doc-script-governance`**。研发 + 规范/门禁/评分 → **`ai-development-governance` 主导**，执行转 **`delivery-workflow`**。
-
-## 改动前置
-
-**代码文件**：进入实现阶段前遵循 `delivery-workflow` **checkpoint 协议**（优先 `git status`；必要时经同意的 `git commit` / `stash` / 分支；否则记录 `risk`）。
-
-**文档 / 脚本 / 技能主文件**：改前按 `doc-script-governance` 调用 **`skills/share/doc-script-governance/scripts/backup-file`**（或 hub 兼容入口 `scripts/backup-file`）。
-
-**已有文档 / SQL**：未经负责人明确确认，不得删除、清空或替换为占位。
-
-### 还原与撤回（Git / 工作区）
-
-凡执行 **任一可能覆盖、丢弃或未提交就先抹掉本地状态** 的操作（例如 `git restore`、`git reset`、`git clean` 等），必须先：
-
-1. **列出复原范围**（逐条路径；必要时附 `git status` / `git diff` 摘要）。
-2. **给出拟执行命令原文**，并说明会不会丢掉未提交修改、是否与用户意图一致。
-3. **经用户明示确认后再执行**。
-
-**禁止**：未经确认对整块目录一键 `git restore`。
-
-## 技能路由
-
-| 场景 | 先读 |
-|------|------|
-| 研发任务（节奏） | **`delivery-workflow`**（顺序见 §研发全流程） |
-| AI 开发规范 / 体系 / Spec·ADR / 上线门禁 / 9.8 评分 | **`ai-development-governance`** |
-| 文档 / SQL / 脚本放置、模板、备份 | **`doc-script-governance`** |
-| SKILL 新建 / 审查 / 目录布局 | `skill-engineering` |
-| Hub 安装、注册、挂载、脚本分级 | `agent-hub-bootstrap` |
-| 目标产物不明（skill / prompt / docs 混在一起） | `agent-asset-router` |
-| 浏览器黑盒验证 | `webapp-testing`（验证阶段，delivery 主导） |
-
-**项目领域实现** → 各项目 `rules/projects/<project-key>/PROJECT_RULES.md`（**仅写项目增量**，不重复本文）与 `skills/projects/<project-key>/`。
-
-## Agent 协作模型（摘要）
-
-**两档分工（不写死模型版本号）**
-
-| 档位 | 职责 | 子 Agent（`Task`） |
-|------|------|-------------------|
-| **编排档** | 阶段门、方案、范围白名单、验收、汇总 | **默认禁止**；见下「仅编排档允许的派发」 |
-| **执行档** | 已锁定的机械落盘（多文件写入、大段生成、跑固定验证命令） | **禁止再启**子 Agent |
-
-- **执行档识别（随 Composer / Cursor 升级自动适用）**：派发 `Task` 时 `model` 的 slug **以 `-fast` 结尾**，或产品文档标明为 fast/执行档；**禁止**在规则正文绑定 `composer-2.x-fast` 等具体版本号。
-- **编排档识别**：当前主会话模型；若 slug 含 `-fast` 或用户选定执行档，则本段「编排档」约束不适用（且不得再派子 Agent）。
-
-**默认（编排档）**
-
-- 调查、读代码、单文件修改、评分/文档归纳、用户问答 → 在本会话用 Read/Grep/Glob/Shell **直接完成**。
-- **不得**为「看看目录结构」「找某文件」「通读 SKILL 列表」等可一次工具链完成的任务启 `explore` / `generalPurpose` 子 Agent。
-- 用户写明「不要子 Agent / 直接做 / 别后台跑」→ **零** `Task` 调用。
-
-**仅编排档允许的派发（执行档子任务）**
-
-同时满足方可 `Task`：
-
-1. 任务类型 = **机械落盘**（非探索、非方案权衡）；
-2. 路径/内容/验收已写清（或已有 Hub `prompts/share/agent-task/*.prompt.md`）；
-3. 命中硬触发之一：写入 **≥ 2** 个文件；或单文件预计 **> 1500** 输出 token；或 delivery 规定的批量机械任务。
-
-未齐清单或边界 → 编排档先澄清或自行摸底，**禁止**先派子 Agent。
-
-**与 `delivery-workflow` 的关系**
-
-- 硬触发、7 要素、Hub 任务 prompt → **`delivery-workflow`**（其 R2 要求执行档 slug 以 `-fast` 结尾，与上文一致）。
-- `delivery-workflow` 的「必须派发」**仅指执行档机械任务**，**不**授权用子 Agent 替代编排档调查。
-- skill 体量门禁 → **`skill-engineering`** + `scripts/check-skill-size`（分级见 `agent-hub-bootstrap` → `references/script_tiering.md`）。
-
-# AI Growth Mirror — 项目增量规则
+- **G0 反迎合**：方案、体系、高标准或未验证方向先给出 `fact / 项目身份 / assumption / unknown / risk / 反方问题 / 更小闭环 / 不做条件`；影响方向的字段未收敛，不得宣称方案确定。目标或事实错误应在本阶段暴露，不得带入设计和实现。
+- **G1 派发**：worker 只做路径、输入、输出、约束和验收已锁定的机械任务；先写 `目标 / 范围 / 输入 / 硬约束 / 验证判据 / 输出状态`，禁止承担架构、安全、契约、迁移和破坏性裁决；主 Agent 复核，写入文件互斥。
+- **G1a 真实资源首跳**：症状或验收依赖真实 MySQL、Redis、Kafka、远程主机、服务、端口、进程或日志时，先进入 `ops-bootstrap` 的对应 plan / 只读核验；边界未判定前，禁止用临时脚本、业务 ORM、裸客户端或临时凭据绕过。其不支持的写库或业务部署必须明确转项目 migration / ops / DBA，不得扩大技能权限。
+- **G2 设计与实现**：代码、页面、接口、配置或 SQL 前，先用架构透镜输出 `已暴露问题 / 设计决策 / 关键取舍 / 未决 P0 / 验证方式`，完成 Fast/Full 设计与自 Review。用户已明确提出实施请求时，同一目标内直接实现、补依赖和验证，不再按设计 Hash 或逐文件白名单重复确认；仅目标越界、生产/外部写入、安全升级、删除或不可逆动作再次确认。保持原结构，不借机重构。
+- **G3 验证**：完成声明必须包含验证命令、通过判据和实际产物；缺陷用同一主链复现/修复/回归，缺数据补写入、读取、响应三联检，主链未验不算完成。
+- **G4 资产与还原**：改文档、SQL、脚本、skill/reference 或规则前用标准 `backup-file`；未经确认不删除既有资产，`restore/reset/clean` 前列路径、原命令和影响并获明示确认；只跑匹配本次资产的校验。
 
 > 全局规则见 hub `rules/common/`（同步到仓内 `AGENTS.md`）。**本文仅写 ai-growth-mirror 增量。**
 
@@ -134,7 +47,6 @@ High-signal defaults only. Procedures and details belong in skills—see §技�
 
 ## 增量硬约束
 
-- **版本一致性**：产品版本真源 `pyproject.toml` → 同步 `ai_growth_mirror/__init__.py`、`uv.lock`、`README.md` Release badge；缓存 Schema 真源 `domain/cache_schema.py`（与产品版本解耦）。升版检查见项目技能 `ai-growth-mirror-dev` §版本一致性协议。
 - 报告主编排真源：`application/orchestrator.generate_report_artifacts`；禁止 CLI 双流水线。
 - 禁止未经用户确认删除 `docs/review/growth_mirror/REPORT_VALUE_RECOVERY_INVENTORY.md` 冻结能力。
 - **禁止**对 `ai-growth-mirror` 工作区执行 hub `sync-prompts`；不在仓内挂载 hub prompt 真源。

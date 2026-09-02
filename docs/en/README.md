@@ -1,11 +1,12 @@
 ---
 title: AI Growth Mirror Docs Index
 domain: growth_mirror
-status: canonical
-updated_at: 2026-06-09
+status: mirror
+canonical_path: docs/README.md
+updated_at: 2026-09-02
 ---
 
-Chinese docs index: [docs/README.md](../../README.md)
+Chinese canonical docs index: [docs/README.md](../README.md)
 
 # AI Growth Mirror Documentation Entry
 
@@ -21,6 +22,6 @@ Chinese docs index: [docs/README.md](../../README.md)
 ## Reading Rules
 
 1. **Architecture first**: Before changing any core code, align with **[ARCHITECTURE_PRINCIPLES.md](../../design/ARCHITECTURE_PRINCIPLES.md)**, especially the four R&D architecture hard rules in Section 14.
-2. **Canonical sources**: Active canonical docs live under `docs/design/` and `docs/config/`; `docs/**/bak/` is historical archive backup, not current execution authority.
-3. **Stay in sync**: Every feature iteration must keep formulas and interface contracts in docs aligned with implementation; doc-implementation drift is forbidden.
-4. **Bilingual parity**: User-facing design docs exist under `docs/design/` (Chinese) and `docs/en/design/` (English). Release or version bumps must update **both** trees in the same change set.
+2. **Canonical sources**: Active Chinese contracts under `docs/design/` and `docs/config/` are canonical; `docs/**/bak/` is historical archive backup, not current execution authority.
+3. **Checked mirrors**: English documents are derived mirrors with a `canonical_path`; conflicts are resolved only at the Chinese canonical owner.
+4. **Bilingual parity**: Release or version bumps update canonical and mirror in the same change set, and automated metadata/version checks block drift.

@@ -1,4 +1,12 @@
-Chinese version: [ARCHITECTURE_PRINCIPLES.md](../../design/ARCHITECTURE_PRINCIPLES.md)
+---
+title: AI Growth Mirror Architecture Principles
+domain: growth_mirror
+status: mirror
+canonical_path: docs/design/ARCHITECTURE_PRINCIPLES.md
+updated_at: 2026-09-02
+---
+
+Chinese canonical version: [ARCHITECTURE_PRINCIPLES.md](../../design/ARCHITECTURE_PRINCIPLES.md)
 
 # AI Growth Mirror - Architecture Principles
 
@@ -35,24 +43,24 @@ All product output must trace to these four evidence chains; displays where "sco
 
 ### 1.2 Current Growth Scoring Axes (Product Authority)
 
-Personal edition since v0.7, finalized v0.8 as **six-axis Agentic maturity base** (axis keys authority: `domain/growth/scorer.py`):
+The personal edition uses a **six-axis Agentic maturity base**. Policy semantics are owned by `domain/growth/assessment_policy.py`, pure calculation by `domain/growth/assessment.py`; `scorer.py` only maps aggregate facts into domain inputs:
 
 | Axis key | Label (zh) | Weight | Measures |
 |--------|--------|:---:|----------|
 | `collaboration_framing` | Collaboration Framing | **14%** | Collaboration startup quality: goal lock speed, active clarification rate, Effective Task Contract (v1.0.0 upgrade) |
-| `execution_driving` | Execution Driving | **25%** | Autonomous tool chain length, sub-agent orchestration, human-AI rhythm (Agentic main battlefield) |
-| `implementation_depth` | Implementation Depth | **19%** | File change volume, code verification coverage, implementation boundary control |
+| `execution_driving` | Execution Driving | **25%** | Continuous autonomous progress, structured workflow, and delegation with verified outcomes |
+| `implementation_depth` | Implementation Depth | **19%** | Implementation sessions, code verification, achievement, and bounded file coverage |
 | `delivery_closure` | Delivery Closure | **19%** | Task completion rate, verification behavior, test/build/script verification, contract fulfillment |
-| `adaptive_recovery` | Adaptive Recovery | **10%** | Quality of correction and return to track when AI drifts or errors |
-| `agentic_system` | Agentic Systemization | **13%** | skill/workflow/MCP/subagent method assetization |
+| `adaptive_recovery` | Adaptive Recovery | **10%** | Recovery success, correction quality, and verification after real friction opportunities |
+| `agentic_system` | Agentic Systemization | **13%** | Skill/workflow/MCP/subagent methods bound to verified outcomes |
 
-Weights total 100%; evolution see [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md) and [v0.8.0-DESIGN.md](v0.8.0-DESIGN.md).
+Weights total 100%; current policy is `2.0`, governed by [v1.0.2-DESIGN.md](v1.0.2-DESIGN.md).
 
-`mirror_score` (Collaboration Index) and `growth_level` (L1-L5) from six-axis weighting + confidence correction; must not regress to old linear weighted model re-skin. Radar renders hexagon; old five-axis snapshots label `agentic_system` "no data yet" without error or forced recompute.
+Each component carries value, availability, confidence, evidence count, and reason code. Missing evidence is unavailable; available components and axes are dynamically renormalized with visible coverage. Raw token, file, commit, tool, model, and subagent counts do not directly score. `mirror_score` is only policy-weighted available axes plus sample caps—no bonus, floor, or second formula. Cross-policy snapshots do not emit a delta.
 
 ### 1.2.1 L1-L5 Level Score Distribution and Design Rationale
 
-**Authority**: `domain/growth/scorer.py -> _LEVEL_MIN_SCORE`. All presentation layers (report_view, level_guide yaml, README) use this only; no parallel ranges.
+**Authority**: `domain/growth/assessment_policy.py -> LEVEL_MIN_SCORES`. Calculation and presentation consume this owner; no parallel ranges.
 
 #### Level Ranges
 
@@ -68,8 +76,8 @@ Weights total 100%; evolution see [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md) and [v0.8
 
 1. **L1 wide (38 pts)**: Large entry span encourages leaving "Q&A phase." Users stay briefly in L1; real tasks quickly reach L2.
 2. **L2/L3 medium (~18-19 pts)**: Where most active users sit; linear growth zone; every point perceptible.
-3. **L4 narrower (15 pts)**: L4 requires Agentic system floor conditions (below); narrower range ensures real capability level.
-4. **L5 narrowest (11 pts)**: Rare level; requires high Agentic system, Execution Driving, Delivery Closure, etc.; single-axis max insufficient.
+3. **L4 narrower (15 pts)**: Coverage and sample caps require stable multi-axis evidence.
+4. **L5 narrowest (11 pts)**: Raw activity volume or a single-axis modifier cannot reach it.
 
 #### Sample Confidence Cap
 
@@ -77,16 +85,9 @@ Weights total 100%; evolution see [v0.7.0-DESIGN.md](v0.7.0-DESIGN.md) and [v0.8
 |-----------|------------|------|
 | < 8 | 69 | Cap within L3; insufficient sample cannot reach L4 |
 | < 15 | 82 | Cap within L4; insufficient sample cannot reach L5 |
-| >= 15 and Agentic conditions met | No cap | Score from formula |
+| >= 15 | No cap | Score from available policy 2.0 evidence |
 
 Effective session read < 5: no formal level ("pending assessment").
-
-#### L4/L5 Floor Lift Conditions
-
-To avoid underestimating strong Agentic users dragged by one axis:
-
-- **L4 floor**: `session_count >= 15` and `agentic_system >= 75` and `execution_driving >= 70` and `implementation_depth >= 65` and `delivery_closure >= 50` -> total at least 75
-- **L5 floor**: `session_count >= 15` and `agentic_system >= 88` and `execution_driving >= 78` and `implementation_depth >= 70` and `delivery_closure >= 65` and `adaptive_recovery >= 55` -> total at least 90
 
 #### Per-Axis Threshold Lines (stage assessment display; not total score mapping)
 
@@ -99,16 +100,16 @@ Next-level evidence lines in "stage assessment" block explain "why not upgraded 
 | L4 | 72 | 74 | 70 | 70 | 68 | 75 |
 | L5 | 86 | 86 | 84 | 84 | 82 | 88 |
 
-> **Note**: Per-axis thresholds are explanatory display gates, **not** total score mapping. Total from six-axis weighting + modifiers, then `_LEVEL_MIN_SCORE` for level.
+> **Note**: Per-axis thresholds are explanatory display gates, **not** total score mapping. Total is policy 2.0 available-axis weighting, then `LEVEL_MIN_SCORES` maps the level.
 
 ### 1.3 Supported AI Coding Tools
 
-Aligned with repo `README.md`; **9 tools** integrated:
+Aligned with repo `README.md`; **12 tools** are integrated. Tool names and CLI aliases are derived only from `infra/readers/catalog.py`:
 
 | Type | Tools |
 |------|------|
-| International | Claude Code, Codex, Cursor, Gemini, Cline, Kilo Code |
-| China domestic | CodeBuddy, Trae, QCoder |
+| International | Claude Code, Codex, Cursor, Gemini, OpenCode, Cline, Kilo Code, DeepSeek Harness |
+| China ecosystem | CodeBuddy, Trae, QCoder, ZCode |
 
 CLI `--tools all` scans all; or specify one or more. Unified Adapter layer into same scoring and report chain.
 
@@ -226,7 +227,6 @@ ai_growth_mirror/
 |   +-- session/
 |   |   +-- model.py               # SessionRecord
 |   |   +-- scope.py               # SessionScope + apply_session_scope()
-|   |   +-- tool_registry.py       # Tool selection vocabulary
 |   |   +-- heuristics.py          # prompt / creation-reuse / growth rules
 |   +-- ingestion/
 |   |   +-- model.py               # CollectionResult / ToolCollectorSpec
@@ -241,6 +241,8 @@ ai_growth_mirror/
 |   |   +-- tooling.py             # tool normalization / capability tier rules
 |   +-- growth/
 |       +-- model.py               # GrowthProfile, GrowthScore, AgentAssetStats
+|       +-- assessment_policy.py   # policy, weights, and level authority
+|       +-- assessment.py          # availability, coverage, axes, total pure logic
 |       +-- scorer.py              # aggregate() (pure compute, no I/O)
 |       +-- highlights.py          # surface_highlights()
 |       +-- evidence.py            # build_core_evidence() (schema-versioned facts)
@@ -251,7 +253,7 @@ ai_growth_mirror/
 |   +-- signals/collab.py          # collaboration style (report display authority)
 |
 +-- infra/                         # Infrastructure (all I/O or technical deps)
-|   +-- readers/                   # per-tool session readers
+|   +-- readers/                   # per-tool readers; catalog.py is identity/alias owner
 |   +-- extractors/                # Signal extractors (LLM + rules)
 |   +-- llm/
 |   +-- snapshots.py
@@ -295,7 +297,8 @@ application/orchestrator.generate_report_artifacts()
     +-- infra/extractors/        signals (LLM or rules)
     |       -> SessionRead (domain/signals/model.py)
     +-- infra/cache/             cache SessionRead
-    +-- domain/growth/scorer.py  aggregate GrowthProfile (pure)
+    +-- domain/growth/scorer.py  aggregate facts and map AssessmentInputs
+    +-- domain/growth/assessment.py  pure policy 2.0 assessment
     |       -> GrowthProfile (domain/growth/model.py)
     +-- application/personal_report_service.py
     |       +-- infra/llm/coach.py            CoachingContent (LLM, optional)
@@ -433,8 +436,9 @@ Fields may enrich; do not push hardcoded explanation copy back into scoring func
 | New Session Read dimension | `domain/signals/model.py` + `prompts/session_read/system.md.j2` |
 | New report section | `application/report_view.py` + `assets/templates/report.html.j2` |
 | New LLM content | `assets/prompts/` + `infra/llm/` |
-| Growth Level thresholds | `domain/growth/scorer.py` |
-| Six-axis weights and boundaries | `domain/growth/scorer.py` |
+| Growth Level thresholds | `domain/growth/assessment_policy.py::LEVEL_MIN_SCORES` |
+| Six-axis/component weights and boundaries | `domain/growth/assessment_policy.py`; semantic change bumps policy |
+| Reader or CLI alias | `infra/readers/catalog.py`; never duplicate the list |
 
 ---
 
@@ -457,8 +461,8 @@ Fields may enrich; do not push hardcoded explanation copy back into scoring func
 > **[v0.4.2 architecture increment]**: Four hard rule types introduced at product **v0.4.2** with cache Schema **1.2** for multi-endpoint sync, anti-jitter cache, and large-session throughput and scoring accuracy.
 
 ### 14.1 Missing-Metric Dynamic Normalization
-- **Principle**: If a data source lacks metrics (e.g. Cursor/Trae/QCoder Token billing), scoring must **not** treat as `0` penalty.
-- **Logic**: In [scorer.py](../../ai_growth_mirror/domain/growth/scorer.py), `any(s.input_tokens is not None for s in sessions)` before aggregate. If no Token data, strip `total_token_volume` (18%) from `implementation_depth` `_bounded_average`; remaining weights renormalize to 1.0.
+- **Principle**: Unsupported or absent evidence is `unavailable`, neither zero nor perfect.
+- **Logic**: `assessment.py` renormalizes only available components and axes, returning coverage, confidence, and reason codes. Below-policy coverage makes an axis unavailable. Token/cost is usage context, not maturity evidence.
 
 ### 14.2 Shared Database Per-Session Revision
 - **Principle**: Multi-session shared DB (Trae/QCoder `state.vscdb`) must not use whole-file `stat().st_mtime` as cache stamp (IDE UI writes cause jitter invalidation).
@@ -470,7 +474,7 @@ Fields may enrich; do not push hardcoded explanation copy back into scoring func
 
 ### 14.4 Lazy Parse and On-Demand Load Sampling
 - **Principle**: Large logs must use Placeholder lazy parse to avoid scan-phase full parse overload.
-- **Logic**: [base.py](../../ai_growth_mirror/infra/readers/base.py) `_iter_sessions_from_root` builds `_is_placeholder = True` `SessionRecord` with `_quick_extract_project_path` when cache miss. [orchestrator.py](../../ai_growth_mirror/application/orchestrator.py) calls `session.ensure_parsed(cache)` only after scope filter and sample limit on final list.
+- **Logic**: infrastructure `DeferredSessionRecord` in [base.py](../../ai_growth_mirror/infra/readers/base.py) owns adapter/raw ref/cache. Pure domain `SessionRecord` owns none of them. The orchestrator materializes only after scope filtering and sampling.
 
 ---
 
@@ -495,10 +499,15 @@ Fields may enrich; do not push hardcoded explanation copy back into scoring func
 - **Mechanism**: Unchanged schema -> patch only (`v1.0.0` -> `v1.0.1`). Incompatible DTO/cache change -> bump schema (e.g. `1.1`) and product `v1.1.0`; old cache invalidated.
 
 ### 16.2 Version Linkage Checklist
-- **Principle**: One PR must update all authority points:
-  - `pyproject.toml` `[project].version`
-  - `ai_growth_mirror/__init__.py` `__version__`
-  - `domain/cache_schema.py` `CACHE_SCHEMA_VERSION`
-  - `README.md` Release and Schema badges
-  - `docs/design/README.md` current version and revision log
-  - `docs/design/PRODUCT_ROADMAP.md` version table
+- **Unique owners**: Product version is defined only by `pyproject.toml [project].version`; cache protocol is defined only by `domain/cache_schema.py::CACHE_SCHEMA_VERSION`.
+- **Checked projections**: `__version__`, `uv.lock`, README badges, design indexes and roadmap project those owners and have no independent authority.
+- **Change rule**: A product patch bump with unchanged schema must not rewrite `CACHE_SCHEMA_VERSION`; only an incompatible cache-protocol change updates the schema owner.
+- **Gate**: Update applicable projections in one change set and verify them with `test_version_alignment.py` plus cache schema tests.
+
+## 17. Single Sources and Derived Projections
+
+- Each mutable fact has one canonical owner. Tests, translations, examples, locks, badges, skills and CLI adapters are consumers/projections and must not copy mutable business rules.
+- Chinese active contracts under `docs/design/` and `docs/config/` are canonical. `docs/en/**` uses `status: mirror` and `canonical_path`; conflicts return to the owner.
+- Snapshot actionable-friction and friction-topic mappings live only in `domain/snapshots/projection.py`; runtime and archive paths consume them. Report orchestration lives only in `application/orchestrator.generate_report_artifacts`.
+- No separate truth registry is added. Existing canonical contracts describe ownership, while automated gates discover projections from code and directories.
+- Application code imports only public infra APIs; CI tests verify commit-pin shape without copying the current SHA; `STATUS_LABEL_KEYS` alone owns the status catalog schema.

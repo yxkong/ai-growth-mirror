@@ -5,20 +5,47 @@ on:
     branches: [main, master]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.12"
+            python-command: ./.venv/bin/python
+          - os: ubuntu-latest
+            python-version: "3.13"
+            python-command: ./.venv/bin/python
+          - os: windows-latest
+            python-version: "3.12"
+            python-command: .\.venv\Scripts\python.exe
+          - os: windows-latest
+            python-version: "3.13"
+            python-command: .\.venv\Scripts\python.exe
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@v5
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+      - name: Install locked dependencies
+        run: uv sync --locked --extra dev
 
-      - name: Run unit tests
-        run: pytest tests/unit -q --tb=no
+      - name: Run tests and calibration gates
+        run: ${{ matrix.python-command }} -m pytest tests/unit tests/evals -q --tb=no
+
+      - name: Compile package
+        run: ${{ matrix.python-command }} -m compileall -q ai_growth_mirror
+
+      - name: Build distributions
+        run: uv build

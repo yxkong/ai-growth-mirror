@@ -1,14 +1,19 @@
 """Application orchestrator — session collection and report generation."""
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
-from ..infra.readers import ADAPTER_BY_NAME
+from ..infra.readers import (
+    ADAPTER_BY_NAME,
+    TOOL_CHOICES,
+    materialize_deferred_session,
+    resolve_requested_tool_names,
+)
+from ..infra.io.atomic import atomic_write_json
 from ..domain.ingestion.model import (
     CollectedAdapterView,
     CollectionResult,
@@ -16,10 +21,6 @@ from ..domain.ingestion.model import (
 )
 from ..domain.session.model import SessionRecord
 from ..domain.session.scope import SessionScope, apply_session_scope
-from ..domain.session.tool_registry import (
-    TOOL_CHOICES,
-    resolve_requested_tool_names,
-)
 from ..infra.cache.store import CacheStore
 from ..config import GrowthMirrorConfig, llm_auth_missing
 from ..infra.enrichers.asset import scan_asset_roots
@@ -95,7 +96,11 @@ def available_specs() -> dict[str, ToolCollectorSpec]:
 
 
 def resolve_requested_tools(requested: tuple[str, ...] | list[str]) -> list[str]:
-    return resolve_requested_tool_names(requested, list(available_specs().keys()))
+    return [
+        tool_name
+        for tool_name in resolve_requested_tool_names(requested)
+        if tool_name in available_specs()
+    ]
 
 
 def build_data_roots(
@@ -166,6 +171,40 @@ def collect_sessions(
     return result
 
 
+def _parse_placeholder_sessions(
+    sessions: list[SessionRecord],
+    cache: CacheStore | None,
+) -> list[SessionRecord]:
+    """Parse lazy sessions in parallel while isolating corrupt source payloads."""
+    placeholder_sessions = [
+        session for session in sessions if getattr(session, "_is_placeholder", False)
+    ]
+    if not placeholder_sessions:
+        return sessions
+
+    def _parse_one(session: SessionRecord) -> None:
+        try:
+            materialize_deferred_session(session, cache)
+        except Exception as exc:
+            logger.warning(
+                "Skipping unreadable session %s/%s: %s",
+                session.tool_name,
+                session.session_id,
+                exc,
+            )
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=min(8, len(placeholder_sessions))) as executor:
+        list(executor.map(_parse_one, placeholder_sessions))
+
+    return [
+        session
+        for session in sessions
+        if not getattr(session, "_is_placeholder", False)
+    ]
+
+
 def write_run_manifest(
     *,
     cache: CacheStore,
@@ -190,7 +229,7 @@ def write_run_manifest(
     for path in paths:
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+            atomic_write_json(path, manifest)
             logger.info("Wrote manifest (%d sessions) to %s", len(sessions), path)
             return
         except OSError as exc:
@@ -334,15 +373,21 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
         if not sessions:
             raise NoSessionsInRangeError()
 
-        # Ensure all placeholder sessions are fully parsed and cached before proceeding.
-        # This occurs after project filtering to minimize IO/CPU.
-        placeholder_sessions = [s for s in sessions if getattr(s, "_is_placeholder", False)]
-        if placeholder_sessions:
-            progress(f"Parsing {len(placeholder_sessions)} unparsed sessions in parallel...")
-            from concurrent.futures import ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=8) as executor:
-                # lambda execution works perfectly here
-                list(executor.map(lambda s: s.ensure_parsed(cache_for_iter), placeholder_sessions))
+        # Parse only the sessions that survived scope filtering. A corrupt source
+        # payload must not prevent valid sessions from producing a report.
+        placeholder_count = sum(
+            1 for session in sessions if getattr(session, "_is_placeholder", False)
+        )
+        if placeholder_count:
+            progress(f"Parsing {placeholder_count} unparsed sessions in parallel...")
+            before_parse_count = len(sessions)
+            sessions = _parse_placeholder_sessions(sessions, cache_for_iter)
+            skipped_count = before_parse_count - len(sessions)
+            if skipped_count:
+                progress(f"[Warn] Skipped {skipped_count} unreadable sessions.")
+
+        if not sessions:
+            raise NoSessionsInRangeError()
 
         min_sessions_threshold = request.min_sessions if request.min_sessions is not None else MIN_SESSIONS_HARD
         if len(sessions) < min_sessions_threshold:
@@ -491,8 +536,11 @@ def generate_report_artifacts(request: GenerateReportRequest) -> GenerateReportR
                     until=until_dt,
                     local_method_frameworks=local_method_frameworks,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                progress(
+                    "[Warn] AGM-ASSET-SCAN-UNAVAILABLE "
+                    f"exception_type={type(exc).__name__}"
+                )
 
         stats = aggregate(
             sessions,
